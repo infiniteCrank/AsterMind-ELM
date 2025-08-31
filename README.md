@@ -453,7 +453,18 @@ AsterMind has been tested with a variety of automated experiments, including:
 * `elm_ensemble_knowledge_distillation.ts`
 * `train_hybrid_multilevel_pipeline.ts`
 * `train_multi_encoder.ts`: Run with `npx ts-node train_multi_encoder.ts`
-* `train_weighted_hybrid_multilevel_pipeline.ts`: Run with `npx ts-node train_weighted_hybrid_multilevel_pipeline.ts`
+* `train_weighted_hybrid_multilevel_pipeline.ts`: 
+
+
+### Run with `npx ts-node train_weighted_hybrid_multilevel_pipeline.ts`
+### Also change tsconfig.json to the following:
+```{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "CommonJS",
+        //"module": "esnext",
+        ...
+ ```
 
 **Results Summary:**
 
