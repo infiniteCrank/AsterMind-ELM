@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AG News ELM Classifier Demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      line-height: 1.6;
+    }
+    input[type="text"] {
+      padding: 0.5rem;
+      width: 100%;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .prediction-output {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    .confidence-bar {
+      height: 24px;
+      border-radius: 12px;
+      background: #ddd;
+      overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      line-height: 24px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📰 AG News Classifier (ELM)</h1>
+  <p>Type a news headline below to see the predicted topic using chained ELMs trained on the AG News dataset.</p>
+
+  <input type="text" id="headlineInput" placeholder="Type a news headline..." />
+  <div class="prediction-output" id="predictionOutput"></div>
+  <div class="confidence-bar">
+    <div id="confidenceFill" class="confidence-fill" style="width:0%"></div>
+  </div>
+
+  <script src="/astermind.umd.js"></script>
+  <script src="/agnews-demo.js"></script>
+</body>
+</html>

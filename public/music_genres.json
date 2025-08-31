@@ -1,0 +1,62 @@
+[
+  {
+    "label": "rock"
+  },
+  {
+    "label": "pop"
+  },
+  {
+    "label": "jazz"
+  },
+  {
+    "label": "hip hop"
+  },
+  {
+    "label": "electronic"
+  },
+  {
+    "label": "folk"
+  },
+  {
+    "label": "blues"
+  },
+  {
+    "label": "reggae"
+  },
+  {
+    "label": "metal"
+  },
+  {
+    "label": "country"
+  },
+  {
+    "label": "classical"
+  },
+  {
+    "label": "funk"
+  },
+  {
+    "label": "disco"
+  },
+  {
+    "label": "techno"
+  },
+  {
+    "label": "house"
+  },
+  {
+    "label": "trance"
+  },
+  {
+    "label": "dubstep"
+  },
+  {
+    "label": "k-pop"
+  },
+  {
+    "label": "j-pop"
+  },
+  {
+    "label": "afrobeats"
+  }
+]

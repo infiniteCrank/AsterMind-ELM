@@ -1,0 +1,251 @@
+query,target
+What is the Go programming language?,### Day 1: Introduction to Go
+How do I install Go on my computer?,### Day 2: Installation and Setup
+How do I write my first Go program?,### Day 3: Your First Go Program
+What is the basic syntax of Go code?,### Day 4: Basic Syntax and Code Structure
+How do I format Go code?,### Day 4: Basic Syntax and Code Structure
+What are variables and constants in Go?,### Week 6: Go Basics and Syntax
+How do you declare variables in Go?,### Day 1: Variables and Constants
+How does type inference work in Go?,### Day 1: Variables and Constants
+What are Go's basic data types?,### Day 2: Data Types
+What are arithmetic operators in Go?,### Day 3: Basic Operators
+How can I get input from the user in Go?,### Day 4: Basic Input/Output
+How can I print output to the console in Go?,### Day 4: Basic Input/Output
+How do I use if-else statements in Go?,### Day 1: If-Else Statements
+How do I write switch statements in Go?,### Day 2: Switch Statements
+How do for loops work in Go?,### Day 3: For Loops (Part 1)
+How do I iterate over slices with range in Go?,### Day 4: For Loops (Part 2) and Ranges
+How do I define a function in Go?,"### Week 8: Functions, Error Handling, and Packages"
+How do I write variadic functions in Go?,### Day 2: Advanced Functions
+How does error handling work in Go?,### Day 3: Error Handling
+What are pointers in Go?,### Day 1: Pointers Basics
+How do I use pointers in Go functions?,### Day 2: Pointers in Functions
+How do I create arrays in Go?,### Day 1: Arrays
+How do slices work in Go?,### Day 2: Slices
+How do I copy and modify slices?,### Day 3: Slice Operations
+What is a map in Go?,### Day 4: Maps
+How do I define structs in Go?,### Day 1: Introduction to Structs
+How do I attach methods to structs?,### Day 2: Methods on Structs
+How do I embed structs in Go?,### Day 3: Struct Composition
+How do I create constructors in Go?,### Day 4: Constructors and Initialization
+What are interfaces in Go?,### Day 4: Interfaces Basics
+How do I implement interfaces?,### Day 4: Interfaces Basics
+How do I do type assertions in Go?,### Day 5: Interfaces in Depth
+How does concurrency work in Go?,### Week 12: Concurrency in Go
+How do I start a goroutine?,### Day 1: Introduction to Concurrency
+What are channels in Go?,### Day 3: Channels Basics
+How do I use select statements with channels?,### Day 4: Select Statement
+How do I create a worker pool in Go?,### Day 5: Concurrency Patterns and Review
+How can I read a file in Go?,### Day 1: File I/O Basics
+How can I write to a file in Go?,### Day 2: More on File I/O
+How do I build an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do I make HTTP requests in Go?,### Day 4: HTTP Clients
+How do I parse JSON in Go?,### Day 5: JSON Handling
+How do I write unit tests in Go?,### Day 1: Introduction to Testing
+What are table-driven tests in Go?,### Day 2: Writing More Tests
+How do I benchmark Go code?,### Day 3: Benchmarking
+How do I debug Go programs?,### Day 4: Debugging Techniques
+What are Go best practices?,### Day 5: Best Practices and Code Reviews
+How do I build CLI applications in Go?,### Day 1: Introduction to CLI Applications
+How do I build web applications in Go?,### Day 3: Introduction to Web Applications
+What is Gin framework for Go?,### Day 4: Web Frameworks Overview
+What is the Go programming language?,### Day 1: Introduction to Go
+How do I install Go on my computer?,### Day 2: Installation and Setup
+How do I write my first Go program?,### Day 3: Your First Go Program
+What is the basic syntax of Go code?,### Day 4: Basic Syntax and Code Structure
+How do I format Go code?,### Day 4: Basic Syntax and Code Structure
+What are variables and constants in Go?,### Week 6: Go Basics and Syntax
+How do you declare variables in Go?,### Day 1: Variables and Constants
+How does type inference work in Go?,### Day 1: Variables and Constants
+What are Go's basic data types?,### Day 2: Data Types
+What are arithmetic operators in Go?,### Day 3: Basic Operators
+How can I get input from the user in Go?,### Day 4: Basic Input/Output
+How can I print output to the console in Go?,### Day 4: Basic Input/Output
+How do I use if-else statements in Go?,### Day 1: If-Else Statements
+How do I write switch statements in Go?,### Day 2: Switch Statements
+How do for loops work in Go?,### Day 3: For Loops (Part 1)
+How do I iterate over slices with range in Go?,### Day 4: For Loops (Part 2) and Ranges
+How do I define a function in Go?,"### Week 8: Functions, Error Handling, and Packages"
+How do I write variadic functions in Go?,### Day 2: Advanced Functions
+How does error handling work in Go?,### Day 3: Error Handling
+What are pointers in Go?,### Day 1: Pointers Basics
+How do I use pointers in Go functions?,### Day 2: Pointers in Functions
+How do I create arrays in Go?,### Day 1: Arrays
+How do slices work in Go?,### Day 2: Slices
+How do I copy and modify slices?,### Day 3: Slice Operations
+What is a map in Go?,### Day 4: Maps
+How do I define structs in Go?,### Day 1: Introduction to Structs
+How do I attach methods to structs?,### Day 2: Methods on Structs
+How do I embed structs in Go?,### Day 3: Struct Composition
+How do I create constructors in Go?,### Day 4: Constructors and Initialization
+What are interfaces in Go?,### Day 4: Interfaces Basics
+How do I implement interfaces?,### Day 4: Interfaces Basics
+How do I do type assertions in Go?,### Day 5: Interfaces in Depth
+How does concurrency work in Go?,### Week 12: Concurrency in Go
+How do I start a goroutine?,### Day 1: Introduction to Concurrency
+What are channels in Go?,### Day 3: Channels Basics
+How do I use select statements with channels?,### Day 4: Select Statement
+How do I create a worker pool in Go?,### Day 5: Concurrency Patterns and Review
+How can I read a file in Go?,### Day 1: File I/O Basics
+How can I write to a file in Go?,### Day 2: More on File I/O
+How do I build an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do I make HTTP requests in Go?,### Day 4: HTTP Clients
+How do I parse JSON in Go?,### Day 5: JSON Handling
+How do I write unit tests in Go?,### Day 1: Introduction to Testing
+What are table-driven tests in Go?,### Day 2: Writing More Tests
+How do I benchmark Go code?,### Day 3: Benchmarking
+How do I debug Go programs?,### Day 4: Debugging Techniques
+What are Go best practices?,### Day 5: Best Practices and Code Reviews
+How do I build CLI applications in Go?,### Day 1: Introduction to CLI Applications
+How do I build web applications in Go?,### Day 3: Introduction to Web Applications
+What is Gin framework for Go?,### Day 4: Web Frameworks Overview
+What is the Go programming language?,### Day 1: Introduction to Go
+How do I install Go on my computer?,### Day 2: Installation and Setup
+How do I write my first Go program?,### Day 3: Your First Go Program
+What is the basic syntax of Go code?,### Day 4: Basic Syntax and Code Structure
+How do I format Go code?,### Day 4: Basic Syntax and Code Structure
+What are variables and constants in Go?,### Week 6: Go Basics and Syntax
+How do you declare variables in Go?,### Day 1: Variables and Constants
+How does type inference work in Go?,### Day 1: Variables and Constants
+What are Go's basic data types?,### Day 2: Data Types
+What are arithmetic operators in Go?,### Day 3: Basic Operators
+How can I get input from the user in Go?,### Day 4: Basic Input/Output
+How can I print output to the console in Go?,### Day 4: Basic Input/Output
+How do I use if-else statements in Go?,### Day 1: If-Else Statements
+How do I write switch statements in Go?,### Day 2: Switch Statements
+How do for loops work in Go?,### Day 3: For Loops (Part 1)
+How do I iterate over slices with range in Go?,### Day 4: For Loops (Part 2) and Ranges
+How do I define a function in Go?,"### Week 8: Functions, Error Handling, and Packages"
+How do I write variadic functions in Go?,### Day 2: Advanced Functions
+How does error handling work in Go?,### Day 3: Error Handling
+What are pointers in Go?,### Day 1: Pointers Basics
+How do I use pointers in Go functions?,### Day 2: Pointers in Functions
+How do I create arrays in Go?,### Day 1: Arrays
+How do slices work in Go?,### Day 2: Slices
+How do I copy and modify slices?,### Day 3: Slice Operations
+What is a map in Go?,### Day 4: Maps
+How do I define structs in Go?,### Day 1: Introduction to Structs
+How do I attach methods to structs?,### Day 2: Methods on Structs
+How do I embed structs in Go?,### Day 3: Struct Composition
+How do I create constructors in Go?,### Day 4: Constructors and Initialization
+What are interfaces in Go?,### Day 4: Interfaces Basics
+How do I implement interfaces?,### Day 4: Interfaces Basics
+How do I do type assertions in Go?,### Day 5: Interfaces in Depth
+How does concurrency work in Go?,### Week 12: Concurrency in Go
+How do I start a goroutine?,### Day 1: Introduction to Concurrency
+What are channels in Go?,### Day 3: Channels Basics
+How do I use select statements with channels?,### Day 4: Select Statement
+How do I create a worker pool in Go?,### Day 5: Concurrency Patterns and Review
+How can I read a file in Go?,### Day 1: File I/O Basics
+How can I write to a file in Go?,### Day 2: More on File I/O
+How do I build an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do I make HTTP requests in Go?,### Day 4: HTTP Clients
+How do I parse JSON in Go?,### Day 5: JSON Handling
+How do I write unit tests in Go?,### Day 1: Introduction to Testing
+What are table-driven tests in Go?,### Day 2: Writing More Tests
+How do I benchmark Go code?,### Day 3: Benchmarking
+How do I debug Go programs?,### Day 4: Debugging Techniques
+What are Go best practices?,### Day 5: Best Practices and Code Reviews
+How do I build CLI applications in Go?,### Day 1: Introduction to CLI Applications
+How do I build web applications in Go?,### Day 3: Introduction to Web Applications
+What is Gin framework for Go?,### Day 4: Web Frameworks Overview
+What is the Go programming language?,### Day 1: Introduction to Go
+How do I install Go on my computer?,### Day 2: Installation and Setup
+How do I write my first Go program?,### Day 3: Your First Go Program
+What is the basic syntax of Go code?,### Day 4: Basic Syntax and Code Structure
+How do I format Go code?,### Day 4: Basic Syntax and Code Structure
+What are variables and constants in Go?,### Week 6: Go Basics and Syntax
+How do you declare variables in Go?,### Day 1: Variables and Constants
+How does type inference work in Go?,### Day 1: Variables and Constants
+What are Go's basic data types?,### Day 2: Data Types
+What are arithmetic operators in Go?,### Day 3: Basic Operators
+How can I get input from the user in Go?,### Day 4: Basic Input/Output
+How can I print output to the console in Go?,### Day 4: Basic Input/Output
+How do I use if-else statements in Go?,### Day 1: If-Else Statements
+How do I write switch statements in Go?,### Day 2: Switch Statements
+How do for loops work in Go?,### Day 3: For Loops (Part 1)
+How do I iterate over slices with range in Go?,### Day 4: For Loops (Part 2) and Ranges
+How do I define a function in Go?,"### Week 8: Functions, Error Handling, and Packages"
+How do I write variadic functions in Go?,### Day 2: Advanced Functions
+How does error handling work in Go?,### Day 3: Error Handling
+What are pointers in Go?,### Day 1: Pointers Basics
+How do I use pointers in Go functions?,### Day 2: Pointers in Functions
+How do I create arrays in Go?,### Day 1: Arrays
+How do slices work in Go?,### Day 2: Slices
+How do I copy and modify slices?,### Day 3: Slice Operations
+What is a map in Go?,### Day 4: Maps
+How do I define structs in Go?,### Day 1: Introduction to Structs
+How do I attach methods to structs?,### Day 2: Methods on Structs
+How do I embed structs in Go?,### Day 3: Struct Composition
+How do I create constructors in Go?,### Day 4: Constructors and Initialization
+What are interfaces in Go?,### Day 4: Interfaces Basics
+How do I implement interfaces?,### Day 4: Interfaces Basics
+How do I do type assertions in Go?,### Day 5: Interfaces in Depth
+How does concurrency work in Go?,### Week 12: Concurrency in Go
+How do I start a goroutine?,### Day 1: Introduction to Concurrency
+What are channels in Go?,### Day 3: Channels Basics
+How do I use select statements with channels?,### Day 4: Select Statement
+How do I create a worker pool in Go?,### Day 5: Concurrency Patterns and Review
+How can I read a file in Go?,### Day 1: File I/O Basics
+How can I write to a file in Go?,### Day 2: More on File I/O
+How do I build an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do I make HTTP requests in Go?,### Day 4: HTTP Clients
+How do I parse JSON in Go?,### Day 5: JSON Handling
+How do I write unit tests in Go?,### Day 1: Introduction to Testing
+What are table-driven tests in Go?,### Day 2: Writing More Tests
+How do I benchmark Go code?,### Day 3: Benchmarking
+How do I debug Go programs?,### Day 4: Debugging Techniques
+What are Go best practices?,### Day 5: Best Practices and Code Reviews
+How do I build CLI applications in Go?,### Day 1: Introduction to CLI Applications
+How do I build web applications in Go?,### Day 3: Introduction to Web Applications
+What is Gin framework for Go?,### Day 4: Web Frameworks Overview
+What is the Go programming language?,### Day 1: Introduction to Go
+How do I install Go on my computer?,### Day 2: Installation and Setup
+How do I write my first Go program?,### Day 3: Your First Go Program
+What is the basic syntax of Go code?,### Day 4: Basic Syntax and Code Structure
+How do I format Go code?,### Day 4: Basic Syntax and Code Structure
+What are variables and constants in Go?,### Week 6: Go Basics and Syntax
+How do you declare variables in Go?,### Day 1: Variables and Constants
+How does type inference work in Go?,### Day 1: Variables and Constants
+What are Go's basic data types?,### Day 2: Data Types
+What are arithmetic operators in Go?,### Day 3: Basic Operators
+How can I get input from the user in Go?,### Day 4: Basic Input/Output
+How can I print output to the console in Go?,### Day 4: Basic Input/Output
+How do I use if-else statements in Go?,### Day 1: If-Else Statements
+How do I write switch statements in Go?,### Day 2: Switch Statements
+How do for loops work in Go?,### Day 3: For Loops (Part 1)
+How do I iterate over slices with range in Go?,### Day 4: For Loops (Part 2) and Ranges
+How do I define a function in Go?,"### Week 8: Functions, Error Handling, and Packages"
+How do I write variadic functions in Go?,### Day 2: Advanced Functions
+How does error handling work in Go?,### Day 3: Error Handling
+What are pointers in Go?,### Day 1: Pointers Basics
+How do I use pointers in Go functions?,### Day 2: Pointers in Functions
+How do I create arrays in Go?,### Day 1: Arrays
+How do slices work in Go?,### Day 2: Slices
+How do I copy and modify slices?,### Day 3: Slice Operations
+What is a map in Go?,### Day 4: Maps
+How do I define structs in Go?,### Day 1: Introduction to Structs
+How do I attach methods to structs?,### Day 2: Methods on Structs
+How do I embed structs in Go?,### Day 3: Struct Composition
+How do I create constructors in Go?,### Day 4: Constructors and Initialization
+What are interfaces in Go?,### Day 4: Interfaces Basics
+How do I implement interfaces?,### Day 4: Interfaces Basics
+How do I do type assertions in Go?,### Day 5: Interfaces in Depth
+How does concurrency work in Go?,### Week 12: Concurrency in Go
+How do I start a goroutine?,### Day 1: Introduction to Concurrency
+What are channels in Go?,### Day 3: Channels Basics
+How do I use select statements with channels?,### Day 4: Select Statement
+How do I create a worker pool in Go?,### Day 5: Concurrency Patterns and Review
+How can I read a file in Go?,### Day 1: File I/O Basics
+How can I write to a file in Go?,### Day 2: More on File I/O
+How do I build an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do I make HTTP requests in Go?,### Day 4: HTTP Clients
+How do I parse JSON in Go?,### Day 5: JSON Handling
+How do I write unit tests in Go?,### Day 1: Introduction to Testing
+What are table-driven tests in Go?,### Day 2: Writing More Tests
+How do I benchmark Go code?,### Day 3: Benchmarking
+How do I debug Go programs?,### Day 4: Debugging Techniques
+What are Go best practices?,### Day 5: Best Practices and Code Reviews
+How do I build CLI applications in Go?,### Day 1: Introduction to CLI Applications
+How do I build web applications in Go?,### Day 3: Introduction to Web Applications
+What is Gin framework for Go?,### Day 4: Web Frameworks Overview

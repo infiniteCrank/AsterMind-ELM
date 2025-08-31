@@ -1,0 +1,101 @@
+query,target
+How do you handle JSON in Go?,### Day 1: Introduction to Computers and Programming Concepts
+How do you handle JSON in Go? (mismatch),### Day 1: Introduction to Computers and Programming Concepts
+How do you handle JSON in Go? (wrong),### Day 1: Introduction to Computers and Programming Concepts
+How do you handle JSON in Go? (incorrect),### Day 1: Introduction to Computers and Programming Concepts
+How do you handle JSON in Go? (invalid),### Day 1: Introduction to Computers and Programming Concepts
+How do you define structs?,### Day 2: Overview of Programming Languages and Tools
+How do you define structs? (mismatch),### Day 2: Overview of Programming Languages and Tools
+How do you define structs? (wrong),### Day 2: Overview of Programming Languages and Tools
+How do you define structs? (incorrect),### Day 2: Overview of Programming Languages and Tools
+How do you define structs? (invalid),### Day 2: Overview of Programming Languages and Tools
+How do you write interface implementations?,### Day 3: The Development Process & Pseudocode
+How do you write interface implementations? (mismatch),### Day 3: The Development Process & Pseudocode
+How do you write interface implementations? (wrong),### Day 3: The Development Process & Pseudocode
+How do you write interface implementations? (incorrect),### Day 3: The Development Process & Pseudocode
+How do you write interface implementations? (invalid),### Day 3: The Development Process & Pseudocode
+How do you use maps in Go?,### Day 4: Introduction to Variables and Data Types
+How do you use maps in Go? (mismatch),### Day 4: Introduction to Variables and Data Types
+How do you use maps in Go? (wrong),### Day 4: Introduction to Variables and Data Types
+How do you use maps in Go? (incorrect),### Day 4: Introduction to Variables and Data Types
+How do you use maps in Go? (invalid),### Day 4: Introduction to Variables and Data Types
+How do you declare slices?,### Day 5: Review and Exercises
+How do you declare slices? (mismatch),### Day 5: Review and Exercises
+How do you declare slices? (wrong),### Day 5: Review and Exercises
+How do you declare slices? (incorrect),### Day 5: Review and Exercises
+How do you declare slices? (invalid),### Day 5: Review and Exercises
+How do you set up goroutines?,### Day 1: Understanding Variables and Operators
+How do you set up goroutines? (mismatch),### Day 1: Understanding Variables and Operators
+How do you set up goroutines? (wrong),### Day 1: Understanding Variables and Operators
+How do you set up goroutines? (incorrect),### Day 1: Understanding Variables and Operators
+How do you set up goroutines? (invalid),### Day 1: Understanding Variables and Operators
+How do you write a test function?,### Day 2: Control Flow with Conditionals
+How do you write a test function? (mismatch),### Day 2: Control Flow with Conditionals
+How do you write a test function? (wrong),### Day 2: Control Flow with Conditionals
+How do you write a test function? (incorrect),### Day 2: Control Flow with Conditionals
+How do you write a test function? (invalid),### Day 2: Control Flow with Conditionals
+How do you benchmark code?,### Day 3: Loops and Iteration Concepts
+How do you benchmark code? (mismatch),### Day 3: Loops and Iteration Concepts
+How do you benchmark code? (wrong),### Day 3: Loops and Iteration Concepts
+How do you benchmark code? (incorrect),### Day 3: Loops and Iteration Concepts
+How do you benchmark code? (invalid),### Day 3: Loops and Iteration Concepts
+How do you use select statements?,### Day 4: Basic Input/Output Concepts
+How do you use select statements? (mismatch),### Day 4: Basic Input/Output Concepts
+How do you use select statements? (wrong),### Day 4: Basic Input/Output Concepts
+How do you use select statements? (incorrect),### Day 4: Basic Input/Output Concepts
+How do you use select statements? (invalid),### Day 4: Basic Input/Output Concepts
+How do you set up HTTP servers?,### Day 5: Mini Project & Review
+How do you set up HTTP servers? (mismatch),### Day 5: Mini Project & Review
+How do you set up HTTP servers? (wrong),### Day 5: Mini Project & Review
+How do you set up HTTP servers? (incorrect),### Day 5: Mini Project & Review
+How do you set up HTTP servers? (invalid),### Day 5: Mini Project & Review
+How do you build a REST API?,### Day 1: What Are Functions and Why Use Them?
+How do you build a REST API? (mismatch),### Day 1: What Are Functions and Why Use Them?
+How do you build a REST API? (wrong),### Day 1: What Are Functions and Why Use Them?
+How do you build a REST API? (incorrect),### Day 1: What Are Functions and Why Use Them?
+How do you build a REST API? (invalid),### Day 1: What Are Functions and Why Use Them?
+How do you pass pointers to functions?,### Day 2: Defining and Calling Functions
+How do you pass pointers to functions? (mismatch),### Day 2: Defining and Calling Functions
+How do you pass pointers to functions? (wrong),### Day 2: Defining and Calling Functions
+How do you pass pointers to functions? (incorrect),### Day 2: Defining and Calling Functions
+How do you pass pointers to functions? (invalid),### Day 2: Defining and Calling Functions
+How do you use error handling idioms?,### Day 3: Function Parameters and Return Values
+How do you use error handling idioms? (mismatch),### Day 3: Function Parameters and Return Values
+How do you use error handling idioms? (wrong),### Day 3: Function Parameters and Return Values
+How do you use error handling idioms? (incorrect),### Day 3: Function Parameters and Return Values
+How do you use error handling idioms? (invalid),### Day 3: Function Parameters and Return Values
+How do you configure Go modules?,### Day 4: Introduction to Debugging and Error Checking
+How do you configure Go modules? (mismatch),### Day 4: Introduction to Debugging and Error Checking
+How do you configure Go modules? (wrong),### Day 4: Introduction to Debugging and Error Checking
+How do you configure Go modules? (incorrect),### Day 4: Introduction to Debugging and Error Checking
+How do you configure Go modules? (invalid),### Day 4: Introduction to Debugging and Error Checking
+How do you install dependencies?,### Day 5: Review and a Simple Functions Project
+How do you install dependencies? (mismatch),### Day 5: Review and a Simple Functions Project
+How do you install dependencies? (wrong),### Day 5: Review and a Simple Functions Project
+How do you install dependencies? (incorrect),### Day 5: Review and a Simple Functions Project
+How do you install dependencies? (invalid),### Day 5: Review and a Simple Functions Project
+How do you create concurrent worker pools?,### Day 1: Arrays and Lists – Concepts and Uses
+How do you create concurrent worker pools? (mismatch),### Day 1: Arrays and Lists – Concepts and Uses
+How do you create concurrent worker pools? (wrong),### Day 1: Arrays and Lists – Concepts and Uses
+How do you create concurrent worker pools? (incorrect),### Day 1: Arrays and Lists – Concepts and Uses
+How do you create concurrent worker pools? (invalid),### Day 1: Arrays and Lists – Concepts and Uses
+How do you perform JSON marshaling?,### Day 2: Working with Strings
+How do you perform JSON marshaling? (mismatch),### Day 2: Working with Strings
+How do you perform JSON marshaling? (wrong),### Day 2: Working with Strings
+How do you perform JSON marshaling? (incorrect),### Day 2: Working with Strings
+How do you perform JSON marshaling? (invalid),### Day 2: Working with Strings
+How do you parse JSON in HTTP handlers?,### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you parse JSON in HTTP handlers? (mismatch),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you parse JSON in HTTP handlers? (wrong),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you parse JSON in HTTP handlers? (incorrect),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you parse JSON in HTTP handlers? (invalid),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you use build tags?,### Day 4: Basic Algorithms – Searching and Sorting
+How do you use build tags? (mismatch),### Day 4: Basic Algorithms – Searching and Sorting
+How do you use build tags? (wrong),### Day 4: Basic Algorithms – Searching and Sorting
+How do you use build tags? (incorrect),### Day 4: Basic Algorithms – Searching and Sorting
+How do you use build tags? (invalid),### Day 4: Basic Algorithms – Searching and Sorting
+How do you write CLI flags?,### Day 5: Mini Project and Review
+How do you write CLI flags? (mismatch),### Day 5: Mini Project and Review
+How do you write CLI flags? (wrong),### Day 5: Mini Project and Review
+How do you write CLI flags? (incorrect),### Day 5: Mini Project and Review
+How do you write CLI flags? (invalid),### Day 5: Mini Project and Review

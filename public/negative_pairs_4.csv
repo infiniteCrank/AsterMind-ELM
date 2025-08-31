@@ -1,0 +1,101 @@
+query,target
+How do you declare a pointer in Go?,### Day 1: Introduction to Computers and Programming Concepts
+How do you declare a pointer in Go? (incorrect),### Day 1: Introduction to Computers and Programming Concepts
+How do you declare a pointer in Go? (wrong section),### Day 1: Introduction to Computers and Programming Concepts
+How do you declare a pointer in Go? (mismatch),### Day 1: Introduction to Computers and Programming Concepts
+How do you declare a pointer in Go? (error),### Day 1: Introduction to Computers and Programming Concepts
+How do you create a method receiver?,### Day 2: Overview of Programming Languages and Tools
+How do you create a method receiver? (incorrect),### Day 2: Overview of Programming Languages and Tools
+How do you create a method receiver? (wrong section),### Day 2: Overview of Programming Languages and Tools
+How do you create a method receiver? (mismatch),### Day 2: Overview of Programming Languages and Tools
+How do you create a method receiver? (error),### Day 2: Overview of Programming Languages and Tools
+How do you perform type assertions?,### Day 3: The Development Process & Pseudocode
+How do you perform type assertions? (incorrect),### Day 3: The Development Process & Pseudocode
+How do you perform type assertions? (wrong section),### Day 3: The Development Process & Pseudocode
+How do you perform type assertions? (mismatch),### Day 3: The Development Process & Pseudocode
+How do you perform type assertions? (error),### Day 3: The Development Process & Pseudocode
+How do you handle errors in HTTP clients?,### Day 4: Introduction to Variables and Data Types
+How do you handle errors in HTTP clients? (incorrect),### Day 4: Introduction to Variables and Data Types
+How do you handle errors in HTTP clients? (wrong section),### Day 4: Introduction to Variables and Data Types
+How do you handle errors in HTTP clients? (mismatch),### Day 4: Introduction to Variables and Data Types
+How do you handle errors in HTTP clients? (error),### Day 4: Introduction to Variables and Data Types
+How do you create constants?,### Day 5: Review and Exercises
+How do you create constants? (incorrect),### Day 5: Review and Exercises
+How do you create constants? (wrong section),### Day 5: Review and Exercises
+How do you create constants? (mismatch),### Day 5: Review and Exercises
+How do you create constants? (error),### Day 5: Review and Exercises
+How do you write a select statement?,### Day 1: Understanding Variables and Operators
+How do you write a select statement? (incorrect),### Day 1: Understanding Variables and Operators
+How do you write a select statement? (wrong section),### Day 1: Understanding Variables and Operators
+How do you write a select statement? (mismatch),### Day 1: Understanding Variables and Operators
+How do you write a select statement? (error),### Day 1: Understanding Variables and Operators
+How do you make a buffered channel?,### Day 2: Control Flow with Conditionals
+How do you make a buffered channel? (incorrect),### Day 2: Control Flow with Conditionals
+How do you make a buffered channel? (wrong section),### Day 2: Control Flow with Conditionals
+How do you make a buffered channel? (mismatch),### Day 2: Control Flow with Conditionals
+How do you make a buffered channel? (error),### Day 2: Control Flow with Conditionals
+How do you start an HTTP server?,### Day 3: Loops and Iteration Concepts
+How do you start an HTTP server? (incorrect),### Day 3: Loops and Iteration Concepts
+How do you start an HTTP server? (wrong section),### Day 3: Loops and Iteration Concepts
+How do you start an HTTP server? (mismatch),### Day 3: Loops and Iteration Concepts
+How do you start an HTTP server? (error),### Day 3: Loops and Iteration Concepts
+How do you write JSON encoding?,### Day 4: Basic Input/Output Concepts
+How do you write JSON encoding? (incorrect),### Day 4: Basic Input/Output Concepts
+How do you write JSON encoding? (wrong section),### Day 4: Basic Input/Output Concepts
+How do you write JSON encoding? (mismatch),### Day 4: Basic Input/Output Concepts
+How do you write JSON encoding? (error),### Day 4: Basic Input/Output Concepts
+How do you declare slices with make?,### Day 5: Mini Project & Review
+How do you declare slices with make? (incorrect),### Day 5: Mini Project & Review
+How do you declare slices with make? (wrong section),### Day 5: Mini Project & Review
+How do you declare slices with make? (mismatch),### Day 5: Mini Project & Review
+How do you declare slices with make? (error),### Day 5: Mini Project & Review
+How do you create variadic functions?,### Day 1: What Are Functions and Why Use Them?
+How do you create variadic functions? (incorrect),### Day 1: What Are Functions and Why Use Them?
+How do you create variadic functions? (wrong section),### Day 1: What Are Functions and Why Use Them?
+How do you create variadic functions? (mismatch),### Day 1: What Are Functions and Why Use Them?
+How do you create variadic functions? (error),### Day 1: What Are Functions and Why Use Them?
+How do you declare interfaces?,### Day 2: Defining and Calling Functions
+How do you declare interfaces? (incorrect),### Day 2: Defining and Calling Functions
+How do you declare interfaces? (wrong section),### Day 2: Defining and Calling Functions
+How do you declare interfaces? (mismatch),### Day 2: Defining and Calling Functions
+How do you declare interfaces? (error),### Day 2: Defining and Calling Functions
+How do you build REST APIs with Gin?,### Day 3: Function Parameters and Return Values
+How do you build REST APIs with Gin? (incorrect),### Day 3: Function Parameters and Return Values
+How do you build REST APIs with Gin? (wrong section),### Day 3: Function Parameters and Return Values
+How do you build REST APIs with Gin? (mismatch),### Day 3: Function Parameters and Return Values
+How do you build REST APIs with Gin? (error),### Day 3: Function Parameters and Return Values
+How do you write table-driven tests?,### Day 4: Introduction to Debugging and Error Checking
+How do you write table-driven tests? (incorrect),### Day 4: Introduction to Debugging and Error Checking
+How do you write table-driven tests? (wrong section),### Day 4: Introduction to Debugging and Error Checking
+How do you write table-driven tests? (mismatch),### Day 4: Introduction to Debugging and Error Checking
+How do you write table-driven tests? (error),### Day 4: Introduction to Debugging and Error Checking
+How do you benchmark functions?,### Day 5: Review and a Simple Functions Project
+How do you benchmark functions? (incorrect),### Day 5: Review and a Simple Functions Project
+How do you benchmark functions? (wrong section),### Day 5: Review and a Simple Functions Project
+How do you benchmark functions? (mismatch),### Day 5: Review and a Simple Functions Project
+How do you benchmark functions? (error),### Day 5: Review and a Simple Functions Project
+How do you run gofmt?,### Day 1: Arrays and Lists – Concepts and Uses
+How do you run gofmt? (incorrect),### Day 1: Arrays and Lists – Concepts and Uses
+How do you run gofmt? (wrong section),### Day 1: Arrays and Lists – Concepts and Uses
+How do you run gofmt? (mismatch),### Day 1: Arrays and Lists – Concepts and Uses
+How do you run gofmt? (error),### Day 1: Arrays and Lists – Concepts and Uses
+How do you install packages?,### Day 2: Working with Strings
+How do you install packages? (incorrect),### Day 2: Working with Strings
+How do you install packages? (wrong section),### Day 2: Working with Strings
+How do you install packages? (mismatch),### Day 2: Working with Strings
+How do you install packages? (error),### Day 2: Working with Strings
+How do you use omitempty in JSON?,### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you use omitempty in JSON? (incorrect),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you use omitempty in JSON? (wrong section),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you use omitempty in JSON? (mismatch),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you use omitempty in JSON? (error),### Day 3: Introduction to Key-Value Stores (Maps/Dictionaries)
+How do you build CLI commands?,### Day 4: Basic Algorithms – Searching and Sorting
+How do you build CLI commands? (incorrect),### Day 4: Basic Algorithms – Searching and Sorting
+How do you build CLI commands? (wrong section),### Day 4: Basic Algorithms – Searching and Sorting
+How do you build CLI commands? (mismatch),### Day 4: Basic Algorithms – Searching and Sorting
+How do you build CLI commands? (error),### Day 4: Basic Algorithms – Searching and Sorting
+How do you use channels for concurrency?,### Day 5: Mini Project and Review
+How do you use channels for concurrency? (incorrect),### Day 5: Mini Project and Review
+How do you use channels for concurrency? (wrong section),### Day 5: Mini Project and Review
+How do you use channels for concurrency? (mismatch),### Day 5: Mini Project and Review
+How do you use channels for concurrency? (error),### Day 5: Mini Project and Review

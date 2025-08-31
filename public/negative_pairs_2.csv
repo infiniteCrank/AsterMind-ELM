@@ -1,0 +1,101 @@
+query,target
+How do you declare variables in Go?,### Day 3: Expanding the Project
+How do you declare variables in Go? (wrong),### Day 3: Expanding the Project
+How do you declare variables in Go? (invalid),### Day 3: Expanding the Project
+How do you declare variables in Go? (mismatch),### Day 3: Expanding the Project
+How do you declare variables in Go? (incorrect reference),### Day 3: Expanding the Project
+How do you write a for loop?,### Day 4: Introduction to Variables and Data Types
+How do you write a for loop? (wrong),### Day 4: Introduction to Variables and Data Types
+How do you write a for loop? (invalid),### Day 4: Introduction to Variables and Data Types
+How do you write a for loop? (mismatch),### Day 4: Introduction to Variables and Data Types
+How do you write a for loop? (incorrect reference),### Day 4: Introduction to Variables and Data Types
+How do you use if statements?,### Day 1: Final Project Kick-off
+How do you use if statements? (wrong),### Day 1: Final Project Kick-off
+How do you use if statements? (invalid),### Day 1: Final Project Kick-off
+How do you use if statements? (mismatch),### Day 1: Final Project Kick-off
+How do you use if statements? (incorrect reference),### Day 1: Final Project Kick-off
+How do you append to a slice?,### Day 1: Introduction to Computers and Programming Concepts
+How do you append to a slice? (wrong),### Day 1: Introduction to Computers and Programming Concepts
+How do you append to a slice? (invalid),### Day 1: Introduction to Computers and Programming Concepts
+How do you append to a slice? (mismatch),### Day 1: Introduction to Computers and Programming Concepts
+How do you append to a slice? (incorrect reference),### Day 1: Introduction to Computers and Programming Concepts
+How do you define a method on a struct?,### Day 3: Arrays
+How do you define a method on a struct? (wrong),### Day 3: Arrays
+How do you define a method on a struct? (invalid),### Day 3: Arrays
+How do you define a method on a struct? (mismatch),### Day 3: Arrays
+How do you define a method on a struct? (incorrect reference),### Day 3: Arrays
+How do you start multiple goroutines?,### Day 2: Overview of Programming Languages and Tools
+How do you start multiple goroutines? (wrong),### Day 2: Overview of Programming Languages and Tools
+How do you start multiple goroutines? (invalid),### Day 2: Overview of Programming Languages and Tools
+How do you start multiple goroutines? (mismatch),### Day 2: Overview of Programming Languages and Tools
+How do you start multiple goroutines? (incorrect reference),### Day 2: Overview of Programming Languages and Tools
+How do you create a buffered channel?,### Day 5: Exercises and Review
+How do you create a buffered channel? (wrong),### Day 5: Exercises and Review
+How do you create a buffered channel? (invalid),### Day 5: Exercises and Review
+How do you create a buffered channel? (mismatch),### Day 5: Exercises and Review
+How do you create a buffered channel? (incorrect reference),### Day 5: Exercises and Review
+How do you use select statements?,### Day 3: Introduction to HTTP Servers
+How do you use select statements? (wrong),### Day 3: Introduction to HTTP Servers
+How do you use select statements? (invalid),### Day 3: Introduction to HTTP Servers
+How do you use select statements? (mismatch),### Day 3: Introduction to HTTP Servers
+How do you use select statements? (incorrect reference),### Day 3: Introduction to HTTP Servers
+How do you write subtests in Go?,### Day 4: Introduction to Variables and Data Types
+How do you write subtests in Go? (wrong),### Day 4: Introduction to Variables and Data Types
+How do you write subtests in Go? (invalid),### Day 4: Introduction to Variables and Data Types
+How do you write subtests in Go? (mismatch),### Day 4: Introduction to Variables and Data Types
+How do you write subtests in Go? (incorrect reference),### Day 4: Introduction to Variables and Data Types
+How do you use WaitGroups?,### Day 1: What is a Computer Program?
+How do you use WaitGroups? (wrong),### Day 1: What is a Computer Program?
+How do you use WaitGroups? (invalid),### Day 1: What is a Computer Program?
+How do you use WaitGroups? (mismatch),### Day 1: What is a Computer Program?
+How do you use WaitGroups? (incorrect reference),### Day 1: What is a Computer Program?
+How do you create a Go module?,### Day 2: Control Flow with Conditionals
+How do you create a Go module? (wrong),### Day 2: Control Flow with Conditionals
+How do you create a Go module? (invalid),### Day 2: Control Flow with Conditionals
+How do you create a Go module? (mismatch),### Day 2: Control Flow with Conditionals
+How do you create a Go module? (incorrect reference),### Day 2: Control Flow with Conditionals
+How do you serve JSON in HTTP responses?,### Day 3: Loops and Iteration Concepts
+How do you serve JSON in HTTP responses? (wrong),### Day 3: Loops and Iteration Concepts
+How do you serve JSON in HTTP responses? (invalid),### Day 3: Loops and Iteration Concepts
+How do you serve JSON in HTTP responses? (mismatch),### Day 3: Loops and Iteration Concepts
+How do you serve JSON in HTTP responses? (incorrect reference),### Day 3: Loops and Iteration Concepts
+How do you use the context package?,### Day 5: Mini Project & Review
+How do you use the context package? (wrong),### Day 5: Mini Project & Review
+How do you use the context package? (invalid),### Day 5: Mini Project & Review
+How do you use the context package? (mismatch),### Day 5: Mini Project & Review
+How do you use the context package? (incorrect reference),### Day 5: Mini Project & Review
+How do you recover from panics?,### Day 3: Arrays
+How do you recover from panics? (wrong),### Day 3: Arrays
+How do you recover from panics? (invalid),### Day 3: Arrays
+How do you recover from panics? (mismatch),### Day 3: Arrays
+How do you recover from panics? (incorrect reference),### Day 3: Arrays
+How do you build a CLI application?,### Day 2: Working with Strings
+How do you build a CLI application? (wrong),### Day 2: Working with Strings
+How do you build a CLI application? (invalid),### Day 2: Working with Strings
+How do you build a CLI application? (mismatch),### Day 2: Working with Strings
+How do you build a CLI application? (incorrect reference),### Day 2: Working with Strings
+How do you install third-party packages?,### Day 3: Arrays
+How do you install third-party packages? (wrong),### Day 3: Arrays
+How do you install third-party packages? (invalid),### Day 3: Arrays
+How do you install third-party packages? (mismatch),### Day 3: Arrays
+How do you install third-party packages? (incorrect reference),### Day 3: Arrays
+How do you cross-compile Go binaries?,### Day 4: Introduction to Debugging and Error Checking
+How do you cross-compile Go binaries? (wrong),### Day 4: Introduction to Debugging and Error Checking
+How do you cross-compile Go binaries? (invalid),### Day 4: Introduction to Debugging and Error Checking
+How do you cross-compile Go binaries? (mismatch),### Day 4: Introduction to Debugging and Error Checking
+How do you cross-compile Go binaries? (incorrect reference),### Day 4: Introduction to Debugging and Error Checking
+How do you format code with gofmt?,### Day 1: Introduction to Computers and Programming Concepts
+How do you format code with gofmt? (wrong),### Day 1: Introduction to Computers and Programming Concepts
+How do you format code with gofmt? (invalid),### Day 1: Introduction to Computers and Programming Concepts
+How do you format code with gofmt? (mismatch),### Day 1: Introduction to Computers and Programming Concepts
+How do you format code with gofmt? (incorrect reference),### Day 1: Introduction to Computers and Programming Concepts
+How do you implement interfaces?,### Day 3: Arrays
+How do you implement interfaces? (wrong),### Day 3: Arrays
+How do you implement interfaces? (invalid),### Day 3: Arrays
+How do you implement interfaces? (mismatch),### Day 3: Arrays
+How do you implement interfaces? (incorrect reference),### Day 3: Arrays
+How do you use type assertions?,### Day 4: Basic Input/Output
+How do you use type assertions? (wrong),### Day 4: Basic Input/Output
+How do you use type assertions? (invalid),### Day 4: Basic Input/Output
+How do you use type assertions? (mismatch),### Day 4: Basic Input/Output
+How do you use type assertions? (incorrect reference),### Day 4: Basic Input/Output

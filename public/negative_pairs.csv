@@ -1,0 +1,101 @@
+query,target
+How do you declare a map in Go?,### Day 1: Introduction to Go
+How do you declare a map in Go? (wrong answer),### Day 1: Introduction to Go
+How do you declare a map in Go? (incorrect),### Day 1: Introduction to Go
+How do you declare a map in Go? (mismatch),### Day 1: Introduction to Go
+How do you declare a map in Go? (error),### Day 1: Introduction to Go
+How do you handle JSON in Go?,### Day 3: For Loops (Part 1)
+How do you handle JSON in Go? (wrong answer),### Day 3: For Loops (Part 1)
+How do you handle JSON in Go? (incorrect),### Day 3: For Loops (Part 1)
+How do you handle JSON in Go? (mismatch),### Day 3: For Loops (Part 1)
+How do you handle JSON in Go? (error),### Day 3: For Loops (Part 1)
+How do you start a goroutine?,### Day 4: Basic Input/Output
+How do you start a goroutine? (wrong answer),### Day 4: Basic Input/Output
+How do you start a goroutine? (incorrect),### Day 4: Basic Input/Output
+How do you start a goroutine? (mismatch),### Day 4: Basic Input/Output
+How do you start a goroutine? (error),### Day 4: Basic Input/Output
+How do you create a slice?,### Day 1: Introduction to Computers and Programming Concepts
+How do you create a slice? (wrong answer),### Day 1: Introduction to Computers and Programming Concepts
+How do you create a slice? (incorrect),### Day 1: Introduction to Computers and Programming Concepts
+How do you create a slice? (mismatch),### Day 1: Introduction to Computers and Programming Concepts
+How do you create a slice? (error),### Day 1: Introduction to Computers and Programming Concepts
+How do you create an interface?,### Day 2: Control Flow with Conditionals
+How do you create an interface? (wrong answer),### Day 2: Control Flow with Conditionals
+How do you create an interface? (incorrect),### Day 2: Control Flow with Conditionals
+How do you create an interface? (mismatch),### Day 2: Control Flow with Conditionals
+How do you create an interface? (error),### Day 2: Control Flow with Conditionals
+How do you write a unit test?,### Day 3: Arrays
+How do you write a unit test? (wrong answer),### Day 3: Arrays
+How do you write a unit test? (incorrect),### Day 3: Arrays
+How do you write a unit test? (mismatch),### Day 3: Arrays
+How do you write a unit test? (error),### Day 3: Arrays
+How do you parse command-line flags?,### Day 1: What is a Computer Program?
+How do you parse command-line flags? (wrong answer),### Day 1: What is a Computer Program?
+How do you parse command-line flags? (incorrect),### Day 1: What is a Computer Program?
+How do you parse command-line flags? (mismatch),### Day 1: What is a Computer Program?
+How do you parse command-line flags? (error),### Day 1: What is a Computer Program?
+How do you build a web server?,### Day 4: For Loops (Part 2) and Ranges
+How do you build a web server? (wrong answer),### Day 4: For Loops (Part 2) and Ranges
+How do you build a web server? (incorrect),### Day 4: For Loops (Part 2) and Ranges
+How do you build a web server? (mismatch),### Day 4: For Loops (Part 2) and Ranges
+How do you build a web server? (error),### Day 4: For Loops (Part 2) and Ranges
+How do you use defer?,### Day 2: Switch Statements
+How do you use defer? (wrong answer),### Day 2: Switch Statements
+How do you use defer? (incorrect),### Day 2: Switch Statements
+How do you use defer? (mismatch),### Day 2: Switch Statements
+How do you use defer? (error),### Day 2: Switch Statements
+How do you encode JSON?,### Day 1: Variables and Constants
+How do you encode JSON? (wrong answer),### Day 1: Variables and Constants
+How do you encode JSON? (incorrect),### Day 1: Variables and Constants
+How do you encode JSON? (mismatch),### Day 1: Variables and Constants
+How do you encode JSON? (error),### Day 1: Variables and Constants
+How do you declare a constant?,### Day 4: HTTP Clients
+How do you declare a constant? (wrong answer),### Day 4: HTTP Clients
+How do you declare a constant? (incorrect),### Day 4: HTTP Clients
+How do you declare a constant? (mismatch),### Day 4: HTTP Clients
+How do you declare a constant? (error),### Day 4: HTTP Clients
+How do you iterate over a slice?,### Day 3: Introduction to Memory Management
+How do you iterate over a slice? (wrong answer),### Day 3: Introduction to Memory Management
+How do you iterate over a slice? (incorrect),### Day 3: Introduction to Memory Management
+How do you iterate over a slice? (mismatch),### Day 3: Introduction to Memory Management
+How do you iterate over a slice? (error),### Day 3: Introduction to Memory Management
+How do you return multiple values from a function?,### Day 2: Working with Strings
+How do you return multiple values from a function? (wrong answer),### Day 2: Working with Strings
+How do you return multiple values from a function? (incorrect),### Day 2: Working with Strings
+How do you return multiple values from a function? (mismatch),### Day 2: Working with Strings
+How do you return multiple values from a function? (error),### Day 2: Working with Strings
+How do you create a struct?,### Day 4: Introduction to Debugging and Error Checking
+How do you create a struct? (wrong answer),### Day 4: Introduction to Debugging and Error Checking
+How do you create a struct? (incorrect),### Day 4: Introduction to Debugging and Error Checking
+How do you create a struct? (mismatch),### Day 4: Introduction to Debugging and Error Checking
+How do you create a struct? (error),### Day 4: Introduction to Debugging and Error Checking
+How do you build REST APIs?,### Day 3: Function Parameters and Return Values
+How do you build REST APIs? (wrong answer),### Day 3: Function Parameters and Return Values
+How do you build REST APIs? (incorrect),### Day 3: Function Parameters and Return Values
+How do you build REST APIs? (mismatch),### Day 3: Function Parameters and Return Values
+How do you build REST APIs? (error),### Day 3: Function Parameters and Return Values
+How do you embed structs?,### Day 1: Introduction to CLI Applications
+How do you embed structs? (wrong answer),### Day 1: Introduction to CLI Applications
+How do you embed structs? (incorrect),### Day 1: Introduction to CLI Applications
+How do you embed structs? (mismatch),### Day 1: Introduction to CLI Applications
+How do you embed structs? (error),### Day 1: Introduction to CLI Applications
+How do you write benchmark tests?,### Day 3: Introduction to HTTP Servers
+How do you write benchmark tests? (wrong answer),### Day 3: Introduction to HTTP Servers
+How do you write benchmark tests? (incorrect),### Day 3: Introduction to HTTP Servers
+How do you write benchmark tests? (mismatch),### Day 3: Introduction to HTTP Servers
+How do you write benchmark tests? (error),### Day 3: Introduction to HTTP Servers
+How do you install Go?,### Day 5: JSON Handling
+How do you install Go? (wrong answer),### Day 5: JSON Handling
+How do you install Go? (incorrect),### Day 5: JSON Handling
+How do you install Go? (mismatch),### Day 5: JSON Handling
+How do you install Go? (error),### Day 5: JSON Handling
+How do you configure environment variables?,### Day 3: Arrays
+How do you configure environment variables? (wrong answer),### Day 3: Arrays
+How do you configure environment variables? (incorrect),### Day 3: Arrays
+How do you configure environment variables? (mismatch),### Day 3: Arrays
+How do you configure environment variables? (error),### Day 3: Arrays
+How do you create channels?,### Day 4: Basic Input/Output
+How do you create channels? (wrong answer),### Day 4: Basic Input/Output
+How do you create channels? (incorrect),### Day 4: Basic Input/Output
+How do you create channels? (mismatch),### Day 4: Basic Input/Output
+How do you create channels? (error),### Day 4: Basic Input/Output

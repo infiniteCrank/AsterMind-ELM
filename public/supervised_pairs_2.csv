@@ -1,0 +1,251 @@
+query,target
+How do you declare a constant in Go?,### Day 1: Variables and Constants
+How do you declare a constant in Go? (example),### Day 1: Variables and Constants
+How do you declare a constant in Go? (tutorial),### Day 1: Variables and Constants
+How do you declare a constant in Go? (syntax),### Day 1: Variables and Constants
+How do you declare a constant in Go? (walkthrough),### Day 1: Variables and Constants
+How does Go handle boolean types?,### Day 2: Data Types
+How does Go handle boolean types? (example),### Day 2: Data Types
+How does Go handle boolean types? (tutorial),### Day 2: Data Types
+How does Go handle boolean types? (syntax),### Day 2: Data Types
+How does Go handle boolean types? (walkthrough),### Day 2: Data Types
+How do you perform integer division in Go?,### Day 3: Basic Operators
+How do you perform integer division in Go? (example),### Day 3: Basic Operators
+How do you perform integer division in Go? (tutorial),### Day 3: Basic Operators
+How do you perform integer division in Go? (syntax),### Day 3: Basic Operators
+How do you perform integer division in Go? (walkthrough),### Day 3: Basic Operators
+How do you format strings with fmt.Printf in Go?,### Day 4: Basic Input/Output
+How do you format strings with fmt.Printf in Go? (example),### Day 4: Basic Input/Output
+How do you format strings with fmt.Printf in Go? (tutorial),### Day 4: Basic Input/Output
+How do you format strings with fmt.Printf in Go? (syntax),### Day 4: Basic Input/Output
+How do you format strings with fmt.Printf in Go? (walkthrough),### Day 4: Basic Input/Output
+How do you check equality of two strings in Go?,### Day 3: Basic Operators
+How do you check equality of two strings in Go? (example),### Day 3: Basic Operators
+How do you check equality of two strings in Go? (tutorial),### Day 3: Basic Operators
+How do you check equality of two strings in Go? (syntax),### Day 3: Basic Operators
+How do you check equality of two strings in Go? (walkthrough),### Day 3: Basic Operators
+How do you convert strings to integers in Go?,### Day 4: Basic Input/Output
+How do you convert strings to integers in Go? (example),### Day 4: Basic Input/Output
+How do you convert strings to integers in Go? (tutorial),### Day 4: Basic Input/Output
+How do you convert strings to integers in Go? (syntax),### Day 4: Basic Input/Output
+How do you convert strings to integers in Go? (walkthrough),### Day 4: Basic Input/Output
+How do you convert integers to strings in Go?,### Day 4: Basic Input/Output
+How do you convert integers to strings in Go? (example),### Day 4: Basic Input/Output
+How do you convert integers to strings in Go? (tutorial),### Day 4: Basic Input/Output
+How do you convert integers to strings in Go? (syntax),### Day 4: Basic Input/Output
+How do you convert integers to strings in Go? (walkthrough),### Day 4: Basic Input/Output
+How do you write a for loop without init or post statements in Go?,### Day 3: For Loops (Part 1)
+How do you write a for loop without init or post statements in Go? (example),### Day 3: For Loops (Part 1)
+How do you write a for loop without init or post statements in Go? (tutorial),### Day 3: For Loops (Part 1)
+How do you write a for loop without init or post statements in Go? (syntax),### Day 3: For Loops (Part 1)
+How do you write a for loop without init or post statements in Go? (walkthrough),### Day 3: For Loops (Part 1)
+How do you exit a loop early in Go?,### Day 3: For Loops (Part 1)
+How do you exit a loop early in Go? (example),### Day 3: For Loops (Part 1)
+How do you exit a loop early in Go? (tutorial),### Day 3: For Loops (Part 1)
+How do you exit a loop early in Go? (syntax),### Day 3: For Loops (Part 1)
+How do you exit a loop early in Go? (walkthrough),### Day 3: For Loops (Part 1)
+What is the zero value of a struct field in Go?,### Day 1: Introduction to Structs
+What is the zero value of a struct field in Go? (example),### Day 1: Introduction to Structs
+What is the zero value of a struct field in Go? (tutorial),### Day 1: Introduction to Structs
+What is the zero value of a struct field in Go? (syntax),### Day 1: Introduction to Structs
+What is the zero value of a struct field in Go? (walkthrough),### Day 1: Introduction to Structs
+How do you define an anonymous struct in Go?,### Day 1: Introduction to Structs
+How do you define an anonymous struct in Go? (example),### Day 1: Introduction to Structs
+How do you define an anonymous struct in Go? (tutorial),### Day 1: Introduction to Structs
+How do you define an anonymous struct in Go? (syntax),### Day 1: Introduction to Structs
+How do you define an anonymous struct in Go? (walkthrough),### Day 1: Introduction to Structs
+How do you compare structs in Go?,### Day 1: Introduction to Structs
+How do you compare structs in Go? (example),### Day 1: Introduction to Structs
+How do you compare structs in Go? (tutorial),### Day 1: Introduction to Structs
+How do you compare structs in Go? (syntax),### Day 1: Introduction to Structs
+How do you compare structs in Go? (walkthrough),### Day 1: Introduction to Structs
+How do you create a slice with make in Go?,### Day 2: Slices
+How do you create a slice with make in Go? (example),### Day 2: Slices
+How do you create a slice with make in Go? (tutorial),### Day 2: Slices
+How do you create a slice with make in Go? (syntax),### Day 2: Slices
+How do you create a slice with make in Go? (walkthrough),### Day 2: Slices
+How do you copy one slice to another in Go?,### Day 3: Slice Operations
+How do you copy one slice to another in Go? (example),### Day 3: Slice Operations
+How do you copy one slice to another in Go? (tutorial),### Day 3: Slice Operations
+How do you copy one slice to another in Go? (syntax),### Day 3: Slice Operations
+How do you copy one slice to another in Go? (walkthrough),### Day 3: Slice Operations
+How do you delete a key from a map in Go?,### Day 4: Maps
+How do you delete a key from a map in Go? (example),### Day 4: Maps
+How do you delete a key from a map in Go? (tutorial),### Day 4: Maps
+How do you delete a key from a map in Go? (syntax),### Day 4: Maps
+How do you delete a key from a map in Go? (walkthrough),### Day 4: Maps
+How do you check if a key exists in a Go map?,### Day 4: Maps
+How do you check if a key exists in a Go map? (example),### Day 4: Maps
+How do you check if a key exists in a Go map? (tutorial),### Day 4: Maps
+How do you check if a key exists in a Go map? (syntax),### Day 4: Maps
+How do you check if a key exists in a Go map? (walkthrough),### Day 4: Maps
+How do you iterate over a map in Go?,### Day 4: Maps
+How do you iterate over a map in Go? (example),### Day 4: Maps
+How do you iterate over a map in Go? (tutorial),### Day 4: Maps
+How do you iterate over a map in Go? (syntax),### Day 4: Maps
+How do you iterate over a map in Go? (walkthrough),### Day 4: Maps
+What is the difference between new and make in Go?,### Day 3: Introduction to Memory Management
+What is the difference between new and make in Go? (example),### Day 3: Introduction to Memory Management
+What is the difference between new and make in Go? (tutorial),### Day 3: Introduction to Memory Management
+What is the difference between new and make in Go? (syntax),### Day 3: Introduction to Memory Management
+What is the difference between new and make in Go? (walkthrough),### Day 3: Introduction to Memory Management
+How do you define multiple return values in Go?,### Day 2: Advanced Functions
+How do you define multiple return values in Go? (example),### Day 2: Advanced Functions
+How do you define multiple return values in Go? (tutorial),### Day 2: Advanced Functions
+How do you define multiple return values in Go? (syntax),### Day 2: Advanced Functions
+How do you define multiple return values in Go? (walkthrough),### Day 2: Advanced Functions
+How do you name return values in Go?,### Day 2: Advanced Functions
+How do you name return values in Go? (example),### Day 2: Advanced Functions
+How do you name return values in Go? (tutorial),### Day 2: Advanced Functions
+How do you name return values in Go? (syntax),### Day 2: Advanced Functions
+How do you name return values in Go? (walkthrough),### Day 2: Advanced Functions
+How do you handle errors idiomatically in Go?,### Day 3: Error Handling
+How do you handle errors idiomatically in Go? (example),### Day 3: Error Handling
+How do you handle errors idiomatically in Go? (tutorial),### Day 3: Error Handling
+How do you handle errors idiomatically in Go? (syntax),### Day 3: Error Handling
+How do you handle errors idiomatically in Go? (walkthrough),### Day 3: Error Handling
+What is the purpose of defer in Go?,### Day 3: Error Handling
+What is the purpose of defer in Go? (example),### Day 3: Error Handling
+What is the purpose of defer in Go? (tutorial),### Day 3: Error Handling
+What is the purpose of defer in Go? (syntax),### Day 3: Error Handling
+What is the purpose of defer in Go? (walkthrough),### Day 3: Error Handling
+How do you recover from panics in Go?,### Day 3: Error Handling
+How do you recover from panics in Go? (example),### Day 3: Error Handling
+How do you recover from panics in Go? (tutorial),### Day 3: Error Handling
+How do you recover from panics in Go? (syntax),### Day 3: Error Handling
+How do you recover from panics in Go? (walkthrough),### Day 3: Error Handling
+How do you import a package in Go?,### Day 4: Using Standard Library Packages
+How do you import a package in Go? (example),### Day 4: Using Standard Library Packages
+How do you import a package in Go? (tutorial),### Day 4: Using Standard Library Packages
+How do you import a package in Go? (syntax),### Day 4: Using Standard Library Packages
+How do you import a package in Go? (walkthrough),### Day 4: Using Standard Library Packages
+How do you create your own package in Go?,### Day 5: Building and Organizing Code
+How do you create your own package in Go? (example),### Day 5: Building and Organizing Code
+How do you create your own package in Go? (tutorial),### Day 5: Building and Organizing Code
+How do you create your own package in Go? (syntax),### Day 5: Building and Organizing Code
+How do you create your own package in Go? (walkthrough),### Day 5: Building and Organizing Code
+How do you use go mod to initialize a module?,### Day 5: Building and Organizing Code
+How do you use go mod to initialize a module? (example),### Day 5: Building and Organizing Code
+How do you use go mod to initialize a module? (tutorial),### Day 5: Building and Organizing Code
+How do you use go mod to initialize a module? (syntax),### Day 5: Building and Organizing Code
+How do you use go mod to initialize a module? (walkthrough),### Day 5: Building and Organizing Code
+How do you define an interface with multiple methods in Go?,### Day 4: Interfaces Basics
+How do you define an interface with multiple methods in Go? (example),### Day 4: Interfaces Basics
+How do you define an interface with multiple methods in Go? (tutorial),### Day 4: Interfaces Basics
+How do you define an interface with multiple methods in Go? (syntax),### Day 4: Interfaces Basics
+How do you define an interface with multiple methods in Go? (walkthrough),### Day 4: Interfaces Basics
+How do you assert the dynamic type of an interface in Go?,### Day 5: Interfaces in Depth
+How do you assert the dynamic type of an interface in Go? (example),### Day 5: Interfaces in Depth
+How do you assert the dynamic type of an interface in Go? (tutorial),### Day 5: Interfaces in Depth
+How do you assert the dynamic type of an interface in Go? (syntax),### Day 5: Interfaces in Depth
+How do you assert the dynamic type of an interface in Go? (walkthrough),### Day 5: Interfaces in Depth
+How do you create a pointer to a struct in Go?,### Day 1: Pointers Basics
+How do you create a pointer to a struct in Go? (example),### Day 1: Pointers Basics
+How do you create a pointer to a struct in Go? (tutorial),### Day 1: Pointers Basics
+How do you create a pointer to a struct in Go? (syntax),### Day 1: Pointers Basics
+How do you create a pointer to a struct in Go? (walkthrough),### Day 1: Pointers Basics
+How do you update struct fields through a pointer receiver?,### Day 2: Methods on Structs
+How do you update struct fields through a pointer receiver? (example),### Day 2: Methods on Structs
+How do you update struct fields through a pointer receiver? (tutorial),### Day 2: Methods on Structs
+How do you update struct fields through a pointer receiver? (syntax),### Day 2: Methods on Structs
+How do you update struct fields through a pointer receiver? (walkthrough),### Day 2: Methods on Structs
+How do you define methods with pointer receivers?,### Day 2: Methods on Structs
+How do you define methods with pointer receivers? (example),### Day 2: Methods on Structs
+How do you define methods with pointer receivers? (tutorial),### Day 2: Methods on Structs
+How do you define methods with pointer receivers? (syntax),### Day 2: Methods on Structs
+How do you define methods with pointer receivers? (walkthrough),### Day 2: Methods on Structs
+How do you embed one struct inside another?,### Day 3: Struct Composition
+How do you embed one struct inside another? (example),### Day 3: Struct Composition
+How do you embed one struct inside another? (tutorial),### Day 3: Struct Composition
+How do you embed one struct inside another? (syntax),### Day 3: Struct Composition
+How do you embed one struct inside another? (walkthrough),### Day 3: Struct Composition
+How do you use channels for synchronization?,### Day 3: Channels Basics
+How do you use channels for synchronization? (example),### Day 3: Channels Basics
+How do you use channels for synchronization? (tutorial),### Day 3: Channels Basics
+How do you use channels for synchronization? (syntax),### Day 3: Channels Basics
+How do you use channels for synchronization? (walkthrough),### Day 3: Channels Basics
+How do you send data to a channel in Go?,### Day 3: Channels Basics
+How do you send data to a channel in Go? (example),### Day 3: Channels Basics
+How do you send data to a channel in Go? (tutorial),### Day 3: Channels Basics
+How do you send data to a channel in Go? (syntax),### Day 3: Channels Basics
+How do you send data to a channel in Go? (walkthrough),### Day 3: Channels Basics
+How do you close a channel in Go?,### Day 3: Channels Basics
+How do you close a channel in Go? (example),### Day 3: Channels Basics
+How do you close a channel in Go? (tutorial),### Day 3: Channels Basics
+How do you close a channel in Go? (syntax),### Day 3: Channels Basics
+How do you close a channel in Go? (walkthrough),### Day 3: Channels Basics
+What happens when you send to a closed channel?,### Day 3: Channels Basics
+What happens when you send to a closed channel? (example),### Day 3: Channels Basics
+What happens when you send to a closed channel? (tutorial),### Day 3: Channels Basics
+What happens when you send to a closed channel? (syntax),### Day 3: Channels Basics
+What happens when you send to a closed channel? (walkthrough),### Day 3: Channels Basics
+How do you select on multiple channels in Go?,### Day 4: Select Statement
+How do you select on multiple channels in Go? (example),### Day 4: Select Statement
+How do you select on multiple channels in Go? (tutorial),### Day 4: Select Statement
+How do you select on multiple channels in Go? (syntax),### Day 4: Select Statement
+How do you select on multiple channels in Go? (walkthrough),### Day 4: Select Statement
+How do you build an HTTP client in Go?,### Day 4: HTTP Clients
+How do you build an HTTP client in Go? (example),### Day 4: HTTP Clients
+How do you build an HTTP client in Go? (tutorial),### Day 4: HTTP Clients
+How do you build an HTTP client in Go? (syntax),### Day 4: HTTP Clients
+How do you build an HTTP client in Go? (walkthrough),### Day 4: HTTP Clients
+How do you decode JSON into a struct?,### Day 5: JSON Handling
+How do you decode JSON into a struct? (example),### Day 5: JSON Handling
+How do you decode JSON into a struct? (tutorial),### Day 5: JSON Handling
+How do you decode JSON into a struct? (syntax),### Day 5: JSON Handling
+How do you decode JSON into a struct? (walkthrough),### Day 5: JSON Handling
+How do you encode a struct to JSON?,### Day 5: JSON Handling
+How do you encode a struct to JSON? (example),### Day 5: JSON Handling
+How do you encode a struct to JSON? (tutorial),### Day 5: JSON Handling
+How do you encode a struct to JSON? (syntax),### Day 5: JSON Handling
+How do you encode a struct to JSON? (walkthrough),### Day 5: JSON Handling
+How do you write a simple test case in Go?,### Day 1: Introduction to Testing
+How do you write a simple test case in Go? (example),### Day 1: Introduction to Testing
+How do you write a simple test case in Go? (tutorial),### Day 1: Introduction to Testing
+How do you write a simple test case in Go? (syntax),### Day 1: Introduction to Testing
+How do you write a simple test case in Go? (walkthrough),### Day 1: Introduction to Testing
+How do you run Go tests?,### Day 1: Introduction to Testing
+How do you run Go tests? (example),### Day 1: Introduction to Testing
+How do you run Go tests? (tutorial),### Day 1: Introduction to Testing
+How do you run Go tests? (syntax),### Day 1: Introduction to Testing
+How do you run Go tests? (walkthrough),### Day 1: Introduction to Testing
+How do you benchmark a function?,### Day 3: Benchmarking
+How do you benchmark a function? (example),### Day 3: Benchmarking
+How do you benchmark a function? (tutorial),### Day 3: Benchmarking
+How do you benchmark a function? (syntax),### Day 3: Benchmarking
+How do you benchmark a function? (walkthrough),### Day 3: Benchmarking
+How do you write table-driven tests?,### Day 2: Writing More Tests
+How do you write table-driven tests? (example),### Day 2: Writing More Tests
+How do you write table-driven tests? (tutorial),### Day 2: Writing More Tests
+How do you write table-driven tests? (syntax),### Day 2: Writing More Tests
+How do you write table-driven tests? (walkthrough),### Day 2: Writing More Tests
+How do you use gofmt to format Go code?,### Day 5: Best Practices and Code Reviews
+How do you use gofmt to format Go code? (example),### Day 5: Best Practices and Code Reviews
+How do you use gofmt to format Go code? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you use gofmt to format Go code? (syntax),### Day 5: Best Practices and Code Reviews
+How do you use gofmt to format Go code? (walkthrough),### Day 5: Best Practices and Code Reviews
+How do you use go vet to analyze code?,### Day 5: Best Practices and Code Reviews
+How do you use go vet to analyze code? (example),### Day 5: Best Practices and Code Reviews
+How do you use go vet to analyze code? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you use go vet to analyze code? (syntax),### Day 5: Best Practices and Code Reviews
+How do you use go vet to analyze code? (walkthrough),### Day 5: Best Practices and Code Reviews
+How do you build a CLI flag parser?,### Day 1: Introduction to CLI Applications
+How do you build a CLI flag parser? (example),### Day 1: Introduction to CLI Applications
+How do you build a CLI flag parser? (tutorial),### Day 1: Introduction to CLI Applications
+How do you build a CLI flag parser? (syntax),### Day 1: Introduction to CLI Applications
+How do you build a CLI flag parser? (walkthrough),### Day 1: Introduction to CLI Applications
+How do you build a REST API endpoint?,### Day 3: Introduction to Web Applications
+How do you build a REST API endpoint? (example),### Day 3: Introduction to Web Applications
+How do you build a REST API endpoint? (tutorial),### Day 3: Introduction to Web Applications
+How do you build a REST API endpoint? (syntax),### Day 3: Introduction to Web Applications
+How do you build a REST API endpoint? (walkthrough),### Day 3: Introduction to Web Applications
+How do you deploy a Go web application?,### Day 5: Deployment and Project Structure
+How do you deploy a Go web application? (example),### Day 5: Deployment and Project Structure
+How do you deploy a Go web application? (tutorial),### Day 5: Deployment and Project Structure
+How do you deploy a Go web application? (syntax),### Day 5: Deployment and Project Structure
+How do you deploy a Go web application? (walkthrough),### Day 5: Deployment and Project Structure
+How do you write documentation comments in Go?,### Day 5: Best Practices and Code Reviews
+How do you write documentation comments in Go? (example),### Day 5: Best Practices and Code Reviews
+How do you write documentation comments in Go? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you write documentation comments in Go? (syntax),### Day 5: Best Practices and Code Reviews
+How do you write documentation comments in Go? (walkthrough),### Day 5: Best Practices and Code Reviews

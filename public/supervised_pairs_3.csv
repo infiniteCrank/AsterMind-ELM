@@ -1,0 +1,241 @@
+query,target
+How do you append elements to a slice in Go?,### Day 2: Slices
+How do you append elements to a slice in Go? (example),### Day 2: Slices
+How do you append elements to a slice in Go? (code sample),### Day 2: Slices
+How do you append elements to a slice in Go? (quick guide),### Day 2: Slices
+How do you append elements to a slice in Go? (reference),### Day 2: Slices
+How do you get the length and capacity of a slice?,### Day 2: Slices
+How do you get the length and capacity of a slice? (example),### Day 2: Slices
+How do you get the length and capacity of a slice? (code sample),### Day 2: Slices
+How do you get the length and capacity of a slice? (quick guide),### Day 2: Slices
+How do you get the length and capacity of a slice? (reference),### Day 2: Slices
+How do you initialize a map with make?,### Day 4: Maps
+How do you initialize a map with make? (example),### Day 4: Maps
+How do you initialize a map with make? (code sample),### Day 4: Maps
+How do you initialize a map with make? (quick guide),### Day 4: Maps
+How do you initialize a map with make? (reference),### Day 4: Maps
+How do you create a channel with a buffer?,### Day 3: Channels Basics
+How do you create a channel with a buffer? (example),### Day 3: Channels Basics
+How do you create a channel with a buffer? (code sample),### Day 3: Channels Basics
+How do you create a channel with a buffer? (quick guide),### Day 3: Channels Basics
+How do you create a channel with a buffer? (reference),### Day 3: Channels Basics
+How do you write a goroutine that processes jobs?,### Day 5: Concurrency Patterns and Review
+How do you write a goroutine that processes jobs? (example),### Day 5: Concurrency Patterns and Review
+How do you write a goroutine that processes jobs? (code sample),### Day 5: Concurrency Patterns and Review
+How do you write a goroutine that processes jobs? (quick guide),### Day 5: Concurrency Patterns and Review
+How do you write a goroutine that processes jobs? (reference),### Day 5: Concurrency Patterns and Review
+How do you marshal data into JSON?,### Day 5: JSON Handling
+How do you marshal data into JSON? (example),### Day 5: JSON Handling
+How do you marshal data into JSON? (code sample),### Day 5: JSON Handling
+How do you marshal data into JSON? (quick guide),### Day 5: JSON Handling
+How do you marshal data into JSON? (reference),### Day 5: JSON Handling
+How do you unmarshal JSON data into a map?,### Day 5: JSON Handling
+How do you unmarshal JSON data into a map? (example),### Day 5: JSON Handling
+How do you unmarshal JSON data into a map? (code sample),### Day 5: JSON Handling
+How do you unmarshal JSON data into a map? (quick guide),### Day 5: JSON Handling
+How do you unmarshal JSON data into a map? (reference),### Day 5: JSON Handling
+How do you iterate over a slice with range?,### Day 4: For Loops (Part 2) and Ranges
+How do you iterate over a slice with range? (example),### Day 4: For Loops (Part 2) and Ranges
+How do you iterate over a slice with range? (code sample),### Day 4: For Loops (Part 2) and Ranges
+How do you iterate over a slice with range? (quick guide),### Day 4: For Loops (Part 2) and Ranges
+How do you iterate over a slice with range? (reference),### Day 4: For Loops (Part 2) and Ranges
+How do you define and use variadic parameters?,### Day 2: Advanced Functions
+How do you define and use variadic parameters? (example),### Day 2: Advanced Functions
+How do you define and use variadic parameters? (code sample),### Day 2: Advanced Functions
+How do you define and use variadic parameters? (quick guide),### Day 2: Advanced Functions
+How do you define and use variadic parameters? (reference),### Day 2: Advanced Functions
+How do you defer function calls?,### Day 3: Error Handling
+How do you defer function calls? (example),### Day 3: Error Handling
+How do you defer function calls? (code sample),### Day 3: Error Handling
+How do you defer function calls? (quick guide),### Day 3: Error Handling
+How do you defer function calls? (reference),### Day 3: Error Handling
+How do you handle panics in Go?,### Day 3: Error Handling
+How do you handle panics in Go? (example),### Day 3: Error Handling
+How do you handle panics in Go? (code sample),### Day 3: Error Handling
+How do you handle panics in Go? (quick guide),### Day 3: Error Handling
+How do you handle panics in Go? (reference),### Day 3: Error Handling
+How do you test error conditions in Go?,### Day 1: Introduction to Testing
+How do you test error conditions in Go? (example),### Day 1: Introduction to Testing
+How do you test error conditions in Go? (code sample),### Day 1: Introduction to Testing
+How do you test error conditions in Go? (quick guide),### Day 1: Introduction to Testing
+How do you test error conditions in Go? (reference),### Day 1: Introduction to Testing
+How do you create a new struct type?,### Day 1: Introduction to Structs
+How do you create a new struct type? (example),### Day 1: Introduction to Structs
+How do you create a new struct type? (code sample),### Day 1: Introduction to Structs
+How do you create a new struct type? (quick guide),### Day 1: Introduction to Structs
+How do you create a new struct type? (reference),### Day 1: Introduction to Structs
+How do you pass structs by value and by pointer?,### Day 2: Methods on Structs
+How do you pass structs by value and by pointer? (example),### Day 2: Methods on Structs
+How do you pass structs by value and by pointer? (code sample),### Day 2: Methods on Structs
+How do you pass structs by value and by pointer? (quick guide),### Day 2: Methods on Structs
+How do you pass structs by value and by pointer? (reference),### Day 2: Methods on Structs
+How do you embed interfaces?,### Day 5: Interfaces in Depth
+How do you embed interfaces? (example),### Day 5: Interfaces in Depth
+How do you embed interfaces? (code sample),### Day 5: Interfaces in Depth
+How do you embed interfaces? (quick guide),### Day 5: Interfaces in Depth
+How do you embed interfaces? (reference),### Day 5: Interfaces in Depth
+How do you implement the Stringer interface?,### Day 4: Interfaces Basics
+How do you implement the Stringer interface? (example),### Day 4: Interfaces Basics
+How do you implement the Stringer interface? (code sample),### Day 4: Interfaces Basics
+How do you implement the Stringer interface? (quick guide),### Day 4: Interfaces Basics
+How do you implement the Stringer interface? (reference),### Day 4: Interfaces Basics
+How do you build a minimal web server?,### Day 3: Introduction to HTTP Servers
+How do you build a minimal web server? (example),### Day 3: Introduction to HTTP Servers
+How do you build a minimal web server? (code sample),### Day 3: Introduction to HTTP Servers
+How do you build a minimal web server? (quick guide),### Day 3: Introduction to HTTP Servers
+How do you build a minimal web server? (reference),### Day 3: Introduction to HTTP Servers
+How do you serve static files with net/http?,### Day 3: Introduction to HTTP Servers
+How do you serve static files with net/http? (example),### Day 3: Introduction to HTTP Servers
+How do you serve static files with net/http? (code sample),### Day 3: Introduction to HTTP Servers
+How do you serve static files with net/http? (quick guide),### Day 3: Introduction to HTTP Servers
+How do you serve static files with net/http? (reference),### Day 3: Introduction to HTTP Servers
+How do you process query parameters in an HTTP handler?,### Day 3: Introduction to HTTP Servers
+How do you process query parameters in an HTTP handler? (example),### Day 3: Introduction to HTTP Servers
+How do you process query parameters in an HTTP handler? (code sample),### Day 3: Introduction to HTTP Servers
+How do you process query parameters in an HTTP handler? (quick guide),### Day 3: Introduction to HTTP Servers
+How do you process query parameters in an HTTP handler? (reference),### Day 3: Introduction to HTTP Servers
+How do you parse JSON from HTTP request bodies?,### Day 5: JSON Handling
+How do you parse JSON from HTTP request bodies? (example),### Day 5: JSON Handling
+How do you parse JSON from HTTP request bodies? (code sample),### Day 5: JSON Handling
+How do you parse JSON from HTTP request bodies? (quick guide),### Day 5: JSON Handling
+How do you parse JSON from HTTP request bodies? (reference),### Day 5: JSON Handling
+How do you use go get to fetch dependencies?,### Day 5: Building and Organizing Code
+How do you use go get to fetch dependencies? (example),### Day 5: Building and Organizing Code
+How do you use go get to fetch dependencies? (code sample),### Day 5: Building and Organizing Code
+How do you use go get to fetch dependencies? (quick guide),### Day 5: Building and Organizing Code
+How do you use go get to fetch dependencies? (reference),### Day 5: Building and Organizing Code
+How do you install a third-party module?,### Day 5: Building and Organizing Code
+How do you install a third-party module? (example),### Day 5: Building and Organizing Code
+How do you install a third-party module? (code sample),### Day 5: Building and Organizing Code
+How do you install a third-party module? (quick guide),### Day 5: Building and Organizing Code
+How do you install a third-party module? (reference),### Day 5: Building and Organizing Code
+How do you write table-driven benchmarks?,### Day 3: Benchmarking
+How do you write table-driven benchmarks? (example),### Day 3: Benchmarking
+How do you write table-driven benchmarks? (code sample),### Day 3: Benchmarking
+How do you write table-driven benchmarks? (quick guide),### Day 3: Benchmarking
+How do you write table-driven benchmarks? (reference),### Day 3: Benchmarking
+How do you profile CPU usage in Go?,### Day 3: Benchmarking
+How do you profile CPU usage in Go? (example),### Day 3: Benchmarking
+How do you profile CPU usage in Go? (code sample),### Day 3: Benchmarking
+How do you profile CPU usage in Go? (quick guide),### Day 3: Benchmarking
+How do you profile CPU usage in Go? (reference),### Day 3: Benchmarking
+How do you limit concurrency with buffered channels?,### Day 5: Concurrency Patterns and Review
+How do you limit concurrency with buffered channels? (example),### Day 5: Concurrency Patterns and Review
+How do you limit concurrency with buffered channels? (code sample),### Day 5: Concurrency Patterns and Review
+How do you limit concurrency with buffered channels? (quick guide),### Day 5: Concurrency Patterns and Review
+How do you limit concurrency with buffered channels? (reference),### Day 5: Concurrency Patterns and Review
+How do you use select with default case?,### Day 4: Select Statement
+How do you use select with default case? (example),### Day 4: Select Statement
+How do you use select with default case? (code sample),### Day 4: Select Statement
+How do you use select with default case? (quick guide),### Day 4: Select Statement
+How do you use select with default case? (reference),### Day 4: Select Statement
+How do you write subtests in Go?,### Day 2: Writing More Tests
+How do you write subtests in Go? (example),### Day 2: Writing More Tests
+How do you write subtests in Go? (code sample),### Day 2: Writing More Tests
+How do you write subtests in Go? (quick guide),### Day 2: Writing More Tests
+How do you write subtests in Go? (reference),### Day 2: Writing More Tests
+How do you customize JSON encoding with tags?,### Day 5: JSON Handling
+How do you customize JSON encoding with tags? (example),### Day 5: JSON Handling
+How do you customize JSON encoding with tags? (code sample),### Day 5: JSON Handling
+How do you customize JSON encoding with tags? (quick guide),### Day 5: JSON Handling
+How do you customize JSON encoding with tags? (reference),### Day 5: JSON Handling
+How do you serve JSON responses in HTTP handlers?,### Day 3: Introduction to Web Applications
+How do you serve JSON responses in HTTP handlers? (example),### Day 3: Introduction to Web Applications
+How do you serve JSON responses in HTTP handlers? (code sample),### Day 3: Introduction to Web Applications
+How do you serve JSON responses in HTTP handlers? (quick guide),### Day 3: Introduction to Web Applications
+How do you serve JSON responses in HTTP handlers? (reference),### Day 3: Introduction to Web Applications
+How do you define custom error types?,### Day 3: Error Handling
+How do you define custom error types? (example),### Day 3: Error Handling
+How do you define custom error types? (code sample),### Day 3: Error Handling
+How do you define custom error types? (quick guide),### Day 3: Error Handling
+How do you define custom error types? (reference),### Day 3: Error Handling
+How do you log errors in Go?,### Day 4: Debugging Techniques
+How do you log errors in Go? (example),### Day 4: Debugging Techniques
+How do you log errors in Go? (code sample),### Day 4: Debugging Techniques
+How do you log errors in Go? (quick guide),### Day 4: Debugging Techniques
+How do you log errors in Go? (reference),### Day 4: Debugging Techniques
+How do you write to stderr?,### Day 4: Debugging Techniques
+How do you write to stderr? (example),### Day 4: Debugging Techniques
+How do you write to stderr? (code sample),### Day 4: Debugging Techniques
+How do you write to stderr? (quick guide),### Day 4: Debugging Techniques
+How do you write to stderr? (reference),### Day 4: Debugging Techniques
+How do you handle command-line arguments?,### Day 1: Introduction to CLI Applications
+How do you handle command-line arguments? (example),### Day 1: Introduction to CLI Applications
+How do you handle command-line arguments? (code sample),### Day 1: Introduction to CLI Applications
+How do you handle command-line arguments? (quick guide),### Day 1: Introduction to CLI Applications
+How do you handle command-line arguments? (reference),### Day 1: Introduction to CLI Applications
+How do you build subcommands for a CLI tool?,### Day 2: Advanced CLI Applications
+How do you build subcommands for a CLI tool? (example),### Day 2: Advanced CLI Applications
+How do you build subcommands for a CLI tool? (code sample),### Day 2: Advanced CLI Applications
+How do you build subcommands for a CLI tool? (quick guide),### Day 2: Advanced CLI Applications
+How do you build subcommands for a CLI tool? (reference),### Day 2: Advanced CLI Applications
+How do you organize Go code with packages?,### Day 5: Building and Organizing Code
+How do you organize Go code with packages? (example),### Day 5: Building and Organizing Code
+How do you organize Go code with packages? (code sample),### Day 5: Building and Organizing Code
+How do you organize Go code with packages? (quick guide),### Day 5: Building and Organizing Code
+How do you organize Go code with packages? (reference),### Day 5: Building and Organizing Code
+How do you use go build?,### Day 5: Deployment and Project Structure
+How do you use go build? (example),### Day 5: Deployment and Project Structure
+How do you use go build? (code sample),### Day 5: Deployment and Project Structure
+How do you use go build? (quick guide),### Day 5: Deployment and Project Structure
+How do you use go build? (reference),### Day 5: Deployment and Project Structure
+How do you cross-compile Go programs?,### Day 5: Deployment and Project Structure
+How do you cross-compile Go programs? (example),### Day 5: Deployment and Project Structure
+How do you cross-compile Go programs? (code sample),### Day 5: Deployment and Project Structure
+How do you cross-compile Go programs? (quick guide),### Day 5: Deployment and Project Structure
+How do you cross-compile Go programs? (reference),### Day 5: Deployment and Project Structure
+How do you write a Makefile for Go projects?,### Day 5: Deployment and Project Structure
+How do you write a Makefile for Go projects? (example),### Day 5: Deployment and Project Structure
+How do you write a Makefile for Go projects? (code sample),### Day 5: Deployment and Project Structure
+How do you write a Makefile for Go projects? (quick guide),### Day 5: Deployment and Project Structure
+How do you write a Makefile for Go projects? (reference),### Day 5: Deployment and Project Structure
+How do you set environment variables for Go builds?,### Day 5: Deployment and Project Structure
+How do you set environment variables for Go builds? (example),### Day 5: Deployment and Project Structure
+How do you set environment variables for Go builds? (code sample),### Day 5: Deployment and Project Structure
+How do you set environment variables for Go builds? (quick guide),### Day 5: Deployment and Project Structure
+How do you set environment variables for Go builds? (reference),### Day 5: Deployment and Project Structure
+How do you build REST endpoints with Gin?,### Day 4: Web Frameworks Overview
+How do you build REST endpoints with Gin? (example),### Day 4: Web Frameworks Overview
+How do you build REST endpoints with Gin? (code sample),### Day 4: Web Frameworks Overview
+How do you build REST endpoints with Gin? (quick guide),### Day 4: Web Frameworks Overview
+How do you build REST endpoints with Gin? (reference),### Day 4: Web Frameworks Overview
+How do you create middlewares in Gin?,### Day 4: Web Frameworks Overview
+How do you create middlewares in Gin? (example),### Day 4: Web Frameworks Overview
+How do you create middlewares in Gin? (code sample),### Day 4: Web Frameworks Overview
+How do you create middlewares in Gin? (quick guide),### Day 4: Web Frameworks Overview
+How do you create middlewares in Gin? (reference),### Day 4: Web Frameworks Overview
+How do you handle URL parameters in Gin?,### Day 4: Web Frameworks Overview
+How do you handle URL parameters in Gin? (example),### Day 4: Web Frameworks Overview
+How do you handle URL parameters in Gin? (code sample),### Day 4: Web Frameworks Overview
+How do you handle URL parameters in Gin? (quick guide),### Day 4: Web Frameworks Overview
+How do you handle URL parameters in Gin? (reference),### Day 4: Web Frameworks Overview
+How do you group routes in Gin?,### Day 4: Web Frameworks Overview
+How do you group routes in Gin? (example),### Day 4: Web Frameworks Overview
+How do you group routes in Gin? (code sample),### Day 4: Web Frameworks Overview
+How do you group routes in Gin? (quick guide),### Day 4: Web Frameworks Overview
+How do you group routes in Gin? (reference),### Day 4: Web Frameworks Overview
+How do you return JSON responses with Gin?,### Day 4: Web Frameworks Overview
+How do you return JSON responses with Gin? (example),### Day 4: Web Frameworks Overview
+How do you return JSON responses with Gin? (code sample),### Day 4: Web Frameworks Overview
+How do you return JSON responses with Gin? (quick guide),### Day 4: Web Frameworks Overview
+How do you return JSON responses with Gin? (reference),### Day 4: Web Frameworks Overview
+How do you run a basic Fiber web server?,### Day 4: Web Frameworks Overview
+How do you run a basic Fiber web server? (example),### Day 4: Web Frameworks Overview
+How do you run a basic Fiber web server? (code sample),### Day 4: Web Frameworks Overview
+How do you run a basic Fiber web server? (quick guide),### Day 4: Web Frameworks Overview
+How do you run a basic Fiber web server? (reference),### Day 4: Web Frameworks Overview
+How do you define routes in Fiber?,### Day 4: Web Frameworks Overview
+How do you define routes in Fiber? (example),### Day 4: Web Frameworks Overview
+How do you define routes in Fiber? (code sample),### Day 4: Web Frameworks Overview
+How do you define routes in Fiber? (quick guide),### Day 4: Web Frameworks Overview
+How do you define routes in Fiber? (reference),### Day 4: Web Frameworks Overview
+How do you use context in HTTP handlers?,### Day 3: Introduction to HTTP Servers
+How do you use context in HTTP handlers? (example),### Day 3: Introduction to HTTP Servers
+How do you use context in HTTP handlers? (code sample),### Day 3: Introduction to HTTP Servers
+How do you use context in HTTP handlers? (quick guide),### Day 3: Introduction to HTTP Servers
+How do you use context in HTTP handlers? (reference),### Day 3: Introduction to HTTP Servers
+How do you cancel contexts to stop goroutines?,### Day 1: Introduction to Concurrency
+How do you cancel contexts to stop goroutines? (example),### Day 1: Introduction to Concurrency
+How do you cancel contexts to stop goroutines? (code sample),### Day 1: Introduction to Concurrency
+How do you cancel contexts to stop goroutines? (quick guide),### Day 1: Introduction to Concurrency
+How do you cancel contexts to stop goroutines? (reference),### Day 1: Introduction to Concurrency

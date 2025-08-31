@@ -1,0 +1,69 @@
+{
+  "name": "astermind",
+  "version": "1.0.0",
+  "description": "This is a javascript ELM library",
+  "main": "dist/astermind.umd.js",
+  "module": "dist/astermind.esm.js",
+  "types": "dist/index.d.ts",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "postbuild": "cp dist/astermind.umd.js public/astermind.umd.js",
+    "watch": "rollup -c -w",
+    "clean": "rm -rf dist",
+    "dev": "vite",
+    "dev:autocomplete": "DEMO=autocomplete-chain vite",
+    "dev:lang": "DEMO=language-awareness-demo vite",
+    "dev:chain": "DEMO=chain-models vite",
+    "dev:chain2": "DEMO=chain-with-encoder vite",
+    "dev:chain3": "DEMO=chain-encoder-feauture-combine vite",
+    "dev:chain4": "DEMO=voting vite",
+    "dev:chain5": "DEMO=chain-with-save vite",
+    "dev:see": "DEMO=live-attactor vite",
+    "dev:see2": "DEMO=organism-visual vite",
+    "dev:see3": "DEMO=organism-experiments vite",
+    "dev:see4": "DEMO=organism-experiments2 vite",
+    "dev:see5": "DEMO=organism-experiments3 vite",
+    "dev:see6": "DEMO=organism-experiments4 vite",
+    "dev:see7": "DEMO=organism-experiments5 vite",
+    "dev:see8": "DEMO=organism-experiments6 vite",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infiniteCrank/astermind.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/infiniteCrank/astermind/issues"
+  },
+  "homepage": "https://github.com/infiniteCrank/astermind#readme",
+  "devDependencies": {
+    "@types/csv-parse": "^1.1.12",
+    "@types/node": "^24.0.3",
+    "@types/yargs": "^17.0.33",
+    "@xenova/transformers": "^2.17.2",
+    "csv-parse": "^5.6.0",
+    "eslint": "^9.29.0",
+    "jsdom": "^26.1.0",
+    "ml-matrix": "^6.12.1",
+    "ml-pca": "^4.1.1",
+    "plotly.js-dist": "^3.0.1",
+    "prettier": "^3.5.3",
+    "rollup": "^4.43.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.8.1",
+    "tsne-js": "^1.0.3",
+    "typescript": "^5.8.3",
+    "umap-js": "^1.4.0",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4",
+    "yargs": "^18.0.0"
+  },
+  "dependencies": {}
+}

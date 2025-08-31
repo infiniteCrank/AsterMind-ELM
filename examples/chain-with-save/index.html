@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chained ELMs + Confidence Refinement</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      line-height: 1.6;
+    }
+    input[type="text"] {
+      padding: 0.5rem;
+      width: 100%;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .autocomplete-output {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    .confidence-bar {
+      height: 24px;
+      border-radius: 12px;
+      background: #ddd;
+      overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      line-height: 24px;
+    }
+    .explanation {
+      margin-top: 2rem;
+      background: #f9f9f9;
+      padding: 1rem;
+      border-left: 4px solid #888;
+    }
+    .confidence-fill[data-model="combiner"] {
+      box-shadow: inset 0 -4px 0 limegreen;
+    }
+    .confidence-fill[data-model="refiner"] {
+      box-shadow: inset 0 -4px 0 gold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 ELM-Based Language Classifier</h1>
+  <p>This demo classifies the language of greetings in real-time using chained Extreme Learning Machines (ELMs) including autocompletion, multiple classifiers, a confidence estimator, and a fallback refinement layer.</p>
+
+  <input type="text" id="userInput" placeholder="Type a greeting..." />
+  <div class="autocomplete-output" id="autoOutput"></div>
+  <div class="confidence-bar">
+    <div id="langFill" class="confidence-fill" style="width:0%"></div>
+  </div>
+
+  <div class="explanation">
+    <h3>🔍 Current Architecture:</h3>
+    <ol>
+      <li><strong>AutoComplete ELM</strong> completes partial user input with a full greeting.</li>
+      <li><strong>CharacterLangEncoderELM</strong> encodes the completed greeting at a character level into a normalized feature vector.</li>
+      <li><strong>EncoderELM</strong> produces another encoded vector used by the separate LanguageClassifier.</li>
+      <li><strong>LanguageClassifier</strong> makes a prediction using only the encoder vector.</li>
+      <li><strong>Metadata</strong> (length, diversity, vowels, punctuation) is normalized and paired with the encoded vector.</li>
+      <li><strong>FeatureCombinerELM</strong> predicts the language from the combined features.</li>
+      <li><strong>ConfidenceClassifierELM</strong> decides whether to trust the combiner result.</li>
+      <li><strong>RefinerELM</strong> is used if either confidence is low or predictions disagree, choosing the most robust final output.</li>
+    </ol>
+    <p>
+      Output indicators:<br />
+      <code>[C]</code> = FeatureCombiner result,<br />
+      <code>[R]</code> = Refiner override<br />
+    </p>
+  </div>
+
+  <script src="/astermind.umd.js"></script>
+  <script src="/main.js"></script>
+</body>
+</html>

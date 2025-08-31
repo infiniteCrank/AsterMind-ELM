@@ -1,0 +1,241 @@
+query,target
+What is the difference between arrays and slices in Go?,### Day 2: Slices
+What is the difference between arrays and slices in Go? (guide),### Day 2: Slices
+What is the difference between arrays and slices in Go? (example),### Day 2: Slices
+What is the difference between arrays and slices in Go? (tutorial),### Day 2: Slices
+What is the difference between arrays and slices in Go? (reference),### Day 2: Slices
+How does Go handle dynamic array resizing?,### Day 2: Slices
+How does Go handle dynamic array resizing? (guide),### Day 2: Slices
+How does Go handle dynamic array resizing? (example),### Day 2: Slices
+How does Go handle dynamic array resizing? (tutorial),### Day 2: Slices
+How does Go handle dynamic array resizing? (reference),### Day 2: Slices
+How do you iterate over maps safely?,### Day 4: Maps
+How do you iterate over maps safely? (guide),### Day 4: Maps
+How do you iterate over maps safely? (example),### Day 4: Maps
+How do you iterate over maps safely? (tutorial),### Day 4: Maps
+How do you iterate over maps safely? (reference),### Day 4: Maps
+How do you declare a map literal?,### Day 4: Maps
+How do you declare a map literal? (guide),### Day 4: Maps
+How do you declare a map literal? (example),### Day 4: Maps
+How do you declare a map literal? (tutorial),### Day 4: Maps
+How do you declare a map literal? (reference),### Day 4: Maps
+How does Go manage memory automatically?,### Day 3: Introduction to Memory Management
+How does Go manage memory automatically? (guide),### Day 3: Introduction to Memory Management
+How does Go manage memory automatically? (example),### Day 3: Introduction to Memory Management
+How does Go manage memory automatically? (tutorial),### Day 3: Introduction to Memory Management
+How does Go manage memory automatically? (reference),### Day 3: Introduction to Memory Management
+What is garbage collection in Go?,### Day 3: Introduction to Memory Management
+What is garbage collection in Go? (guide),### Day 3: Introduction to Memory Management
+What is garbage collection in Go? (example),### Day 3: Introduction to Memory Management
+What is garbage collection in Go? (tutorial),### Day 3: Introduction to Memory Management
+What is garbage collection in Go? (reference),### Day 3: Introduction to Memory Management
+How do you allocate memory using new?,### Day 3: Introduction to Memory Management
+How do you allocate memory using new? (guide),### Day 3: Introduction to Memory Management
+How do you allocate memory using new? (example),### Day 3: Introduction to Memory Management
+How do you allocate memory using new? (tutorial),### Day 3: Introduction to Memory Management
+How do you allocate memory using new? (reference),### Day 3: Introduction to Memory Management
+How do you allocate slices with make?,### Day 3: Introduction to Memory Management
+How do you allocate slices with make? (guide),### Day 3: Introduction to Memory Management
+How do you allocate slices with make? (example),### Day 3: Introduction to Memory Management
+How do you allocate slices with make? (tutorial),### Day 3: Introduction to Memory Management
+How do you allocate slices with make? (reference),### Day 3: Introduction to Memory Management
+How do you create interfaces with embedded interfaces?,### Day 5: Interfaces in Depth
+How do you create interfaces with embedded interfaces? (guide),### Day 5: Interfaces in Depth
+How do you create interfaces with embedded interfaces? (example),### Day 5: Interfaces in Depth
+How do you create interfaces with embedded interfaces? (tutorial),### Day 5: Interfaces in Depth
+How do you create interfaces with embedded interfaces? (reference),### Day 5: Interfaces in Depth
+How do you convert between interfaces?,### Day 5: Interfaces in Depth
+How do you convert between interfaces? (guide),### Day 5: Interfaces in Depth
+How do you convert between interfaces? (example),### Day 5: Interfaces in Depth
+How do you convert between interfaces? (tutorial),### Day 5: Interfaces in Depth
+How do you convert between interfaces? (reference),### Day 5: Interfaces in Depth
+What is an empty interface and when is it used?,### Day 5: Interfaces in Depth
+What is an empty interface and when is it used? (guide),### Day 5: Interfaces in Depth
+What is an empty interface and when is it used? (example),### Day 5: Interfaces in Depth
+What is an empty interface and when is it used? (tutorial),### Day 5: Interfaces in Depth
+What is an empty interface and when is it used? (reference),### Day 5: Interfaces in Depth
+How do you implement custom JSON marshaling?,### Day 5: JSON Handling
+How do you implement custom JSON marshaling? (guide),### Day 5: JSON Handling
+How do you implement custom JSON marshaling? (example),### Day 5: JSON Handling
+How do you implement custom JSON marshaling? (tutorial),### Day 5: JSON Handling
+How do you implement custom JSON marshaling? (reference),### Day 5: JSON Handling
+How do you create HTTP middleware?,### Day 3: Introduction to HTTP Servers
+How do you create HTTP middleware? (guide),### Day 3: Introduction to HTTP Servers
+How do you create HTTP middleware? (example),### Day 3: Introduction to HTTP Servers
+How do you create HTTP middleware? (tutorial),### Day 3: Introduction to HTTP Servers
+How do you create HTTP middleware? (reference),### Day 3: Introduction to HTTP Servers
+How do you secure an HTTP server in Go?,### Day 3: Introduction to HTTP Servers
+How do you secure an HTTP server in Go? (guide),### Day 3: Introduction to HTTP Servers
+How do you secure an HTTP server in Go? (example),### Day 3: Introduction to HTTP Servers
+How do you secure an HTTP server in Go? (tutorial),### Day 3: Introduction to HTTP Servers
+How do you secure an HTTP server in Go? (reference),### Day 3: Introduction to HTTP Servers
+How do you serve TLS connections?,### Day 3: Introduction to HTTP Servers
+How do you serve TLS connections? (guide),### Day 3: Introduction to HTTP Servers
+How do you serve TLS connections? (example),### Day 3: Introduction to HTTP Servers
+How do you serve TLS connections? (tutorial),### Day 3: Introduction to HTTP Servers
+How do you serve TLS connections? (reference),### Day 3: Introduction to HTTP Servers
+How do you configure timeouts in HTTP servers?,### Day 3: Introduction to HTTP Servers
+How do you configure timeouts in HTTP servers? (guide),### Day 3: Introduction to HTTP Servers
+How do you configure timeouts in HTTP servers? (example),### Day 3: Introduction to HTTP Servers
+How do you configure timeouts in HTTP servers? (tutorial),### Day 3: Introduction to HTTP Servers
+How do you configure timeouts in HTTP servers? (reference),### Day 3: Introduction to HTTP Servers
+How do you write unit tests for HTTP handlers?,### Day 1: Introduction to Testing
+How do you write unit tests for HTTP handlers? (guide),### Day 1: Introduction to Testing
+How do you write unit tests for HTTP handlers? (example),### Day 1: Introduction to Testing
+How do you write unit tests for HTTP handlers? (tutorial),### Day 1: Introduction to Testing
+How do you write unit tests for HTTP handlers? (reference),### Day 1: Introduction to Testing
+How do you mock HTTP responses in tests?,### Day 1: Introduction to Testing
+How do you mock HTTP responses in tests? (guide),### Day 1: Introduction to Testing
+How do you mock HTTP responses in tests? (example),### Day 1: Introduction to Testing
+How do you mock HTTP responses in tests? (tutorial),### Day 1: Introduction to Testing
+How do you mock HTTP responses in tests? (reference),### Day 1: Introduction to Testing
+How do you benchmark HTTP handlers?,### Day 3: Benchmarking
+How do you benchmark HTTP handlers? (guide),### Day 3: Benchmarking
+How do you benchmark HTTP handlers? (example),### Day 3: Benchmarking
+How do you benchmark HTTP handlers? (tutorial),### Day 3: Benchmarking
+How do you benchmark HTTP handlers? (reference),### Day 3: Benchmarking
+How do you profile memory usage?,### Day 3: Benchmarking
+How do you profile memory usage? (guide),### Day 3: Benchmarking
+How do you profile memory usage? (example),### Day 3: Benchmarking
+How do you profile memory usage? (tutorial),### Day 3: Benchmarking
+How do you profile memory usage? (reference),### Day 3: Benchmarking
+How do you share data safely between goroutines?,### Day 5: Concurrency Patterns and Review
+How do you share data safely between goroutines? (guide),### Day 5: Concurrency Patterns and Review
+How do you share data safely between goroutines? (example),### Day 5: Concurrency Patterns and Review
+How do you share data safely between goroutines? (tutorial),### Day 5: Concurrency Patterns and Review
+How do you share data safely between goroutines? (reference),### Day 5: Concurrency Patterns and Review
+How do you avoid race conditions?,### Day 5: Concurrency Patterns and Review
+How do you avoid race conditions? (guide),### Day 5: Concurrency Patterns and Review
+How do you avoid race conditions? (example),### Day 5: Concurrency Patterns and Review
+How do you avoid race conditions? (tutorial),### Day 5: Concurrency Patterns and Review
+How do you avoid race conditions? (reference),### Day 5: Concurrency Patterns and Review
+How do you use mutexes in Go?,### Day 5: Concurrency Patterns and Review
+How do you use mutexes in Go? (guide),### Day 5: Concurrency Patterns and Review
+How do you use mutexes in Go? (example),### Day 5: Concurrency Patterns and Review
+How do you use mutexes in Go? (tutorial),### Day 5: Concurrency Patterns and Review
+How do you use mutexes in Go? (reference),### Day 5: Concurrency Patterns and Review
+How do you coordinate goroutines with WaitGroups?,### Day 5: Concurrency Patterns and Review
+How do you coordinate goroutines with WaitGroups? (guide),### Day 5: Concurrency Patterns and Review
+How do you coordinate goroutines with WaitGroups? (example),### Day 5: Concurrency Patterns and Review
+How do you coordinate goroutines with WaitGroups? (tutorial),### Day 5: Concurrency Patterns and Review
+How do you coordinate goroutines with WaitGroups? (reference),### Day 5: Concurrency Patterns and Review
+How do you create worker pools with channels?,### Day 5: Concurrency Patterns and Review
+How do you create worker pools with channels? (guide),### Day 5: Concurrency Patterns and Review
+How do you create worker pools with channels? (example),### Day 5: Concurrency Patterns and Review
+How do you create worker pools with channels? (tutorial),### Day 5: Concurrency Patterns and Review
+How do you create worker pools with channels? (reference),### Day 5: Concurrency Patterns and Review
+How do you structure Go modules?,### Day 5: Building and Organizing Code
+How do you structure Go modules? (guide),### Day 5: Building and Organizing Code
+How do you structure Go modules? (example),### Day 5: Building and Organizing Code
+How do you structure Go modules? (tutorial),### Day 5: Building and Organizing Code
+How do you structure Go modules? (reference),### Day 5: Building and Organizing Code
+How do you create reusable libraries?,### Day 5: Building and Organizing Code
+How do you create reusable libraries? (guide),### Day 5: Building and Organizing Code
+How do you create reusable libraries? (example),### Day 5: Building and Organizing Code
+How do you create reusable libraries? (tutorial),### Day 5: Building and Organizing Code
+How do you create reusable libraries? (reference),### Day 5: Building and Organizing Code
+How do you generate documentation with godoc?,### Day 5: Best Practices and Code Reviews
+How do you generate documentation with godoc? (guide),### Day 5: Best Practices and Code Reviews
+How do you generate documentation with godoc? (example),### Day 5: Best Practices and Code Reviews
+How do you generate documentation with godoc? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you generate documentation with godoc? (reference),### Day 5: Best Practices and Code Reviews
+How do you enforce code style?,### Day 5: Best Practices and Code Reviews
+How do you enforce code style? (guide),### Day 5: Best Practices and Code Reviews
+How do you enforce code style? (example),### Day 5: Best Practices and Code Reviews
+How do you enforce code style? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you enforce code style? (reference),### Day 5: Best Practices and Code Reviews
+How do you perform static analysis?,### Day 5: Best Practices and Code Reviews
+How do you perform static analysis? (guide),### Day 5: Best Practices and Code Reviews
+How do you perform static analysis? (example),### Day 5: Best Practices and Code Reviews
+How do you perform static analysis? (tutorial),### Day 5: Best Practices and Code Reviews
+How do you perform static analysis? (reference),### Day 5: Best Practices and Code Reviews
+How do you write build tags in Go?,### Day 5: Deployment and Project Structure
+How do you write build tags in Go? (guide),### Day 5: Deployment and Project Structure
+How do you write build tags in Go? (example),### Day 5: Deployment and Project Structure
+How do you write build tags in Go? (tutorial),### Day 5: Deployment and Project Structure
+How do you write build tags in Go? (reference),### Day 5: Deployment and Project Structure
+How do you test different build constraints?,### Day 5: Deployment and Project Structure
+How do you test different build constraints? (guide),### Day 5: Deployment and Project Structure
+How do you test different build constraints? (example),### Day 5: Deployment and Project Structure
+How do you test different build constraints? (tutorial),### Day 5: Deployment and Project Structure
+How do you test different build constraints? (reference),### Day 5: Deployment and Project Structure
+How do you build Docker images for Go applications?,### Day 5: Deployment and Project Structure
+How do you build Docker images for Go applications? (guide),### Day 5: Deployment and Project Structure
+How do you build Docker images for Go applications? (example),### Day 5: Deployment and Project Structure
+How do you build Docker images for Go applications? (tutorial),### Day 5: Deployment and Project Structure
+How do you build Docker images for Go applications? (reference),### Day 5: Deployment and Project Structure
+How do you manage environment configurations?,### Day 5: Deployment and Project Structure
+How do you manage environment configurations? (guide),### Day 5: Deployment and Project Structure
+How do you manage environment configurations? (example),### Day 5: Deployment and Project Structure
+How do you manage environment configurations? (tutorial),### Day 5: Deployment and Project Structure
+How do you manage environment configurations? (reference),### Day 5: Deployment and Project Structure
+How do you create custom CLI flags?,### Day 1: Introduction to CLI Applications
+How do you create custom CLI flags? (guide),### Day 1: Introduction to CLI Applications
+How do you create custom CLI flags? (example),### Day 1: Introduction to CLI Applications
+How do you create custom CLI flags? (tutorial),### Day 1: Introduction to CLI Applications
+How do you create custom CLI flags? (reference),### Day 1: Introduction to CLI Applications
+How do you validate CLI input?,### Day 2: Advanced CLI Applications
+How do you validate CLI input? (guide),### Day 2: Advanced CLI Applications
+How do you validate CLI input? (example),### Day 2: Advanced CLI Applications
+How do you validate CLI input? (tutorial),### Day 2: Advanced CLI Applications
+How do you validate CLI input? (reference),### Day 2: Advanced CLI Applications
+How do you create interactive CLI prompts?,### Day 2: Advanced CLI Applications
+How do you create interactive CLI prompts? (guide),### Day 2: Advanced CLI Applications
+How do you create interactive CLI prompts? (example),### Day 2: Advanced CLI Applications
+How do you create interactive CLI prompts? (tutorial),### Day 2: Advanced CLI Applications
+How do you create interactive CLI prompts? (reference),### Day 2: Advanced CLI Applications
+How do you build REST APIs with Echo?,### Day 4: Web Frameworks Overview
+How do you build REST APIs with Echo? (guide),### Day 4: Web Frameworks Overview
+How do you build REST APIs with Echo? (example),### Day 4: Web Frameworks Overview
+How do you build REST APIs with Echo? (tutorial),### Day 4: Web Frameworks Overview
+How do you build REST APIs with Echo? (reference),### Day 4: Web Frameworks Overview
+How do you add middleware in Echo?,### Day 4: Web Frameworks Overview
+How do you add middleware in Echo? (guide),### Day 4: Web Frameworks Overview
+How do you add middleware in Echo? (example),### Day 4: Web Frameworks Overview
+How do you add middleware in Echo? (tutorial),### Day 4: Web Frameworks Overview
+How do you add middleware in Echo? (reference),### Day 4: Web Frameworks Overview
+How do you define route groups in Echo?,### Day 4: Web Frameworks Overview
+How do you define route groups in Echo? (guide),### Day 4: Web Frameworks Overview
+How do you define route groups in Echo? (example),### Day 4: Web Frameworks Overview
+How do you define route groups in Echo? (tutorial),### Day 4: Web Frameworks Overview
+How do you define route groups in Echo? (reference),### Day 4: Web Frameworks Overview
+How do you serve JSON APIs with Fiber?,### Day 4: Web Frameworks Overview
+How do you serve JSON APIs with Fiber? (guide),### Day 4: Web Frameworks Overview
+How do you serve JSON APIs with Fiber? (example),### Day 4: Web Frameworks Overview
+How do you serve JSON APIs with Fiber? (tutorial),### Day 4: Web Frameworks Overview
+How do you serve JSON APIs with Fiber? (reference),### Day 4: Web Frameworks Overview
+How do you write tests for Fiber handlers?,### Day 4: Web Frameworks Overview
+How do you write tests for Fiber handlers? (guide),### Day 4: Web Frameworks Overview
+How do you write tests for Fiber handlers? (example),### Day 4: Web Frameworks Overview
+How do you write tests for Fiber handlers? (tutorial),### Day 4: Web Frameworks Overview
+How do you write tests for Fiber handlers? (reference),### Day 4: Web Frameworks Overview
+How do you load templates in Fiber?,### Day 4: Web Frameworks Overview
+How do you load templates in Fiber? (guide),### Day 4: Web Frameworks Overview
+How do you load templates in Fiber? (example),### Day 4: Web Frameworks Overview
+How do you load templates in Fiber? (tutorial),### Day 4: Web Frameworks Overview
+How do you load templates in Fiber? (reference),### Day 4: Web Frameworks Overview
+How do you return JSON errors?,### Day 5: JSON Handling
+How do you return JSON errors? (guide),### Day 5: JSON Handling
+How do you return JSON errors? (example),### Day 5: JSON Handling
+How do you return JSON errors? (tutorial),### Day 5: JSON Handling
+How do you return JSON errors? (reference),### Day 5: JSON Handling
+How do you build nested structs for JSON?,### Day 5: JSON Handling
+How do you build nested structs for JSON? (guide),### Day 5: JSON Handling
+How do you build nested structs for JSON? (example),### Day 5: JSON Handling
+How do you build nested structs for JSON? (tutorial),### Day 5: JSON Handling
+How do you build nested structs for JSON? (reference),### Day 5: JSON Handling
+How do you use omitempty in JSON tags?,### Day 5: JSON Handling
+How do you use omitempty in JSON tags? (guide),### Day 5: JSON Handling
+How do you use omitempty in JSON tags? (example),### Day 5: JSON Handling
+How do you use omitempty in JSON tags? (tutorial),### Day 5: JSON Handling
+How do you use omitempty in JSON tags? (reference),### Day 5: JSON Handling
+How do you ignore fields during marshaling?,### Day 5: JSON Handling
+How do you ignore fields during marshaling? (guide),### Day 5: JSON Handling
+How do you ignore fields during marshaling? (example),### Day 5: JSON Handling
+How do you ignore fields during marshaling? (tutorial),### Day 5: JSON Handling
+How do you ignore fields during marshaling? (reference),### Day 5: JSON Handling
+How do you handle unknown JSON fields?,### Day 5: JSON Handling
+How do you handle unknown JSON fields? (guide),### Day 5: JSON Handling
+How do you handle unknown JSON fields? (example),### Day 5: JSON Handling
+How do you handle unknown JSON fields? (tutorial),### Day 5: JSON Handling
+How do you handle unknown JSON fields? (reference),### Day 5: JSON Handling

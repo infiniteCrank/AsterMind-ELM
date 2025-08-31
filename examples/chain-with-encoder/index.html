@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chained ELM Demo: AutoComplete + Encoder + Language Classifier</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      line-height: 1.6;
+    }
+    input[type="text"] {
+      padding: 0.5rem;
+      width: 100%;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .autocomplete-output {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    .confidence-bar {
+      height: 24px;
+      border-radius: 12px;
+      background: #ddd;
+      overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      line-height: 24px;
+    }
+    .explanation {
+      margin-top: 2rem;
+      background: #f9f9f9;
+      padding: 1rem;
+      border-left: 4px solid #888;
+    }
+    .step {
+      margin-bottom: 1rem;
+    }
+    .label {
+      font-weight: bold;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .illustration {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+    .box {
+      border: 2px solid #444;
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      width: 200px;
+      margin: 1rem;
+      background: #f9f9f9;
+    }
+    .arrow {
+      font-size: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Chained ELMs in the Browser</h1>
+
+  <p>This demo uses three chained ELMs to build a modular inference pipeline:</p>
+
+  <div class="illustration">
+    <div class="box">User Input</div>
+    <div class="arrow">➡️</div>
+    <div class="box">AutoComplete ELM</div>
+    <div class="arrow">➡️</div>
+    <div class="box">Encoder ELM</div>
+    <div class="arrow">➡️</div>
+    <div class="box">Language Classifier</div>
+  </div>
+
+  <input type="text" id="userInput" placeholder="Type a greeting in English, French, or Spanish..." />
+  <div class="autocomplete-output" id="autoOutput"></div>
+  <div class="confidence-bar">
+    <div id="langFill" class="confidence-fill" style="width:0%"></div>
+  </div>
+
+  <div class="explanation">
+    <h3>🔍 How It Works</h3>
+    <div class="step"><span class="label">Step 1:</span> You start typing a greeting.</div>
+    <div class="step"><span class="label">Step 2:</span> The <strong>AutoComplete ELM</strong> predicts the most likely full greeting.</div>
+    <div class="step"><span class="label">Step 3:</span> That predicted greeting is encoded into a feature vector using the <strong>Encoder ELM</strong>.</div>
+    <div class="step"><span class="label">Step 4:</span> The <strong>Language Classifier</strong> ELM uses the vector to predict your language.</div>
+    <div class="step"><span class="label">Step 5:</span> The prediction is visualized with a confidence bar.</div>
+    <p>This all runs 100% in your browser. No backend. No latency. Pure neural joy.</p>
+  </div>
+
+  <!-- UMD bundle (containing all ELM logic) and demo script -->
+  <script src="/astermind.umd.js"></script>
+  <script src="/main.js"></script>
+</body>
+</html>

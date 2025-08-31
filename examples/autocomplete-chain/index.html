@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELM Text Completion Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      padding: 2rem;
+    }
+    h1 {
+      color: #333;
+    }
+    #userInput {
+      width: 100%;
+      font-size: 1.25rem;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #autoOutput {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    #langFill {
+      background: #ccc;
+      padding: 0.5rem;
+      font-weight: bold;
+      color: #fff;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h1>ELM: Character → Word → Sentence Prediction</h1>
+  <input type="text" id="userInput" placeholder="Type a greeting..." autocomplete="off" />
+  <div id="autoOutput"></div>
+  <div id="langFill"></div>
+
+  <script src="/path/to/astermind.umd.js"></script>
+  <script src="/path/to/main.js"></script>
+</body>
+</html>
