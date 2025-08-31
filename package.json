@@ -17,6 +17,7 @@
     "dev:autocomplete": "DEMO=autocomplete-chain vite",
     "dev:lang": "DEMO=language-awareness-demo vite",
     "dev:chain": "DEMO=chain-with-save vite",
+    "dev:news": "DEMO=ag-news-demo vite",
     "test": "vitest"
   },
   "repository": {

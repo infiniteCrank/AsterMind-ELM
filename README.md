@@ -418,10 +418,7 @@ AsterMind includes multiple demo scripts you can launch via `npm run` commands:
 * `dev:autocomplete`: Starts the autocomplete demo.
 * `dev:lang`: Starts the language classification demo.
 * `dev:chain`: Runs a pipeline chaining autocomplete and language classifier.
-* `dev:chain2`: Adds an encoder to the chain.
-* `dev:chain3`: Chains encoder and feature combiner.
-* `dev:chain4`: Adds a voting classifier to combine predictions.
-* `dev:chain5`: Chains models and demonstrates saving trained weights.
+* `dev:news`: This model is trained on the ag news classification data set (there is memory problems currently)
 
 **How to Run:**
 
