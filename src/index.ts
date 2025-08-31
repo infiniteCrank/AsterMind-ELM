@@ -6,7 +6,6 @@ export * from './core/EmbeddingStore';
 export * from './core/evaluateEnsembleRetrieval';
 export * from './core/Evaluation';
 export * from './core/Matrix';
-export * from './core/MiniTransformer';
 
 export * from './ml/TFIDF';
 export * from './ml/KNN';
@@ -14,9 +13,6 @@ export * from './ml/KNN';
 export * from './preprocessing/Tokenizer';
 export * from './preprocessing/TextEncoder';
 export * from './preprocessing/UniversalEncoder';
-
-export * from './RRNS/RadialRing';
-export * from './RRNS/RadialNeuron';
 
 export * from './tasks/AutoComplete';
 export * from './tasks/CharacterLangEncoderELM';
@@ -31,16 +27,3 @@ export * from './tasks/VotingClassifierELM';
 export * from './utils/IO';
 export * from './utils/Augment';
 export * from './ui/components/BindUI';
-
-export * from './RRNS/ComputeMotorOutputs'
-export * from './RRNS/ELMFactory'
-export * from './RRNS/GetSensoryInputForArms'
-export * from './RRNS/Metrics'
-export * from './RRNS/RadialNeuron'
-export * from './RRNS/RadialRing'
-export * from './RRNS/RadialStarfish'
-export * from './RRNS/StarfishEnvironment'
-export * from './RRNS/StarfishGradedActivation'
-export * from './RRNS/SymbolicInterfaceELM'
-export * from './RRNS/SymbolicInterfaceV2'
-export * from './RRNS/Synapse'

@@ -21,14 +21,6 @@
     "dev:chain3": "DEMO=chain-encoder-feauture-combine vite",
     "dev:chain4": "DEMO=voting vite",
     "dev:chain5": "DEMO=chain-with-save vite",
-    "dev:see": "DEMO=live-attactor vite",
-    "dev:see2": "DEMO=organism-visual vite",
-    "dev:see3": "DEMO=organism-experiments vite",
-    "dev:see4": "DEMO=organism-experiments2 vite",
-    "dev:see5": "DEMO=organism-experiments3 vite",
-    "dev:see6": "DEMO=organism-experiments4 vite",
-    "dev:see7": "DEMO=organism-experiments5 vite",
-    "dev:see8": "DEMO=organism-experiments6 vite",
     "test": "vitest"
   },
   "repository": {
