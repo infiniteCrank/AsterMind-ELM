@@ -12,6 +12,9 @@ const config = {
     activation: 'relu',
     charSet,
     useTokenizer: false,
+    log: {
+        verbose: false
+    },
 };
 
 fetch('/language_greetings_1500.csv')
