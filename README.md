@@ -22,6 +22,12 @@
 
 Welcome to **AsterMind**, a modular, decentralized machine learning framework built around small, cooperating Extreme Learning Machines (ELMs) that self-train, self-evaluate, and self-repair—just like the decentralized nervous system of a starfish.
 
+🔍 How This ELM Library Differs from a Traditional ELM
+
+This library preserves the core Extreme Learning Machine idea—randomized hidden layer weights and biases, a nonlinear activation, and a one-step closed-form solution for output weights using a pseudoinverse—but extends it with several modern enhancements. Unlike a “vanilla” ELM, it supports multiple activation functions (ReLU, LeakyReLU, Sigmoid, Tanh), Xavier or uniform initialization, optional dropout on hidden activations, and sample weighting. It also integrates a full metrics gate (RMSE, MAE, Accuracy, F1, Cross-Entropy, R²) to decide whether to persist the trained model, and produces softmax probabilities rather than raw outputs. The library further includes utilities for weight reuse (simulating fine-tuning), detailed logging, JSON export/import, and model lifecycle management.
+
+In addition, this implementation is designed for end-to-end usability. It includes a UniversalEncoder for text preprocessing (character or token level), built-in augmentation utilities, and the ability to chain multiple ELMs (ELMChain) for stacked random projections and embeddings—something not found in classic ELMs. These features make the library practical for real-world use cases like browser-based ML apps, rapid prototyping, and lightweight experiments, while still retaining the speed and simplicity that make ELMs appealing.
+
 AsterMind is designed for:
 
 * Lightweight, in-browser ML pipelines
