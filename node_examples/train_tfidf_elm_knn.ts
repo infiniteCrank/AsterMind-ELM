@@ -1,3 +1,45 @@
+/**
+ * Experiment: Hybrid Classifier with TF-IDF + ELM + KNN (Small Code Corpus)
+ *
+ * Goal
+ *  - Train a simple hybrid classifier over a toy dataset of Go, Python, and
+ *    TypeScript code snippets using:
+ *    1) TF-IDF vectorization for lexical features,
+ *    2) Extreme Learning Machine (ELM) for fast supervised classification,
+ *    3) KNN for instance-based similarity,
+ *    4) Averaging their scores for final predictions.
+ *
+ * What it does
+ *  - Defines a tiny training corpus (6 sentences across 3 languages).
+ *  - Builds a TF-IDF vocabulary and vectorizes samples.
+ *  - Trains an ELM (X→one-hot labels) with 50 hidden units, ReLU activation.
+ *  - Builds a KNN dataset over the same TF-IDF embeddings.
+ *  - Runs inference on a test sentence:
+ *    - ELM predicts softmax-like label probabilities,
+ *    - KNN finds nearest neighbors and assigns cosine weights,
+ *    - Results are averaged for a combined score.
+ *  - Outputs ranked label predictions with scores.
+ *
+ * Why
+ *  - ELM provides a fast, generalizable classifier,
+ *  - KNN ensures similarity to exact known instances,
+ *  - Combining both balances generalization and memorization on small datasets.
+ *
+ * Pipeline Overview
+ *
+ *   Train Samples ──► TF-IDF ──► L2 normalize ──► [ELM classifier] ──► Probabilities
+ *                                   │
+ *                                   └─► [KNN (cosine)] ──► Neighbor weights
+ *
+ *                                    ▼
+ *                            Combine (avg) ──► Final Prediction
+ *
+ * Notes
+ *  - With such a small dataset, performance is illustrative only.
+ *  - Categories are auto-detected from unique labels.
+ *  - Combine logic averages ELM probability and KNN cosine weight per label.
+ */
+
 import { KNN, KNNDataPoint } from "../src/ml/KNN";
 
 import { ELM } from "../src/core/ELM";

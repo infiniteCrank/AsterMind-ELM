@@ -1,11 +1,39 @@
 /**
- * Train an ELM using TFIDF vectors and predict on new text.
- * 
- * Make sure you have the following imports available in your project:
- * - ELM
- * - TFIDFVectorizer
- * 
- * Assumes you have at least two categories to classify.
+ * Experiment: TF-IDF + ELM Classifier (Single Model, Direct Prediction)
+ *
+ * Goal
+ *  - Train an Extreme Learning Machine (ELM) on TF-IDF vectors extracted
+ *    from a small labeled text corpus, then use it to predict categories
+ *    for unseen text.
+ *
+ * What it does
+ *  - Defines a small training dataset across three categories (Go, Python, TypeScript).
+ *  - Builds a TF-IDF vectorizer on training docs (vocab size = 500).
+ *  - Converts docs into normalized TF-IDF vectors.
+ *  - One-hot encodes labels for supervised training.
+ *  - Instantiates an ELM with:
+ *      hiddenUnits = 50,
+ *      activation = sigmoid,
+ *      weight initialization = Xavier.
+ *  - Trains on TF-IDF vectors and one-hot labels.
+ *  - Vectorizes a test sentence and predicts category probabilities.
+ *
+ * Why
+ *  - Demonstrates a minimal supervised ELM pipeline with TF-IDF.
+ *  - Suitable as a baseline text classification experiment.
+ *
+ * Pipeline Overview
+ *
+ *   Training Docs ──► TF-IDF ──► ELM (X→Y) ──► Train Weights
+ *                                         │
+ *   New Text ──► TF-IDF ──────────────────┘
+ *                                         ▼
+ *                                    Category Probs
+ *
+ * Notes
+ *  - TF-IDF vocabulary capped at 500 features.
+ *  - Uses sigmoid activation for hidden layer.
+ *  - Outputs class probabilities per category.
  */
 
 import { ELM } from "../src/core/ELM";

@@ -1,3 +1,39 @@
+/**
+ * Experiment: Token-Level UniversalEncoder → Unsupervised ELM → Indexer ELMChain (+ TF-IDF blend)
+ *
+ * Goal
+ *  - Build a fast, lightweight retriever by:
+ *    1) Encoding sections at the token level,
+ *    2) Learning unsupervised dense embeddings with an ELM autoencoder,
+ *    3) Refining them via a small Indexer ELMChain,
+ *    4) Blending dense similarity with TF-IDF (50/50) for robustness.
+ *
+ * What it does
+ *  - Parses markdown into (heading, content) sections.
+ *  - Uses UniversalEncoder in token mode for richer lexical signals.
+ *  - Trains or loads an unsupervised ELM (X→X) and a 2-layer Indexer ELMChain.
+ *  - Computes TF-IDF vectors for lexical grounding + a sanity-check ranking.
+ *  - Retrieval combines dense cosine and TF-IDF cosine equally.
+ *
+ * Why
+ *  - Token-mode encoding captures word boundaries and punctuation patterns.
+ *  - Unsupervised ELM + Indexer shapes a compact space without labels.
+ *  - 50/50 blend balances semantic match with exact-term relevance.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown ──► Sections ──► UniversalEncoder (token) ──► ELM (autoencoder) ──► Indexer ELMChain ──► Dense Embeds
+ *                                                                                                  │
+ *                                                                                                  ├─► TF-IDF (lexical)
+ *                                                                                                  │
+ *                                                                                                  └─► Blended Retrieval (0.5 dense + 0.5 tfidf)
+ *
+ * Notes
+ *  - Weights are cached under ./elm_weights for reproducibility and speed.
+ *  - All vectors are L2-normalized before cosine similarity.
+ *  - Adjust Indexer depth/width and TF-IDF vocab (3000) to tune quality/latency.
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { ELM } from "../src/core/ELM";
@@ -16,6 +52,11 @@ function l2normalize(v: number[]): number[] {
 const rawText = fs.readFileSync("../public/go_textbook.md", "utf8");
 
 // ✅ Split sections (improved parsing)
+// -----------------------------------------------------------------------------
+// Section parsing (markdown headings #..###### → (heading, content) pairs):
+// Filters out tiny sections to reduce retrieval noise.
+// -----------------------------------------------------------------------------
+
 const sectionRegex = /(^#{1,6}\s+.+$)/m;
 const rawSections = rawText.split(/\n(?=#+ )/);
 const sections = rawSections
@@ -33,6 +74,11 @@ const sections = rawSections
 console.log(`✅ Parsed ${sections.length} sections.`);
 
 // ✅ Encoder with token-level settings
+// -----------------------------------------------------------------------------
+// UniversalEncoder (token mode):
+// Token-level encoding with tokenizer enabled; richer than pure char mode.
+// -----------------------------------------------------------------------------
+
 const encoder = new UniversalEncoder({
     maxLen: 100,
     charSet: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?()[]{}<>+-=*/%\"'`_#|\\ \t",
@@ -73,6 +119,11 @@ const supTargetVecs = supervisedPairs.map(p =>
 );
 
 // ✅ Unsupervised ELM
+// -----------------------------------------------------------------------------
+// Unsupervised ELM (autoencoder, X→X):
+// Learns compact paragraph embeddings; weights cached to ./elm_weights.
+// -----------------------------------------------------------------------------
+
 const unsupELM = new ELM({
     activation: "relu",
     hiddenUnits: 128,
@@ -96,6 +147,11 @@ if (fs.existsSync(unsupPath)) {
 let embeddings = unsupELM.computeHiddenLayer(paraVectors).map(l2normalize);
 
 // ✅ TFIDF
+// -----------------------------------------------------------------------------
+// TF-IDF baseline vectors (vocab=3000):
+// Used for lexical grounding and a quick top-TFIDF sanity check.
+// -----------------------------------------------------------------------------
+
 console.log(`⏳ Computing TFIDF vectors...`);
 const texts = sections.map(s => `${s.heading} ${s.content}`);
 const vectorizer = new TFIDFVectorizer(texts, 3000);
@@ -103,6 +159,11 @@ const tfidfVectors = vectorizer.vectorizeAll().map(l2normalize);
 console.log(`✅ TFIDF vectors ready.`);
 
 // ✅ Indexer ELM chain
+// -----------------------------------------------------------------------------
+// Indexer ELMChain (2 layers):
+// Further refines/whitens the unsupervised embeddings; each layer cached.
+// -----------------------------------------------------------------------------
+
 const indexerDims = [256, 128];
 const chainELMs = indexerDims.map((h, i) =>
     new ELM({
@@ -130,6 +191,10 @@ chainELMs.forEach((elm, i) => {
 const indexerChain = new ELMChain(chainELMs);
 
 // ✅ Save embeddings
+// -----------------------------------------------------------------------------
+// Persist final embeddings + metadata for downstream inspection.
+// -----------------------------------------------------------------------------
+
 const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
     embedding: embeddings[i],
     metadata: { heading: s.heading, text: s.content }
@@ -138,6 +203,14 @@ fs.writeFileSync("./embeddings/embeddings.json", JSON.stringify(embeddingRecords
 console.log(`💾 Saved embeddings.`);
 
 // ✅ Retrieval with blended scoring
+// -----------------------------------------------------------------------------
+// Retrieval:
+// 1) Encode query → Unsupervised ELM → Indexer chain to get dense vector.
+// 2) Compute TF-IDF vector for the query.
+// 3) Rank sections by blended score = 0.5*dense_cosine + 0.5*tfidf_cosine.
+// Also logs a pure-TFIDF top list for sanity checking.
+// -----------------------------------------------------------------------------
+
 function retrieve(query: string, topK = 5) {
     const qVec = l2normalize(encoder.normalize(encoder.encode(query)));
     const unsupVec = unsupELM.computeHiddenLayer([qVec])[0];
@@ -167,6 +240,10 @@ function retrieve(query: string, topK = 5) {
 }
 
 // ✅ Example retrieval
+// -----------------------------------------------------------------------------
+// Demo query: quick end-to-end smoke test of the blended retriever.
+// -----------------------------------------------------------------------------
+
 const results = retrieve("How do you declare a map in Go?");
 console.log(`\n🔍 Retrieval results:`);
 results.forEach((r, i) =>

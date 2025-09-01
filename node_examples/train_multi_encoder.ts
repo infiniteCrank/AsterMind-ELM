@@ -1,3 +1,47 @@
+/**
+ * Experiment: Multi-View Encoders (word/sentence/paragraph) → Fusion → Indexer ELMChain
+ *
+ * Goal
+ *  - Build dense, retrieval-ready embeddings by:
+ *    1) Encoding sections at three granularities (word / sentence / paragraph),
+ *    2) Training lightweight ELM autoencoders per granularity (cached),
+ *    3) Zero-centering + L2-normalizing each layer’s outputs,
+ *    4) Concatenating the three views into a single vector,
+ *    5) Refining with a small Indexer ELMChain for final retrieval space.
+ *
+ * What it does
+ *  - Parses a markdown textbook into (heading, content) sections.
+ *  - UniversalEncoder (token mode) produces base features at word/sentence/paragraph levels.
+ *  - Trains/loads three ELMs (X→X) to get compact embeddings per level.
+ *  - Zero-centers + L2-normalizes each level, then concatenates and normalizes again.
+ *  - Applies a 2-layer Indexer ELMChain (X→X) for distribution shaping.
+ *  - Saves final embeddings; provides a retrieval() that mirrors the fusion path for queries.
+ *
+ * Why
+ *  - Different granularities capture complementary context windows.
+ *  - Simple ELM autoencoders are fast and easy to cache for iterative runs.
+ *  - Indexer chain whitens/stabilizes geometry for cosine retrieval.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown ──► Sections ──► UniversalEncoder (token)
+ *                 │
+ *      ┌──────────┼──────────┐
+ *      ▼          ▼          ▼
+ *   word avg   sentence avg  paragraph enc     (each passes through ELM X→X)
+ *      │          │          │
+ *      └───── zero-center + L2 on each view ───┘
+ *                 │
+ *          concat + L2  →  Indexer ELMChain (X→X)
+ *                 │
+ *           Final Embeddings ──► Retrieval
+ *
+ * Notes
+ *  - Weights are cached under ./elm_weights for reproducibility.
+ *  - All cosine similarities assume L2-normalized vectors.
+ *  - Tune hidden sizes/dropout and the Indexer depth to balance quality vs. speed.
+ */
+
 import fs from "fs";
 import { ELM } from "../src/core/ELM";
 import { ELMChain } from "../src/core/ELMChain";
@@ -45,6 +89,11 @@ const sections = rawSections
 console.log(`✅ Parsed ${sections.length} sections.`);
 
 // 3️⃣ UniversalEncoder
+// -----------------------------------------------------------------------------
+// UniversalEncoder (token mode):
+// Token-aware features for all granularities (word/sentence/paragraph).
+// -----------------------------------------------------------------------------
+
 const encoder = new UniversalEncoder({
     maxLen: 100,
     charSet: "abcdefghijklmnopqrstuvwxyz0123456789",
@@ -53,6 +102,14 @@ const encoder = new UniversalEncoder({
 });
 
 // 4️⃣ Embeddings
+// -----------------------------------------------------------------------------
+// Multi-view base embeddings:
+// - wordVectors: average over token encodings
+// - sentenceVectors: average over sentence encodings
+// - paragraphVectors: full-paragraph encoding
+// All will be normalized before fusion.
+// -----------------------------------------------------------------------------
+
 const wordVectors = sections.map(s => {
     const tokens = s.content.split(/\s+/).filter(Boolean);
     return l2normalize(averageVectors(tokens.map(t => encoder.normalize(encoder.encode(t)))));
@@ -70,6 +127,11 @@ const paragraphVectors = sections.map(s =>
 console.log(`✅ Prepared all input embeddings.`);
 
 // 5️⃣ Train/load ELMs
+// -----------------------------------------------------------------------------
+// Train-or-load ELM (X→X) for a given view:
+// Caches weights to ./elm_weights to keep experiments fast and reproducible.
+// -----------------------------------------------------------------------------
+
 function trainOrLoadELM(name: string, inputDim: number, vectors: number[][], hiddenUnits: number) {
     const elm = new ELM({
         activation: "relu",
@@ -101,11 +163,21 @@ const sentenceELM = trainOrLoadELM("sentence_encoder", sentenceVectors[0].length
 const paragraphELM = trainOrLoadELM("paragraph_encoder", paragraphVectors[0].length, paragraphVectors, 128);
 
 // 6️⃣ Compute embeddings
+// -----------------------------------------------------------------------------
+// View-specific embeddings from their respective ELMs.
+// -----------------------------------------------------------------------------
+
 const wordEmb = wordELM.computeHiddenLayer(wordVectors);
 const sentenceEmb = sentenceELM.computeHiddenLayer(sentenceVectors);
 const paragraphEmb = paragraphELM.computeHiddenLayer(paragraphVectors);
 
 // 7️⃣ Zero-center + L2 normalize
+// -----------------------------------------------------------------------------
+// Distribution stabilization:
+// Zero-center each view’s outputs, then L2-normalize to prepare for cosine
+// comparisons and for stable concatenation across views.
+// -----------------------------------------------------------------------------
+
 function processEmbeddings(embs: number[][]) {
     const centered = zeroCenter(embs);
     return centered.map(l2normalize);
@@ -115,6 +187,12 @@ const sentProcessed = processEmbeddings(sentenceEmb);
 const paraProcessed = processEmbeddings(paragraphEmb);
 
 // 8️⃣ Combine
+// -----------------------------------------------------------------------------
+// Fusion:
+// Concatenate [word | sentence | paragraph] processed vectors, then L2-normalize
+// to form a single multi-view representation per section.
+// -----------------------------------------------------------------------------
+
 const combinedEmbeddings = wordProcessed.map((_, i) =>
     l2normalize([
         ...wordProcessed[i],
@@ -126,6 +204,12 @@ const combinedEmbeddings = wordProcessed.map((_, i) =>
 console.log(`✅ Combined embeddings.`);
 
 // 9️⃣ Indexer chain
+// -----------------------------------------------------------------------------
+// Indexer ELMChain (final shaping):
+// Two X→X layers that further refine/whiten the fused representation.
+// Each layer is cached; outputs are zero-centered + L2-normalized between layers.
+// -----------------------------------------------------------------------------
+
 const hiddenUnitSequence = [256, 128];
 let embeddings = combinedEmbeddings;
 
@@ -161,6 +245,10 @@ const indexerChain = new ELMChain(indexerELMs);
 console.log(`✅ Indexer ELM chain ready.`);
 
 // 🔟 Save
+// -----------------------------------------------------------------------------
+// Persist final embeddings with (heading, text) metadata for downstream use.
+// -----------------------------------------------------------------------------
+
 const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
     embedding: embeddings[i],
     metadata: { heading: s.heading, text: s.content }
@@ -170,6 +258,14 @@ fs.writeFileSync("./embeddings/combined_embeddings.json", JSON.stringify(embeddi
 console.log(`💾 Saved combined embeddings.`);
 
 // 🔍 Retrieval
+// -----------------------------------------------------------------------------
+// Retrieval:
+// Mirror the training-time pipeline for queries:
+//   query → word/sentence/paragraph encodings → respective ELMs
+//   → concatenate → IndexerChain → final vector
+// Rank sections by cosine similarity to the final vector.
+// -----------------------------------------------------------------------------
+
 function retrieve(query: string, topK = 5) {
     const tokens = query.split(/\s+/).filter(Boolean);
     const avgWord = l2normalize(averageVectors(tokens.map(t => encoder.normalize(encoder.encode(t)))));
@@ -196,6 +292,10 @@ function retrieve(query: string, topK = 5) {
 
     return scored.sort((a, b) => b.score - a.score).slice(0, topK);
 }
+
+// -----------------------------------------------------------------------------
+// Demo query: quick smoke test of the end-to-end retrieval stack.
+// -----------------------------------------------------------------------------
 
 const results = retrieve("How do you declare a map in Go?");
 console.log(`\n🔍 Retrieval results:`);

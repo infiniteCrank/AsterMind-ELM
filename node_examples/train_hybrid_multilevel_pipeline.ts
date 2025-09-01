@@ -1,3 +1,59 @@
+/**
+ * Experiment: Multi-Granularity Encoders + Supervised/Negative Signals → Indexer ELMChain (with TF-IDF)
+ *
+ * Goal
+ *  - Build a robust retriever by fusing multiple granularities of text signals:
+ *    word-level, sentence-level, and paragraph-level encoders, plus supervised
+ *    (query→target) and “negative” guidance. A downstream Indexer ELMChain
+ *    consolidates these into a final dense space; TF-IDF is included for grounding.
+ *
+ * What it does
+ *  1) Parse markdown into sections, assemble paragraph texts.
+ *  2) UniversalEncoder features at three granularities:
+ *     - word: average over token encodings,
+ *     - sentence: average over sentence encodings,
+ *     - paragraph: encode full paragraph.
+ *  3) Train 3-layer ELMChains (per granularity) with cached weights (X→X).
+ *  4) Train simple ELMs on supervised positives and on negatives (for later mixing).
+ *  5) Concatenate [word | sentence | paragraph | supervised | −0.5⋅negative],
+ *     normalize, then pass through an Indexer ELMChain (X→X) to shape the space.
+ *  6) Also build TF-IDF vectors for lexical scoring/diagnostics.
+ *  7) Retrieve: embed query through the same fusion pipeline → cosine with section
+ *     embeddings; print top-K with headings/snippets.
+ *
+ * Why
+ *  - Multi-view features (word/sentence/paragraph) capture different context spans.
+ *  - Supervised and negative signals steer geometry toward relevance and away
+ *    from confounders.
+ *  - The Indexer ELMChain whitens/stabilizes the final space for cosine retrieval.
+ *  - TF-IDF keeps precise keyword signal available.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown ──► Sections ──► UniversalEncoder
+ *                    │
+ *      ┌─────────────┼─────────────┐
+ *      ▼             ▼             ▼
+ *   word avg      sentence avg   paragraph enc
+ *      │             │             │
+ *      └─────► ELMChain(3)  ◄──────┘      (X→X, cached, normalize each layer)
+ *                    │
+ *   Supervised ELM (query→target)   Negative ELM (query→negTarget)
+ *                    │                     │
+ *                    └──────── fuse ───────┘   [word | sent | para | sup | −0.5⋅neg]
+ *                                   │
+ *                            Indexer ELMChain (X→X)
+ *                                   │
+ *                              Final Embeddings ──► Retrieval
+ *                                   │
+ *                         TF-IDF (lexical baseline)
+ *
+ * Notes
+ *  - We cache weights under ./elm_weights for reproducibility and speed.
+ *  - processEmbeddings() zero-centers + L2-normalizes between layers for stability.
+ *  - Adjust hidden dims/activations/dropout to tune quality vs. compute.
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { ELM } from "../src/core/ELM";
@@ -61,6 +117,14 @@ console.log(`✅ Parsed ${sections.length} sections.`);
 // Use joined text
 const paragraphs = sections.map(s => `${s.heading} ${s.content}`);
 
+// -----------------------------------------------------------------------------
+// Multi-granularity encoder features:
+// - wordVectors: average over token encodings
+// - sentenceVectors: average over sentence encodings
+// - paragraphVectors: full-paragraph encoding
+// Each is L2-normalized to prepare for cosine-based retrieval.
+// -----------------------------------------------------------------------------
+
 // Universal Encoder
 const encoder = new UniversalEncoder({
     maxLen: 100,
@@ -83,7 +147,11 @@ const paragraphVectors = paragraphs.map(p =>
 );
 console.log(`✅ Computed word/sentence/paragraph vectors.`);
 
-// Load supervised pairs
+// -----------------------------------------------------------------------------
+// Supervised and negative signals:
+// Encode query/target pairs for (a) positive supervision and (b) negatives that
+// will later be mixed (with a negative scale) to discourage confounders.
+// -----------------------------------------------------------------------------
 const supervisedPaths = [
     "../public/supervised_pairs.csv",
     "../public/supervised_pairs_2.csv",
@@ -133,7 +201,11 @@ const negTargetVecs = negativePairs.map(p =>
     encoder.normalize(encoder.encode(p.target))
 );
 
-// Build ELM chains
+// -----------------------------------------------------------------------------
+// Build a cached ELMChain (X→X) for distribution shaping:
+// Trains each layer as an autoencoder, caches weights, then zero-centers + L2-normalizes
+// outputs via processEmbeddings() before passing to the next layer.
+// -----------------------------------------------------------------------------
 function buildChain(
     name: string,
     vectors: number[][],
@@ -168,6 +240,11 @@ function buildChain(
     return { chain: new ELMChain(chain), finalEmbeddings: inputs };
 }
 
+// -----------------------------------------------------------------------------
+// Train/load per-granularity chains and fuse:
+// wordResult, sentenceResult, paragraphResult → concatenate their final embeddings,
+// then L2-normalize to form a single multi-view representation.
+// -----------------------------------------------------------------------------
 const wordResult = buildChain("word_encoder", wordVectors, [512, 256, 128], ["relu", "tanh", "leakyRelu"], 0.02);
 const sentenceResult = buildChain("sentence_encoder", sentenceVectors, [512, 256, 128], ["relu", "tanh", "leakyRelu"], 0.02);
 const paragraphResult = buildChain("paragraph_encoder", paragraphVectors, [512, 256, 128], ["relu", "tanh", "leakyRelu"], 0.02);
@@ -180,7 +257,12 @@ const combinedEmbeddings = wordResult.finalEmbeddings.map((_, i) =>
     ])
 );
 
-// Supervised / Negative
+// -----------------------------------------------------------------------------
+// Supervised/Negative ELMs (single-layer X→Y):
+// - supELM maps queries → targets (positive signal).
+// - negELM maps queries → negatives; at retrieval we subtract a scaled version
+//   (−0.5×) to dampen directions correlated with negatives.
+// -----------------------------------------------------------------------------
 function trainSimpleELM(name: string, X: number[][], Y: number[][]) {
     const elm = new ELM({
         activation: "relu",
@@ -206,6 +288,11 @@ const supELM = trainSimpleELM("supervisedELM", supQueryVecs, supTargetVecs);
 const negELM = trainSimpleELM("negativeELM", negQueryVecs, negTargetVecs);
 
 // Build indexer chain manually
+// -----------------------------------------------------------------------------
+// Indexer ELMChain (final shaping):
+// Takes the fused vector as input and performs additional X→X shaping with
+// cached layers, using processEmbeddings() between layers to stabilize scales.
+// -----------------------------------------------------------------------------
 let indexerInputs = combinedEmbeddings;
 const indexerDims = [512, 256, 128];
 const indexerActs = ["relu", "tanh", "leakyRelu"];
@@ -235,13 +322,17 @@ indexerDims.forEach((h, i) => {
 });
 const indexerChain = new ELMChain(indexerChainEncoders);
 
-// TFIDF
+// -----------------------------------------------------------------------------
+// TF-IDF baseline features for lexical grounding and diagnostics.
+// -----------------------------------------------------------------------------
 console.log(`⏳ Computing TFIDF vectors...`);
 const vectorizer = new TFIDFVectorizer(paragraphs, 3000);
 const tfidfVectors = vectorizer.vectorizeAll().map(l2normalize);
 console.log(`✅ TFIDF vectors ready.`);
 
-// Save
+// -----------------------------------------------------------------------------
+// Persist final embeddings with metadata for downstream analysis.
+// -----------------------------------------------------------------------------
 const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
     embedding: indexerInputs[i],
     metadata: { heading: s.heading, text: s.content }
@@ -249,7 +340,13 @@ const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
 fs.writeFileSync("./embeddings/combined_embeddings.json", JSON.stringify(embeddingRecords, null, 2));
 console.log(`💾 Saved embeddings.`);
 
-// Retrieval
+// -----------------------------------------------------------------------------
+// Retrieval:
+// 1) Build query multi-view vector (word/sentence/paragraph + sup − 0.5·neg).
+// 2) Pass through Indexer chain to final dense embedding.
+// 3) (Optionally) compute TF-IDF query for analysis.
+// 4) Rank sections by cosine score with final dense embeddings; return top-K.
+// -----------------------------------------------------------------------------
 function retrieve(query: string, topK = 5) {
     const tokens = query.split(/\s+/).filter(Boolean);
     const avgWord = l2normalize(averageVectors(tokens.map(t => encoder.normalize(encoder.encode(t)))));
