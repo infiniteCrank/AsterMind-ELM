@@ -1,3 +1,58 @@
+/**
+ * First Experiment: Supervised ELM Retrieval Demo
+ *
+ * This script demonstrates how to train and use an Extreme Learning Machine (ELM)
+ * in a supervised setting for simple question–answer retrieval.
+ *
+ * Steps:
+ *  1. Define a small set of Go programming Q/A pairs.
+ *  2. Encode both queries and targets using the UniversalEncoder (character-level).
+ *  3. Train an ELM on these supervised pairs to map input text → output text.
+ *  4. Compute hidden layer embeddings for each target (answers).
+ *  5. For a new query, compute its embedding and retrieve the most similar target
+ *     using cosine similarity.
+ *
+ * Purpose:
+ *  - Shows the end-to-end pipeline (encoding → training → retrieval).
+ *  - Provides a minimal, interpretable example for testing ELM + encoder integration.
+ *  - Serves as a baseline for future experiments with larger datasets or
+ *    different tasks (classification, language modeling, etc.).
+ */
+/**
+ * First Experiment: Supervised ELM Retrieval Demo
+ *
+ * ...
+ *
+ * Pipeline Overview:
+ *
+ *            ┌────────────┐
+ *            │   Q/A Pairs│
+ *            └──────┬─────┘
+ *                   │
+ *                   ▼
+ *        ┌───────────────────────┐
+ *        │ UniversalEncoder       │
+ *        │ (char-level encoding) │
+ *        └──────┬────────────────┘
+ *                   │
+ *                   ▼
+ *            ┌────────────┐
+ *            │    ELM     │  (trained on queries → targets)
+ *            └──────┬─────┘
+ *                   │
+ *          Hidden Layer Embeddings
+ *                   │
+ *                   ▼
+ *        ┌───────────────────────┐
+ *        │ Cosine Similarity     │
+ *        │ (query vs. targets)   │
+ *        └───────────────────────┘
+ *                   │
+ *                   ▼
+ *             Retrieved Answer(s)
+ *
+ */
+
 import { ELM } from "../src/core/ELM";
 import { UniversalEncoder } from "../src/preprocessing/UniversalEncoder";
 
@@ -52,7 +107,14 @@ console.log(`✅ Supervised ELM trained.`);
 // Precompute target embeddings
 const targetEmbeddings = Y.map(yVec => l2normalize(elm.computeHiddenLayer([yVec])[0]));
 
-// Retrieval
+// -----------------------------------------------------------------------------
+// Retrieval function:
+// Given a query string, this encodes it with the UniversalEncoder, passes it
+// through the trained ELM to get a hidden-layer embedding, and then compares it
+// against precomputed target embeddings (answers). Similarity is measured using
+// cosine similarity (dot product of L2-normalized vectors). The top-K most
+// similar answers are returned.
+// -----------------------------------------------------------------------------
 function retrieve(query: string, topK = 3) {
     const qVec = encoder.normalize(encoder.encode(query));
     const qEmbedding = l2normalize(elm.computeHiddenLayer([qVec])[0]);

@@ -1,3 +1,41 @@
+/**
+ * Experiment: Dual ELMChain Encoders (Query vs Target) for Supervised Retrieval
+ *
+ * Goal
+ *  - Build a retrieval system where queries and corpus sections are encoded
+ *    by two separately trained ELMChains. Retrieval is based on cosine
+ *    similarity in the embedding space.
+ *
+ * What it does
+ *  1) Parse a markdown textbook into (heading, content) sections.
+ *  2) Load supervised query–target pairs from CSV (for evaluation context).
+ *  3) Encode queries and sections with UniversalEncoder (char-level).
+ *  4) Train two parallel ELMChains (query encoder, target encoder) by
+ *     stacking ELM layers and training them as autoencoders (X→X).
+ *     - Diagnostic statistics (mean/min/max) are logged at each layer.
+ *  5) Produce dense embeddings for queries and sections.
+ *  6) Perform cosine similarity retrieval and return top-K ranked matches.
+ *
+ * Why
+ *  - Separate encoders for queries and targets allow domain adaptation:
+ *    each side can learn slightly different transformations.
+ *  - Logging layer statistics helps verify normalization and distribution
+ *    stability across depth.
+ *
+ * Pipeline Overview
+ *
+ *   Supervised Pairs (query,text) ──► UniversalEncoder ──► Query ELMChain ──► Query Embedding
+ *   Markdown Sections (heading+body) ─► UniversalEncoder ──► Target ELMChain ──► Section Embedding
+ *                                                                            │
+ *                                                                            ▼
+ *                                                          Cosine Similarity Ranking → Top-K Results
+ *
+ * Notes
+ *  - Layer configs: [512, 256, 128] with ReLU → Tanh activations.
+ *  - Dropout = 0.02 at each layer.
+ *  - Embeddings L2-normalized after every layer via processEmbeddings().
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { ELM } from "../src/core/ELM";
@@ -12,6 +50,11 @@ function l2normalize(v: number[]): number[] {
     return v.map(x => x / norm);
 }
 
+// -----------------------------------------------------------------------------
+// Embedding diagnostics + normalization:
+// Logs mean/min/max per layer to verify distribution; returns L2-normalized
+// vectors to stabilize cosine similarity downstream.
+// -----------------------------------------------------------------------------
 function processEmbeddings(embs: number[][], label = "") {
     let sum = 0, count = 0, min = Infinity, max = -Infinity;
     for (const vec of embs) {
@@ -48,6 +91,10 @@ while ((match = sectionRegex.exec(rawText)) !== null) {
 console.log(`✅ Parsed ${sections.length} sections.`);
 
 // 2️⃣ Load supervised pairs
+// -----------------------------------------------------------------------------
+// Load supervised query–target pairs from CSV:
+// Used here to provide realistic query examples and sanity-check encoders.
+// -----------------------------------------------------------------------------
 const csvData = fs.readFileSync("../public/supervised_pairs.csv", "utf8");
 const rows = parse(csvData, { skip_empty_lines: true });
 const supervisedPairs = rows.map((r: [string, string]) => ({
@@ -71,6 +118,11 @@ const queryVectors = supervisedPairs.map((p: { query: string; }) => encoder.norm
 const sectionVectors = sections.map(s => encoder.normalize(encoder.encode(s.text)));
 
 // 6️⃣ Train query encoder
+// -----------------------------------------------------------------------------
+// Build an ELMChain encoder (stack of ELM layers):
+// Each layer is trained as an autoencoder (X→X), then outputs are normalized
+// with processEmbeddings(). Returns a chain that can embed new inputs.
+// -----------------------------------------------------------------------------
 function buildChain(name: string, vectors: number[][]): ELMChain {
     const layers: ELM[] = [];
     let inputs = vectors;
@@ -90,6 +142,8 @@ function buildChain(name: string, vectors: number[][]): ELMChain {
     return new ELMChain(layers);
 }
 
+// Train two parallel encoders: one for queries, one for targets.
+// -----------------------------------------------------------------------------
 console.log(`⚙️ Training query encoder...`);
 const queryChain = buildChain("query_encoder", queryVectors);
 
@@ -100,6 +154,11 @@ const targetChain = buildChain("target_encoder", sectionVectors);
 const encodedSections = targetChain.getEmbedding(sectionVectors).map(l2normalize);
 
 // 8️⃣ Retrieval
+// -----------------------------------------------------------------------------
+// Retrieval:
+// Encode query via queryChain, compare with all section embeddings (targetChain).
+// Rank by cosine similarity, return top-K text snippets.
+// -----------------------------------------------------------------------------
 function retrieve(query: string, topK = 5) {
     const qVec = encoder.normalize(encoder.encode(query));
     const qEmb = l2normalize(queryChain.getEmbedding([qVec])[0]);
@@ -113,6 +172,9 @@ function retrieve(query: string, topK = 5) {
 }
 
 // 9️⃣ Test retrieval
+// -----------------------------------------------------------------------------
+// Demo retrieval query: sanity-checks the full pipeline end-to-end.
+// -----------------------------------------------------------------------------
 const query = "How do I create arrays in Go?";
 const results = retrieve(query, 5);
 console.log(`\n🔍 Retrieval results for: "${query}"`);

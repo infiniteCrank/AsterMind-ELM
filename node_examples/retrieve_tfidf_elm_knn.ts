@@ -1,4 +1,38 @@
-// retrieve_tfidf_elm_knn.ts
+/**
+ * Experiment: TF-IDF → ELM Embedding → KNN Retrieval over a Markdown Corpus
+ *
+ * Goal
+ *  - Build a lightweight retriever by:
+ *    1) Converting sections of a markdown textbook into TF-IDF vectors,
+ *    2) Training an ELM as a shallow autoencoder to learn dense embeddings,
+ *    3) Performing similarity search with a simple KNN index,
+ *    4) Returning top-K section hits with heading + snippet.
+ *
+ * What it does
+ *  - Splits the markdown into sections by heading (#..######).
+ *  - Builds TF-IDF features per section, normalizes them.
+ *  - Trains or loads a single-layer ELM (X→X) and uses its hidden layer as the
+ *    embedding space; caches weights to JSON for reproducibility.
+ *  - Indexes embeddings in a KNN structure for fast nearest-neighbor lookup.
+ *  - For a query: TF-IDF → ELM hidden embedding → cosine KNN → ranked results.
+ *
+ * Why
+ *  - TF-IDF preserves lexical signal on technical text.
+ *  - ELM compresses TF-IDF into a smoother dense space, improving match quality
+ *    for paraphrases and related phrasing without heavy models.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown ──► Section Split ──► TF-IDF ──► ELM (autoencoder) ──► Embeddings ──► KNN ──► Top-K
+ *                                                        ▲
+ *                                                     Query
+ *                                             TF-IDF → ELM embed
+ *
+ * Notes
+ *  - Adjust ELM `hiddenUnits`, dropout, and TF-IDF vocab to trade quality vs. speed.
+ *  - We L2-normalize both TF-IDF and embeddings before cosine similarity.
+ *  - Weights are persisted at ./elm_embedding_model.json.
+ */
 
 import fs from "fs";
 import { ELM } from "../src/core/ELM";
@@ -11,6 +45,11 @@ function l2normalize(vec: number[]): number[] {
     return norm === 0 ? vec : vec.map(x => x / norm);
 }
 
+// -----------------------------------------------------------------------------
+// Load and section the corpus:
+// Split by markdown headings (#..######), keep (heading, content) pairs,
+// discard tiny sections to reduce noise in retrieval.
+// -----------------------------------------------------------------------------
 // 1️⃣ Load corpus
 const rawText = fs.readFileSync("../public/go_textbook.md", "utf8");
 const rawSections = rawText.split(/\n(?=#{1,6}\s)/);
@@ -28,12 +67,21 @@ const sections = rawSections
 
 console.log(`✅ Parsed ${sections.length} sections.`);
 
+// -----------------------------------------------------------------------------
+// TF-IDF features (lexical baseline):
+// Vectorize each section and L2-normalize to prepare for cosine similarity.
+// -----------------------------------------------------------------------------
 // 3️⃣ Build TF-IDF vectorizer over all sections
 const texts = sections.map(s => `${s.heading} ${s.content}`);
 const vectorizer = new TFIDFVectorizer(texts);
 const X_raw = texts.map(t => vectorizer.vectorize(t));
 const X = X_raw.map(l2normalize);
 
+// -----------------------------------------------------------------------------
+// ELM autoencoder as embedding model (X → X):
+// Train once to compress TF-IDF into a dense hidden layer; cache weights to JSON
+// for reproducible, fast runs. Hidden activations are used as section embeddings.
+// -----------------------------------------------------------------------------
 // 4️⃣ Train ELM embedding model
 const elm = new ELM({
     categories: [], // No classification—autoencoder
@@ -57,9 +105,17 @@ if (fs.existsSync(weightsFile)) {
     console.log("💾 Saved ELM weights.");
 }
 
+// -----------------------------------------------------------------------------
+// Compute dense embeddings:
+// Pass all TF-IDF vectors through the ELM and L2-normalize hidden outputs.
+// -----------------------------------------------------------------------------
 // 5️⃣ Compute ELM embeddings
 const embeddings = elm.computeHiddenLayer(X).map(l2normalize);
 
+// -----------------------------------------------------------------------------
+// Build KNN index over embeddings:
+// Each point = (embedding, heading). We’ll use cosine similarity at query time.
+// -----------------------------------------------------------------------------
 // 6️⃣ Build KNN dataset
 const knnData: KNNDataPoint[] = sections.map((s, i) => ({
     vector: embeddings[i],
@@ -68,6 +124,12 @@ const knnData: KNNDataPoint[] = sections.map((s, i) => ({
 
 console.log("✅ KNN dataset ready.");
 
+// -----------------------------------------------------------------------------
+// Retrieval(query, topK):
+// 1) TF-IDF the query, embed via ELM hidden layer, L2-normalize.
+// 2) KNN/cosine search in embedding space.
+// 3) Rank by cosine score and return top-K with heading + snippet.
+// -----------------------------------------------------------------------------
 // 7️⃣ Retrieval function
 function retrieve(query: string, topK = 5) {
     // Vectorize query
@@ -95,6 +157,9 @@ function retrieve(query: string, topK = 5) {
     return topResults;
 }
 
+// -----------------------------------------------------------------------------
+// Demo query:
+// -----------------------------------------------------------------------------
 // 8️⃣ Example query
 const query = "How do you declare a map in Go?";
 const results = retrieve(query);

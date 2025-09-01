@@ -1,3 +1,41 @@
+/**
+ * Experiment: Chapter/Section Indexing with Paragraph ELM + Indexer ELMChain + TFIDF
+ *
+ * Goal
+ *  - Build a dense retriever over a long markdown corpus (go_textbook.md) by:
+ *    1) Splitting the book into sections at "### Day ..." headings,
+ *    2) Learning paragraph-level embeddings with a Paragraph ELM,
+ *    3) Refining those embeddings with a stacked Indexer ELMChain,
+ *    4) Blending dense similarity with a TFIDF score for robust retrieval.
+ *
+ * What it does
+ *  - Parses sections → encodes them (UniversalEncoder + TFIDF).
+ *  - Trains or loads a Paragraph ELM (self-supervised: X→X) for paragraph embeddings.
+ *  - Trains or loads an Indexer ELMChain to further densify/whiten embeddings.
+ *  - Saves final embeddings + metadata to JSON.
+ *  - At query time, computes a dense embedding (Paragraph ELM → Indexer ELMChain)
+ *    and a TFIDF vector, then returns a weighted score (0.7*dense + 0.3*TFIDF).
+ *
+ * Why
+ *  - Dense vectors capture semantic similarity across paraphrases,
+ *    while TFIDF keeps strong lexical grounding. The blend improves stability
+ *    on technical text where keywords matter but paraphrase should still match.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown (### Day …) ──► Section Split ──► [UniversalEncoder] ──► Paragraph ELM ──► Indexer ELMChain ──► Dense Embeds
+ *              │                                                                                                       │
+ *              └──────────────────────────────────────────────► TFIDF Vectorizer ──────────────────────────────────────┘
+ *                                                                                       │
+ *                                                                                       ▼
+ *                                                                         Weighted Retrieval (0.7*dense + 0.3*TFIDF)
+ *
+ * Notes
+ *  - We cache weights in ./elm_weights to keep runs fast and reproducible.
+ *  - Adjust `hiddenUnits`, chain depth, and TFIDF vocab size to tune quality/latency.
+ *  - Section splitting assumes "### Day ..." headings; change the regex to match your TOC style.
+ */
+
 import fs from "fs";
 import { ELM } from "../src/core/ELM";
 import { ELMChain } from "../src/core/ELMChain";
@@ -39,7 +77,10 @@ const encoder = new UniversalEncoder({
     useTokenizer: false
 });
 
-// Compute TFIDF vectors
+// -----------------------------------------------------------------------------
+// TFIDF baseline features for lexical grounding (normalized):
+// Used at retrieval time as a 30% weight to stabilize dense similarity.
+// -----------------------------------------------------------------------------
 const tfidfTexts = sections.map(s => `${s.heading}. ${s.content}`);
 console.log(`⏳ Computing TFIDF vectors...`);
 const vectorizer = new TFIDFVectorizer(tfidfTexts, 3000);
@@ -51,7 +92,11 @@ const sectionVectors = tfidfTexts.map(t =>
     l2normalize(encoder.normalize(encoder.encode(t)))
 );
 
-// Train or load Paragraph ELM
+// -----------------------------------------------------------------------------
+// Paragraph ELM (self-supervised X→X):
+// Learns a compact paragraph representation from encoder outputs. We cache/load
+// weights for reproducibility and faster iteration.
+// -----------------------------------------------------------------------------
 const paraELM = new ELM({
     activation: "relu",
     hiddenUnits: 128,
@@ -73,7 +118,11 @@ if (fs.existsSync(weightsPath)) {
 }
 let embeddings = paraELM.computeHiddenLayer(sectionVectors).map(l2normalize);
 
-// Train or load Indexer ELM chain
+// -----------------------------------------------------------------------------
+// Indexer ELMChain (stacked refinement):
+// Further densifies/whitens paragraph embeddings layer-by-layer, normalizing
+// after each layer. We persist each layer's weights under ./elm_weights.
+// -----------------------------------------------------------------------------
 const hiddenUnits = [256, 128];
 const indexerELMs = hiddenUnits.map((h, i) =>
     new ELM({
@@ -111,7 +160,13 @@ const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
 fs.writeFileSync("./embeddings.json", JSON.stringify(embeddingRecords, null, 2));
 console.log(`💾 Saved embeddings.`);
 
-// Retrieval function
+// -----------------------------------------------------------------------------
+// Retrieval:
+// 1) Encode query → Paragraph ELM → Indexer ELMChain for dense embedding.
+// 2) Also compute TFIDF for the query.
+// 3) Score each section with cosine(dense) and cosine(TFIDF), then combine
+//    as totalScore = 0.7*dense + 0.3*TFIDF.
+// -----------------------------------------------------------------------------
 function retrieve(query: string, topK = 5) {
     const qVec = l2normalize(encoder.normalize(encoder.encode(query)));
     const paraE = paraELM.computeHiddenLayer([qVec])[0];

@@ -1,3 +1,71 @@
+/**
+ * Experiment: TFIDF + ELM Ensemble Retrieval on AG News
+ *
+ * This script demonstrates how to combine classic TFIDF embeddings with
+ * stacked Extreme Learning Machines (ELMs) to improve text retrieval quality.
+ *
+ * Workflow:
+ *  1. Load a subset of the AG News classification dataset from CSV.
+ *  2. Compute TFIDF vectors as the baseline representation.
+ *  3. Evaluate baseline retrieval performance using cosine similarity on raw TFIDF.
+ *  4. Build an ensemble of ELMChains:
+ *     - Each chain consists of multiple ELM layers with residual connections,
+ *       normalization, and per-dimension scaling.
+ *     - ELM weights are cached to JSON files for reuse between runs.
+ *  5. Train or load the ensemble, distilling knowledge from TFIDF vectors
+ *     into progressively deeper ELM embeddings.
+ *  6. Compare retrieval performance (Recall@1, Recall@5, MRR) of the baseline
+ *     vs. the ELM ensemble.
+ *  7. Save all results as a timestamped CSV for later analysis.
+ *
+ * Purpose:
+ *  - Establishes TFIDF as a baseline for text retrieval.
+ *  - Tests whether layered ELM ensembles can refine or distill TFIDF embeddings
+ *    into higher-quality semantic vectors.
+ *  - Provides reusable weight persistence for faster experimentation.
+ *
+ * Notes:
+ *  - Sample size is adjustable (default: 5000 records).
+ *  - The ensemble size and hidden unit sequence can be tuned for performance.
+ *  - Results are logged and written to disk in CSV format.
+ */
+/**
+ * Experiment: TFIDF + ELM Ensemble Retrieval on AG News
+ *
+ * ...
+ *
+ * Pipeline Overview:
+ *
+ *            ┌────────────┐
+ *            │   Raw Text │
+ *            └──────┬─────┘
+ *                   │
+ *                   ▼
+ *            ┌────────────┐
+ *            │   TFIDF    │  (baseline embedding)
+ *            └──────┬─────┘
+ *                   │
+ *          Baseline Retrieval
+ *                   │
+ *                   ▼
+ *        ┌───────────────────────┐
+ *        │  ELM Ensemble (stack) │
+ *        │                       │
+ *        │  ┌────┐   ┌────┐      │
+ *        │  │ELM1│→→→│ELM2│→ ... │
+ *        │  └────┘   └────┘      │
+ *        │   │residual+normalize │
+ *        └───────────────────────┘
+ *                   │
+ *                   ▼
+ *          Refined Embeddings
+ *                   │
+ *                   ▼
+ *          Retrieval + Metrics
+ *     (Recall@1, Recall@5, MRR)
+ *
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { ELM } from "../src/core/ELM";
@@ -38,6 +106,13 @@ import { TFIDFVectorizer } from "../src/ml/TFIDF";
     const queryTFIDF = rawTFIDFEmbeddings.slice(0, splitIdx);
     const referenceTFIDF = rawTFIDFEmbeddings.slice(splitIdx);
 
+    // -----------------------------------------------------------------------------
+    // Baseline retrieval evaluation with TFIDF:
+    // Here we test raw TFIDF embeddings by splitting the dataset into queries
+    // (first 20%) and references (remaining 80%). Retrieval is performed via
+    // cosine similarity, and metrics (Recall@1, Recall@5, MRR) are computed.
+    // This establishes a baseline to compare against the ELM ensemble.
+    // -----------------------------------------------------------------------------
     const tfidfResults = evaluateEnsembleRetrieval(queryTFIDF, referenceTFIDF, [], 5);
 
     console.log(
@@ -61,6 +136,16 @@ import { TFIDFVectorizer } from "../src/ml/TFIDF";
     if (!fs.existsSync(weightsDir)) {
         fs.mkdirSync(weightsDir);
     }
+
+    // -----------------------------------------------------------------------------
+    // ELM Ensemble Training and Distillation:
+    // For each run, we build an ensemble of ELMChains. Each chain is a sequence
+    // of ELM layers with residual connections, normalization, and scaling.
+    // - If saved weights exist, they are loaded from disk.
+    // - Otherwise, new ELMs are trained and weights are persisted.
+    // After training, embeddings from the ensemble are evaluated against
+    // the TFIDF baseline using the same retrieval setup.
+    // -----------------------------------------------------------------------------
 
     for (let run = 1; run <= 1; run++) {
         console.log(`\n🔹 Run ${run}`);
@@ -92,6 +177,12 @@ import { TFIDFVectorizer } from "../src/ml/TFIDF";
                     elm.loadModelFromJSON(saved);
                     console.log(`✅ Loaded saved weights for ELM #${layerIdx + 1} in chain #${e + 1}`);
                 } else {
+                    // Train current ELM layer:
+                    // Each layer learns to transform TFIDF vectors into refined embeddings.
+                    // After training, outputs are combined with residual connections,
+                    // normalized, and scaled to balance dimensions before feeding into
+                    // the next layer. This stacking helps distill TFIDF information into
+                    // progressively richer embeddings.
                     console.log(`⚙️ Training ELM #${layerIdx + 1} in chain #${e + 1}...`);
                     elm.trainFromData(inputs, tfidfVectors, { reuseWeights: false });
 
@@ -146,7 +237,12 @@ import { TFIDFVectorizer } from "../src/ml/TFIDF";
             `${results.recallAt1.toFixed(4)},${results.recallAtK.toFixed(4)},${results.mrr.toFixed(4)}`
         );
     }
-
+    // -----------------------------------------------------------------------------
+    // Results export:
+    // After evaluation, metrics for both TFIDF baseline and ELM ensemble runs
+    // are appended to a CSV file with a timestamped name. This allows easy
+    // comparison of experiments over time.
+    // -----------------------------------------------------------------------------
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `elm_tfidf_experiment_${timestamp}.csv`;
     fs.writeFileSync(filename, csvLines.join("\n"));

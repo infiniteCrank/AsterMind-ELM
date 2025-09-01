@@ -1,3 +1,48 @@
+/**
+ * Experiment: Comparing Baseline, Supervised, and Contrastive ELMs on Go Textbook
+ *
+ * Goal
+ *  - Explore different training paradigms for ELM embeddings:
+ *    1) Baseline autoencoder (unsupervised),
+ *    2) Supervised ELM trained on query→target pairs,
+ *    3) Contrastive ELM trained with both positive and negative pairs (with weights).
+ *
+ * What it does
+ *  1) Parse a markdown textbook into sections (heading + content).
+ *  2) Encode each section with UniversalEncoder (char-level).
+ *  3) Train three ELM models:
+ *     - Baseline ELM: self-reconstruction of section vectors.
+ *     - Supervised ELM: maps query encodings → target encodings.
+ *     - Contrastive ELM: maps queries to positives while downweighting negatives.
+ *  4) Store embeddings and run retrieval with cosine similarity.
+ *  5) Compare ranked results for a sample query across all three models.
+ *  6) Reduce baseline embeddings with PCA and export both CSV + interactive HTML plot.
+ *
+ * Why
+ *  - Baseline autoencoder shows unsupervised geometry.
+ *  - Supervised training aligns queries with known answers.
+ *  - Contrastive training encourages separation of irrelevant (negative) matches.
+ *  - PCA visualization gives intuition about cluster structure in embedding space.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown Sections ──► UniversalEncoder ──► Baseline ELM ──► Baseline Embeddings
+ *                                              ▲
+ *                                              │
+ *   Supervised Pairs ──► Query/Target encode ──► Supervised ELM ──► Supervised Embeddings
+ *                                              ▲
+ *                                              │
+ *   Pos/Neg Pairs ──► Query/Target encode ─────► Contrastive ELM ─► Contrastive Embeddings
+ *
+ *                                     ▼
+ *                           Retrieval + PCA Visualization
+ *
+ * Notes
+ *  - Negative pairs are weighted lower (0.25) to soften penalty.
+ *  - PCA outputs are saved to both CSV (for external plotting) and HTML (Plotly).
+ *  - Retrieval uses cosine similarity over stored embeddings.
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { ELM } from "../src/core/ELM";
@@ -12,6 +57,10 @@ function l2normalize(v: number[]): number[] {
     return norm === 0 ? v.map(() => 0) : v.map(x => x / norm);
 }
 
+// -----------------------------------------------------------------------------
+// Helper to load query–target pairs from multiple CSV files.
+// Returns an array of {query, target}. Used for supervised and negative sets.
+// -----------------------------------------------------------------------------
 function loadPairs(paths: string[]) {
     const pairs: { query: string, target: string }[] = [];
     for (const path of paths) {
@@ -59,7 +108,10 @@ const sectionTexts = sections.map(s => `${s.heading} ${s.content}`);
 const sectionVectors = sectionTexts.map(t => l2normalize(encoder.normalize(encoder.encode(t))));
 console.log(`✅ Encoded sections.`);
 
-// Load supervised and negative pairs
+// -----------------------------------------------------------------------------
+// Load supervised and negative training pairs:
+// Multiple CSVs combined into unified sets. Negative pairs carry reduced weight.
+// -----------------------------------------------------------------------------
 const supervisedPairs = loadPairs([
     "../public/supervised_pairs.csv",
     "../public/supervised_pairs_2.csv",
@@ -80,7 +132,10 @@ const supTargetVecs = supervisedPairs.map(p => encoder.normalize(encoder.encode(
 const negQueryVecs = negativePairs.map(p => encoder.normalize(encoder.encode(p.query)));
 const negTargetVecs = negativePairs.map(p => encoder.normalize(encoder.encode(p.target)));
 
-// Baseline ELM (autoencoder)
+// -----------------------------------------------------------------------------
+// Baseline ELM (unsupervised autoencoder):
+// Trains X→X on section vectors to provide a naive dense embedding baseline.
+// -----------------------------------------------------------------------------
 const baselineELM = new ELM({
     activation: "relu",
     hiddenUnits: 128,
@@ -93,7 +148,10 @@ baselineELM.trainFromData(sectionVectors, sectionVectors);
 const baselineEmbeddings = baselineELM.computeHiddenLayer(sectionVectors).map(l2normalize);
 console.log(`✅ Baseline embeddings computed.`);
 
-// Supervised ELM
+// -----------------------------------------------------------------------------
+// Supervised ELM (query→target):
+// Trains to directly map encoded queries to their labeled targets.
+// -----------------------------------------------------------------------------
 const supervisedELM = new ELM({
     activation: "relu",
     hiddenUnits: 128,
@@ -105,7 +163,11 @@ const supervisedELM = new ELM({
 supervisedELM.trainFromData(supQueryVecs, supTargetVecs);
 console.log(`✅ Supervised ELM trained.`);
 
-// Contrastive ELM
+// -----------------------------------------------------------------------------
+// Contrastive ELM:
+// Trains on both positive (weight=1.0) and negative (weight=0.25) pairs,
+// encouraging embeddings that pull positives together and push negatives apart.
+// -----------------------------------------------------------------------------
 const contrastiveELM = new ELM({
     activation: "relu",
     hiddenUnits: 128,
@@ -129,7 +191,11 @@ const embeddingRecords: EmbeddingRecord[] = sections.map((s, i) => ({
     metadata: { heading: s.heading, text: s.content }
 }));
 
-// Retrieval function
+// -----------------------------------------------------------------------------
+// Retrieval function:
+// Given a query and model, encode → embed → cosine similarity against section
+// embeddings. Returns top-K ranked matches with heading + snippet.
+// -----------------------------------------------------------------------------
 function retrieve(query: string, model: ELM, topK = 5) {
     const vec = encoder.normalize(encoder.encode(query));
     const emb = l2normalize(model.computeHiddenLayer([vec])[0]);
@@ -163,6 +229,12 @@ retrieve(query, contrastiveELM).forEach((r, i) =>
 );
 
 // PCA visualization
+// -----------------------------------------------------------------------------
+// PCA dimensionality reduction (2D):
+// Projects baseline embeddings to 2D, saves CSV for external analysis,
+// and creates an interactive HTML scatter plot with Plotly.
+// -----------------------------------------------------------------------------
+
 const m = new Matrix(baselineEmbeddings);
 const pca = new PCA(m);
 const reduced = pca.predict(m, { nComponents: 2 }).to2DArray();

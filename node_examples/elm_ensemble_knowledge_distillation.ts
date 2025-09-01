@@ -1,10 +1,51 @@
+/**
+ * Experiment: ELM Ensemble Distillation to Sentence-BERT (AG News)
+ *
+ * This script distills Sentence-BERT (all-MiniLM-L6-v2) embeddings into a stacked
+ * ELM ensemble and evaluates retrieval quality on AG News. We:
+ *  1) Load AG News texts/labels.
+ *  2) Compute reference embeddings with Sentence-BERT (mean-pooled).
+ *  3) Train a multi-layer ELM chain (hybrid activations + dropout) to regress
+ *     toward BERT embeddings from simple text encodings.
+ *  4) Normalize and per-dimension scale layer outputs to stabilize distribution.
+ *  5) Build an ensemble of such chains and evaluate retrieval (Recall@1/5, MRR).
+ *  6) Write results to a timestamped CSV.
+ *
+ * Purpose:
+ *  - Test whether lightweight ELM stacks can approximate heavy BERT embeddings
+ *    for retrieval, enabling faster, cheaper inference.
+ *  - Provide a repeatable setup (ensemble size, hidden sizes, dropout) to tune.
+ *
+ * Pipeline Overview:
+ *
+ *            ┌────────────┐
+ *            │   Raw Text │
+ *            └──────┬─────┘
+ *                   │
+ *                   ├──────────────► Sentence-BERT (mean pool) ──► Ref Embeds
+ *                   │
+ *                   ▼
+ *        ┌───────────────────────────────┐
+ *        │  ELM Ensemble (distillation) │
+ *        │   text → encode → ELM1 → …   │
+ *        │   residual/scale/normalize   │
+ *        └───────────────┬──────────────┘
+ *                        │
+ *                        ▼
+ *              Student Embeddings
+ *                        │
+ *                        ▼
+ *               Retrieval + Metrics
+ *            (Recall@1, Recall@5, MRR)
+ *
+ */
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { pipeline } from "@xenova/transformers";
 import { ELM } from "../src/core/ELM";
 import { ELMChain } from "../src/core/ELMChain";
 import { EmbeddingRecord } from "../src/core/EmbeddingStore";
-import { evaluateRetrieval } from "../src/core/Evaluation";
 import { evaluateEnsembleRetrieval } from "../src/core/evaluateEnsembleRetrieval";
 
 (async () => {
@@ -15,7 +56,11 @@ import { evaluateEnsembleRetrieval } from "../src/core/evaluateEnsembleRetrieval
     const sampleSize = 5000; // Scale up your data
     const texts = records.slice(0, sampleSize).map(r => r.text);
     const labels = records.slice(0, sampleSize).map(r => r.label);
-
+    // -----------------------------------------------------------------------------
+    // Teacher embeddings (Sentence-BERT):
+    // Load all-MiniLM-L6-v2 and compute mean-pooled embeddings to serve as the
+    // "teacher" representation that our ELM ensemble will learn to approximate.
+    // -----------------------------------------------------------------------------
     console.log(`⏳ Loading Sentence-BERT...`);
     const embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
     const bertTensor = await embedder(texts, { pooling: "mean" });
@@ -52,7 +97,12 @@ import { evaluateEnsembleRetrieval } from "../src/core/evaluateEnsembleRetrieval
     for (const dropout of dropouts) {
         for (let run = 1; run <= repeats; run++) {
             console.log(`\n🔹 Run ${run} with dropout ${dropout}`);
-
+            // -----------------------------------------------------------------------------
+            // Student ELM ensemble:
+            // Build multiple ELM chains with hybrid activations and dropout. Each layer
+            // regresses teacher (BERT) embeddings from simple text encodings, then we
+            // apply per-dimension scaling + L2 normalization to stabilize distributions.
+            // -----------------------------------------------------------------------------
             const ensembleChains: ELMChain[] = [];
 
             for (let e = 0; e < ensembleSize; e++) {
@@ -82,12 +132,15 @@ import { evaluateEnsembleRetrieval } from "../src/core/evaluateEnsembleRetrieval
                 let scalingFactors = inputs[0].map(() => 1);
 
                 for (const [layerIdx, elm] of elms.entries()) {
-                    // Train to regress BERT embeddings
+                    // Train current ELM layer to regress Sentence-BERT embeddings from the
+                    // current input representation (student step of knowledge distillation).
                     elm.trainFromData(inputs, bertEmbeddings, { reuseWeights: false });
 
                     inputs = inputs.map(vec => elm.getEmbedding([vec])[0]);
 
-                    // Learn scaling factor per dimension
+                    // Post-layer stabilization:
+                    // Estimate per-dimension means to derive scaling factors, then L2-normalize.
+                    // This keeps feature scales balanced across layers and improves chaining.
                     const dimMeans = Array(inputs[0].length).fill(0);
                     for (const v of inputs) for (let j = 0; j < dimMeans.length; j++) dimMeans[j] += v[j];
                     for (let j = 0; j < dimMeans.length; j++) dimMeans[j] /= inputs.length;
@@ -121,14 +174,20 @@ import { evaluateEnsembleRetrieval } from "../src/core/evaluateEnsembleRetrieval
             const recall1Results = evaluateEnsembleRetrieval(queries, reference, ensembleChains, 1);
             const recall5Results = evaluateEnsembleRetrieval(queries, reference, ensembleChains, 5);
 
-
+            // -----------------------------------------------------------------------------
+            // Retrieval evaluation and logging:
+            // Use the ensemble to score query→reference similarity, compute Recall@1/5 and
+            // MRR, then append metrics to CSV for later comparison.
+            // -----------------------------------------------------------------------------
             csvLines.push(
                 `ELMEnsemble_${hiddenUnitSequence.join("_")}_dropout${dropout}_run${run},` +
                 `${recall1Results.recallAtK.toFixed(4)},${recall5Results.recallAtK.toFixed(4)},${recall5Results.mrr.toFixed(4)}`
             );
         }
     }
-
+    // -----------------------------------------------------------------------------
+    // Results export (timestamped CSV):
+    // -----------------------------------------------------------------------------
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `elm_ensemble_knowledge_distillation_${timestamp}.csv`;
     fs.writeFileSync(filename, csvLines.join("\n"));

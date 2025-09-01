@@ -1,3 +1,41 @@
+/**
+ * Experiment: UniversalEncoder → ELM Autoencoder → ELMChain + KNN (Markdown Corpus)
+ *
+ * Goal
+ *  - Explore stacked ELM chains on top of a text autoencoder and measure
+ *    retrieval quality (Recall@1/5, MRR) over a markdown textbook split by headings.
+ *
+ * What it does
+ *  1) Parse markdown into (heading, content) sections.
+ *  2) Encode each section with UniversalEncoder (char-level) → baseVectors.
+ *  3) Train an ELM autoencoder (X→X) to get compact paragraph embeddings.
+ *  4) Pass embeddings through a configurable ELMChain (hybrid activations).
+ *     (Here the chain is trained layer-by-layer against random targets to
+ *      probe how depth + normalization affect geometry—see Notes.)
+ *  5) Evaluate retrieval (cosine) with query/reference split; log Recall@1/5, MRR.
+ *  6) Save per-config embeddings JSON and a CSV summary of metrics.
+ *  7) Demonstrate KNN retrieval for a sample query.
+ *
+ * Why
+ *  - Autoencoder compresses raw encoder features into a smoother space.
+ *  - ELMChain tests whether additional nonlinearity/whitening helps retrieval.
+ *  - Random-target training isolates geometric effects (distribution shaping)
+ *    from supervised signals; useful for ablation and intuition.
+ *
+ * Pipeline Overview
+ *
+ *   Markdown ──► Section Split ──► UniversalEncoder ──► ELM (autoencoder) ──► ELMChain ──► Embeddings
+ *                                                                                         │
+ *                                                                                         ├─► Metrics (Recall@1/5, MRR)
+ *                                                                                         └─► KNN demo (query → top-K)
+ *
+ * Notes
+ *  - Chain layers train on random targets (dimension-capped) purely to reshape the
+ *    embedding distribution (an ablation). Swap in supervised targets later if desired.
+ *  - Tune `hiddenUnitSequences`, `dropouts`, and `repeats` to scan the space.
+ *  - All cosine similarities assume L2-normalized vectors.
+ */
+
 import fs from "fs";
 import { ELM } from "../src/core/ELM";
 import { ELMChain } from "../src/core/ELMChain";
@@ -50,6 +88,11 @@ const sections = rawSections
 console.log(`✅ Parsed ${sections.length} sections.`);
 
 // 2️⃣ Prepare encoder
+// -----------------------------------------------------------------------------
+// UniversalEncoder (char-level):
+// Produces fixed-length baseVectors for each section. Acts as the raw feature
+// space prior to any learned compression or chaining.
+// -----------------------------------------------------------------------------
 const encoder = new UniversalEncoder({
     maxLen: 150,
     charSet: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?()[]{}<>+-=*/%\"'`_#|\\ \t",
@@ -80,7 +123,11 @@ for (const seq of hiddenUnitSequences) {
         for (let run = 1; run <= repeats; run++) {
             console.log(`\n🔹 Config: ${seq.join("_")} dropout ${dropout} (Run ${run})`);
 
-            // Autoencoder
+            // -----------------------------------------------------------------------------
+            // ELM Autoencoder (X → X):
+            // Learns compact paragraph embeddings from baseVectors. These embeddings are
+            // L2-normalized and used as inputs to the deeper ELMChain.
+            // -----------------------------------------------------------------------------
             const autoencoder = new ELM({
                 activation: "relu",
                 hiddenUnits: 128,
@@ -92,7 +139,11 @@ for (const seq of hiddenUnitSequences) {
             autoencoder.trainFromData(baseVectors, baseVectors);
             let embeddings = autoencoder.computeHiddenLayer(baseVectors).map(l2normalize);
 
-            // Chain
+            // -----------------------------------------------------------------------------
+            // ELMChain construction (hybrid activations):
+            // Sequence of ELM layers (e.g., relu/tanh alternation). We’ll train each layer
+            // sequentially to reshape the embedding distribution.
+            // -----------------------------------------------------------------------------
             const elms = seq.map((h, i) =>
                 new ELM({
                     activation: i % 2 === 0 ? "relu" : "tanh",
@@ -109,6 +160,11 @@ for (const seq of hiddenUnitSequences) {
             // Sequential training
             for (const elm of elms) {
                 const targetDim = Math.min(embeddings[0].length, elm.hiddenUnits);
+                // Layer-wise distribution shaping (ablation):
+                // Train the current ELM against random targets (dim-capped) to encourage
+                // spread/whitening without supervised labels; then L2-normalize outputs.
+                // Swap in supervised targets later to test task-driven shaping.
+                // -----------------------------------------------------------------------------
                 const randomTargets = Array.from({ length: embeddings.length }, () =>
                     Array.from({ length: targetDim }, () => Math.random())
                 );
@@ -117,12 +173,20 @@ for (const seq of hiddenUnitSequences) {
             }
 
             // Evaluation
+            // -----------------------------------------------------------------------------
+            // Retrieval evaluation split + metrics:
+            // 20% queries vs 80% references; cosine ranking; compute Recall@1/5 and MRR.
+            // -----------------------------------------------------------------------------
             const splitIdx = Math.floor(embeddings.length * 0.2);
             const queryVecs = embeddings.slice(0, splitIdx);
             const refVecs = embeddings.slice(splitIdx);
 
             const { recall1, recallK, mrr } = evaluateRecallMRR(queryVecs, refVecs, 5);
 
+            // -----------------------------------------------------------------------------
+            // Persist embeddings for inspection/analysis:
+            // Saves (embedding, heading, content) for downstream tooling or visualization.
+            // -----------------------------------------------------------------------------
             const configName = `Chain_${seq.join("_")}_drop${dropout}`;
             csvLines.push(`${configName},${run},${recall1.toFixed(4)},${recallK.toFixed(4)},${mrr.toFixed(4)}`);
             console.log(`✅ Recall@1=${recall1.toFixed(4)}, Recall@5=${recallK.toFixed(4)}, MRR=${mrr.toFixed(4)}`);
@@ -146,6 +210,10 @@ for (const seq of hiddenUnitSequences) {
                 vector: r.embedding,
                 label: r.metadata.heading
             }));
+            // -----------------------------------------------------------------------------
+            // KNN demo retrieval:
+            // Encode the query via Autoencoder→ELMChain, then cosine KNN over final embeddings.
+            // -----------------------------------------------------------------------------
             const knnResults = KNN.find(chainVec, knnDataset, 5, 5, "cosine");
             console.log(`\n🔍 Top 5 retrieval for query: "${query}"`);
             knnResults.forEach((r, i) => {
@@ -156,6 +224,10 @@ for (const seq of hiddenUnitSequences) {
 }
 
 // 7️⃣ Save CSV summary
+// -----------------------------------------------------------------------------
+// CSV summary export (timestamped):
+// Aggregates per-config metrics for quick comparison across runs.
+// -----------------------------------------------------------------------------
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 const filename = `elm_chain_knn_experiment_${timestamp}.csv`;
 fs.writeFileSync(filename, csvLines.join("\n"));
