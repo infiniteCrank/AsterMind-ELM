@@ -24,7 +24,7 @@ async function tryLoadElseTrain(model, key, trainer) {
     }
 }
 
-// ----------- CSV streaming (no libraries; incremental; low memory) -----------
+// ----------- CSV streaming (incremental; low memory) -----------
 async function streamCSV(url, onRow, { hasHeader = true } = {}) {
     const res = await fetch(url);
     if (!res.body) {
@@ -73,18 +73,23 @@ async function streamCSV(url, onRow, { hasHeader = true } = {}) {
 }
 
 function parseTwoColCSV(line) {
-    // Minimal parser for "label,text" where text may contain commas but is usually quoted.
-    // Strategy: split on the first comma.
-    // If your file has different quoting, swap this with a full parser (Papa, etc.).
+    // Minimal parser for "label,text" (text may contain commas and quotes)
+    // Strategy: split on the first comma; strip outer quotes.
     const firstComma = line.indexOf(',');
     if (firstComma < 0) return null;
-    const label = line.slice(0, firstComma).trim().replace(/^"|"$/g, '');
+    let rawLabel = line.slice(0, firstComma).trim().replace(/^"|"$/g, '');
     let text = line.slice(firstComma + 1).trim();
-    // Strip surrounding quotes if present
     if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
         text = text.slice(1, -1);
     }
-    return { label, text: text.toLowerCase() };
+    // normalize common numeric label variants (AG News variants sometimes use 1..4 or 0..3)
+    if (/^\d+$/.test(rawLabel)) {
+        const n = parseInt(rawLabel, 10);
+        // map 1..4 -> 0..3 -> categories index
+        const idx = (n >= 1 && n <= 4) ? (n - 1) : n;
+        rawLabel = categories[idx] ?? rawLabel;
+    }
+    return { label: String(rawLabel), text: text.toLowerCase() };
 }
 
 function microYield() {
@@ -122,56 +127,40 @@ window.addEventListener('DOMContentLoaded', async () => {
     const encoder = new EncoderELM(baseConfig(64, 'agnews_encoder.json'));
     const classifier = new LanguageClassifier(baseConfig(128, 'agnews_classifier.json'));
 
-    // ---------- 1) Train/load ENCODER online (identity targets) ----------
-    // We train EncoderELM to learn x -> x (identity). This lets us use its encode()
-    // without holding the whole dataset (no big matrices).
+    // ---------- 1) Train/load ENCODER online (identity targets: y == x) ----------
     await tryLoadElseTrain(encoder, 'agnews_encoder', async () => {
-        // Infer input dimension from a probe sample
+        // Determine encoder dims via a probe
         const probe = 'probe';
-        encoder.beginOnline({ outputDim: undefined, sampleText: probe, hiddenUnits: 64, lambda: 1e-2, activation: 'relu' });
-        // NOTE: beginOnline({ outputDim, sampleText }) in our integration infers inputDim from sample;
-        // we want identity mapping: outputDim === inputDim.
-        // If your beginOnline requires explicit outputDim, compute it here:
-        // const inputDim = encoder.elm.encoder.normalize(encoder.elm.encoder.encode(probe)).length;
-        // encoder.beginOnline({ outputDim: inputDim, inputDim, hiddenUnits: 64, lambda: 1e-2, activation: 'relu' });
+        const probeVec = encoder.elm.encoder.normalize(encoder.elm.encoder.encode(probe));
+        const inputDim = probeVec.length;
 
-        let batchTexts = [];
-        let prepared = false;
-
-        // If your EncoderELM.beginOnline doesn't auto-set outputDim=inputDim, uncomment the above lines and set prepared=true.
-        // For portability across your code, re-probe once:
-        if (!prepared) prepared = true;
-
-        await streamCSV('/ag-news-classification-dataset/train.csv', ({ text }) => {
-            batchTexts.push({ text, target: null }); // target filled inside partialTrainOnlineTexts
-            if (batchTexts.length >= BATCH) {
-                // In our EncoderELM integration, partialTrainOnlineTexts encodes text internally
-                // and uses the encoded vector as target (identity). That keeps memory tiny.
-                encoder.partialTrainOnlineTexts(
-                    batchTexts.map(({ text }) => ({
-                        text,
-                        // Target = identity of encoded input (EncoderELM code computes this internally)
-                        target: new Array(1).fill(0) // placeholder; implementation ignores this and builds T=X
-                    }))
-                );
-                batchTexts = [];
-            }
+        encoder.beginOnline({
+            outputDim: inputDim,   // identity mapping
+            inputDim,
+            hiddenUnits: 64,
+            lambda: 1e-2,
+            activation: 'relu'
         });
 
-        if (batchTexts.length) {
-            encoder.partialTrainOnlineTexts(
-                batchTexts.map(({ text }) => ({ text, target: new Array(1).fill(0) }))
-            );
-            batchTexts = [];
-        }
+        let encBatch = []; // { x:number[], y:number[] }[]
+        await streamCSV('/ag-news-classification-dataset/train.csv', ({ text }) => {
+            // Encode with the tokenizer/featurizer (not the ELM model)
+            const x = encoder.elm.encoder.normalize(encoder.elm.encoder.encode(text));
+            encBatch.push({ x, y: x }); // identity target
+            if (encBatch.length >= BATCH) {
+                encoder.partialTrainOnlineVectors(encBatch);
+                encBatch = [];
+            }
+        });
+        if (encBatch.length) encoder.partialTrainOnlineVectors(encBatch);
 
-        // Publish W,b,beta into the model so encoder.encode() works
+        // Publish W,b,beta so encoder.encode() uses the trained mapping
         encoder.endOnline();
     });
 
     // Determine encoded vector size (classifier input dim)
-    const probeVec = encoder.encode('probe');
-    const inputDimForClassifier = probeVec.length;
+    const encodedProbe = encoder.encode('probe');
+    const inputDimForClassifier = encodedProbe.length;
 
     // ---------- 2) Train/load CLASSIFIER online on encoded vectors ----------
     await tryLoadElseTrain(classifier, 'agnews_classifier', async () => {
@@ -183,19 +172,16 @@ window.addEventListener('DOMContentLoaded', async () => {
             activation: 'relu'
         });
 
-        let vecBatch = []; // { vector:number[], label:string }[]
-
+        let clsBatch = []; // { vector:number[], label:string }[]
         await streamCSV('/ag-news-classification-dataset/train.csv', ({ label, text }) => {
-            // Encode using the already-trained encoder
-            const v = encoder.encode(text);
-            vecBatch.push({ vector: v, label });
-            if (vecBatch.length >= BATCH) {
-                classifier.partialTrainVectorsOnline(vecBatch);
-                vecBatch = [];
+            const v = encoder.encode(text);                         // now uses trained encoder
+            clsBatch.push({ vector: v, label });
+            if (clsBatch.length >= BATCH) {
+                classifier.partialTrainVectorsOnline(clsBatch);
+                clsBatch = [];
             }
         });
-
-        if (vecBatch.length) classifier.partialTrainVectorsOnline(vecBatch);
+        if (clsBatch.length) classifier.partialTrainVectorsOnline(clsBatch);
 
         classifier.endOnline();
     });
