@@ -115,6 +115,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 })[msg.label] || '#999';
                 break;
 
+            case 'model-json': {
+                const { name, json } = msg;
+                const blob = new Blob([json], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = name;      // e.g., 'agnews_encoder.json'
+                a.click();
+                URL.revokeObjectURL(a.href);
+                break;
+            }
+
             case 'error':
                 console.error('[Worker error]', msg.error);
                 setProgress(0, `Error: ${msg.error}`);
