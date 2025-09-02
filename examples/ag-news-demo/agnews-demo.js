@@ -1,214 +1,163 @@
-/* global window, document, fetch */
+/* global window, document, fetch, Worker */
 
-const { EncoderELM, LanguageClassifier } = window.astermind;
-
-// ----------- small util: try load, else run provided trainer & save -----------
-async function tryLoadElseTrain(model, key, trainer) {
-    try {
-        const res = await fetch(`/models/${key}.json`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`Fetch failed for ${key}.json`);
-        const json = await res.text();
-        if (json.trim().startsWith('<!DOCTYPE')) throw new Error(`Received HTML instead of JSON`);
-        model.loadModelFromJSON(json);
-        console.log(`✅ Loaded ${key} from /models/${key}.json`);
-        return true;
-    } catch (e) {
-        console.warn(`⚠️ Could not load trained model for ${key}. Will train from scratch. Reason: ${e.message}`);
-        await trainer();
-        const json = model.elm?.savedModelJSON || model.savedModelJSON;
-        if (json) {
-            model.saveModelAsJSONFile(`${key}.json`);
-            console.log(`📦 Model saved locally as ${key}.json — please deploy to /models/ manually.`);
-        }
-        return false;
-    }
-}
-
-// ----------- CSV streaming (incremental; low memory) -----------
-async function streamCSV(url, onRow, { hasHeader = true } = {}) {
-    const res = await fetch(url);
-    if (!res.body) {
-        // Fallback: not a stream (older/blocked env). Still process line-by-line to keep memory bounded.
-        const text = await res.text();
-        const lines = text.split(/\r?\n/);
-        let started = !hasHeader;
-        for (const line of lines) {
-            const ln = line.trim();
-            if (!ln) continue;
-            if (!started) { started = true; continue; } // skip header
-            const rec = parseTwoColCSV(ln);
-            if (rec) onRow(rec);
-            await microYield();
-        }
-        return;
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let { value, done } = await reader.read();
-    let buffer = '';
-    let started = !hasHeader;
-
-    while (!done) {
-        buffer += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buffer.indexOf('\n')) >= 0) {
-            const line = buffer.slice(0, idx).trim();
-            buffer = buffer.slice(idx + 1);
-            if (!line) continue;
-            if (!started) { started = true; continue; } // skip header
-            const rec = parseTwoColCSV(line);
-            if (rec) onRow(rec);
-        }
-        await microYield();
-        ({ value, done } = await reader.read());
-    }
-    // flush remainder
-    if (buffer.trim()) {
-        if (started) {
-            const rec = parseTwoColCSV(buffer.trim());
-            if (rec) onRow(rec);
-        }
-    }
-}
-
-function parseTwoColCSV(line) {
-    // Minimal parser for "label,text" (text may contain commas and quotes)
-    // Strategy: split on the first comma; strip outer quotes.
-    const firstComma = line.indexOf(',');
-    if (firstComma < 0) return null;
-    let rawLabel = line.slice(0, firstComma).trim().replace(/^"|"$/g, '');
-    let text = line.slice(firstComma + 1).trim();
-    if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
-        text = text.slice(1, -1);
-    }
-    // normalize common numeric label variants (AG News variants sometimes use 1..4 or 0..3)
-    if (/^\d+$/.test(rawLabel)) {
-        const n = parseInt(rawLabel, 10);
-        // map 1..4 -> 0..3 -> categories index
-        const idx = (n >= 1 && n <= 4) ? (n - 1) : n;
-        rawLabel = categories[idx] ?? rawLabel;
-    }
-    return { label: String(rawLabel), text: text.toLowerCase() };
-}
-
-function microYield() {
-    return new Promise(r => queueMicrotask(r));
-}
-
-// ----------- Demo config -----------
-const charSet = 'abcdefghijklmnopqrstuvwxyz0123456789 ,.;:\'"!?()-';
-const maxLen = 50;
-const categories = ['World', 'Sports', 'Business', 'Sci/Tech'];
+const DATA_URL = '/ag-news-classification-dataset/train.csv';
+const WORKER_URL = '/agnews-worker.js';   // <-- put your path here
 const BATCH = 256;
+const CATEGORIES = ['World', 'Sports', 'Business', 'Sci/Tech'];
 
-const baseConfig = (hiddenUnits, exportFileName) => ({
-    charSet,
-    maxLen,
-    hiddenUnits,
-    activation: 'relu',
-    useTokenizer: true,
-    tokenizerDelimiter: /\s+/,
-    exportFileName,
-    categories,
-    log: {
-        verbose: true,
-        modelName: exportFileName
-    },
-    metrics: { accuracy: 0.80 }
-});
+// Minimal UI overlay for training/progress
+function injectProgressOverlay() {
+    const style = document.createElement('style');
+    style.textContent = `
+    #trainerOverlay {
+      position: fixed; inset: 0; background: rgba(10,10,12,0.75);
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+      color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .trainer-card {
+      width: min(520px, 90vw); background: #111; border-radius: 14px; padding: 20px 22px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.45);
+    }
+    .trainer-title { font-size: 18px; margin: 0 0 8px; opacity: 0.95; }
+    .trainer-status { font-size: 14px; margin: 0 0 10px; opacity: 0.85; }
+    .trainer-bar {
+      height: 10px; background: #2a2a2a; border-radius: 999px; overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .trainer-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #00d4ff, #7a5cff);
+      transition: width 120ms linear;
+    }
+  `;
+    document.head.appendChild(style);
 
-// ----------- Main -----------
-window.addEventListener('DOMContentLoaded', async () => {
+    const overlay = document.createElement('div');
+    overlay.id = 'trainerOverlay';
+    overlay.innerHTML = `
+    <div class="trainer-card">
+      <h3 class="trainer-title">Preparing models…</h3>
+      <p class="trainer-status" id="trainerStatus">Loading…</p>
+      <div class="trainer-bar"><div class="trainer-fill" id="trainerFill"></div></div>
+    </div>
+  `;
+    document.body.appendChild(overlay);
+}
+
+function setProgress(pct, status) {
+    const fill = document.getElementById('trainerFill');
+    const statusEl = document.getElementById('trainerStatus');
+    if (fill) fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    if (statusEl && status) statusEl.textContent = status;
+}
+
+function hideOverlay() {
+    const el = document.getElementById('trainerOverlay');
+    if (el) el.remove();
+}
+
+// Debounce helper
+function debounce(fn, delay = 180) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+    };
+}
+
+window.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('headlineInput');
     const output = document.getElementById('predictionOutput');
     const fill = document.getElementById('confidenceFill');
 
-    const encoder = new EncoderELM(baseConfig(64, 'agnews_encoder.json'));
-    const classifier = new LanguageClassifier(baseConfig(128, 'agnews_classifier.json'));
+    // disable input while models prepare
+    if (input) {
+        input.disabled = true;
+        input.placeholder = 'Training models… please wait';
+    }
 
-    // ---------- 1) Train/load ENCODER online (identity targets: y == x) ----------
-    await tryLoadElseTrain(encoder, 'agnews_encoder', async () => {
-        // Determine encoder dims via a probe
-        const probe = 'probe';
-        const probeVec = encoder.elm.encoder.normalize(encoder.elm.encoder.encode(probe));
-        const inputDim = probeVec.length;
+    injectProgressOverlay();
 
-        encoder.beginOnline({
-            outputDim: inputDim,   // identity mapping
-            inputDim,
-            hiddenUnits: 64,
-            lambda: 1e-2,
+    // Spin up worker
+    const worker = new Worker(WORKER_URL); // classic worker (uses importScripts)
+    let modelsReady = false;
+
+    worker.onmessage = (e) => {
+        const msg = e.data || {};
+        switch (msg.type) {
+            case 'progress':
+                // msg: { phase, pct, status }
+                setProgress(msg.pct ?? 0, msg.status || '');
+                break;
+
+            case 'ready':
+                modelsReady = true;
+                // enable UI
+                if (input) {
+                    input.disabled = false;
+                    input.placeholder = 'Type a headline…';
+                }
+                hideOverlay();
+                break;
+
+            case 'prediction':
+                // msg: { label, prob }
+                if (!output || !fill) return;
+                const percent = Math.round((msg.prob ?? 0) * 100);
+                output.textContent = `🔍 Predicted: ${msg.label}`;
+                fill.style.width = `${percent}%`;
+                fill.textContent = `${msg.label} (${percent}%)`;
+                fill.style.background = ({
+                    World: 'linear-gradient(to right, teal, cyan)',
+                    Sports: 'linear-gradient(to right, green, lime)',
+                    Business: 'linear-gradient(to right, goldenrod, yellow)',
+                    'Sci/Tech': 'linear-gradient(to right, purple, magenta)'
+                })[msg.label] || '#999';
+                break;
+
+            case 'error':
+                console.error('[Worker error]', msg.error);
+                setProgress(0, `Error: ${msg.error}`);
+                break;
+
+            default:
+                break;
+        }
+    };
+
+    // Initialize worker (kick off load/train)
+    worker.postMessage({
+        type: 'init',
+        payload: {
+            dataUrl: DATA_URL,
+            batch: BATCH,
+            categories: CATEGORIES,
+            files: {
+                encoder: 'agnews_encoder.json',
+                classifier: 'agnews_classifier.json'
+            },
+            encoderHidden: 64,
+            classifierHidden: 128,
             activation: 'relu'
-        });
-
-        let encBatch = []; // { x:number[], y:number[] }[]
-        await streamCSV('/ag-news-classification-dataset/train.csv', ({ text }) => {
-            // Encode with the tokenizer/featurizer (not the ELM model)
-            const x = encoder.elm.encoder.normalize(encoder.elm.encoder.encode(text));
-            encBatch.push({ x, y: x }); // identity target
-            if (encBatch.length >= BATCH) {
-                encoder.partialTrainOnlineVectors(encBatch);
-                encBatch = [];
-            }
-        });
-        if (encBatch.length) encoder.partialTrainOnlineVectors(encBatch);
-
-        // Publish W,b,beta so encoder.encode() uses the trained mapping
-        encoder.endOnline();
+        }
     });
 
-    // Determine encoded vector size (classifier input dim)
-    const encodedProbe = encoder.encode('probe');
-    const inputDimForClassifier = encodedProbe.length;
-
-    // ---------- 2) Train/load CLASSIFIER online on encoded vectors ----------
-    await tryLoadElseTrain(classifier, 'agnews_classifier', async () => {
-        classifier.beginOnline({
-            categories,
-            inputDim: inputDimForClassifier,
-            hiddenUnits: 128,
-            lambda: 1e-2,
-            activation: 'relu'
-        });
-
-        let clsBatch = []; // { vector:number[], label:string }[]
-        await streamCSV('/ag-news-classification-dataset/train.csv', ({ label, text }) => {
-            const v = encoder.encode(text);                         // now uses trained encoder
-            clsBatch.push({ vector: v, label });
-            if (clsBatch.length >= BATCH) {
-                classifier.partialTrainVectorsOnline(clsBatch);
-                clsBatch = [];
-            }
-        });
-        if (clsBatch.length) classifier.partialTrainVectorsOnline(clsBatch);
-
-        classifier.endOnline();
-    });
-
-    // ---------- 3) Inference UI (unchanged) ----------
-    input.addEventListener('input', () => {
-        const val = input.value.trim().toLowerCase();
-        if (!val) {
-            output.textContent = '';
+    // Debounced input → worker prediction
+    const debouncedPredict = debounce((text) => {
+        if (!modelsReady || !text.trim()) return;
+        worker.postMessage({ type: 'predict', text });
+        // optimistic UI while waiting
+        if (output && fill) {
+            output.textContent = '…';
             fill.style.width = '0%';
             fill.textContent = '';
             fill.style.background = '#ccc';
-            return;
         }
+    }, 200);
 
-        const encoded = encoder.encode(val);
-        const [result] = classifier.predictFromVector(encoded);
-
-        const percent = Math.round(result.prob * 100);
-        output.textContent = `🔍 Predicted: ${result.label}`;
-        fill.style.width = `${percent}%`;
-        fill.textContent = `${result.label} (${percent}%)`;
-        fill.style.background = {
-            World: 'linear-gradient(to right, teal, cyan)',
-            Sports: 'linear-gradient(to right, green, lime)',
-            Business: 'linear-gradient(to right, goldenrod, yellow)',
-            'Sci/Tech': 'linear-gradient(to right, purple, magenta)'
-        }[result.label] || '#999';
-    });
+    if (input) {
+        input.addEventListener('input', () => {
+            debouncedPredict(input.value.toLowerCase());
+        });
+    }
 });
