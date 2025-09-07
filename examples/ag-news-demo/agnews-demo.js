@@ -148,7 +148,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 classifier: 'agnews_classifier.json'
             },
             encoderHidden: 64,
-            classifierHidden: 128,
+            classifierHidden: 1024,
             activation: 'relu'
         }
     });

@@ -18,6 +18,7 @@
     "dev:lang": "DEMO=language-awareness-demo vite",
     "dev:chain": "DEMO=chain-with-save vite",
     "dev:news": "DEMO=ag-news-demo vite",
+    "dev:elm": "DEMO=elm-explination vite",
     "test": "vitest"
   },
   "repository": {

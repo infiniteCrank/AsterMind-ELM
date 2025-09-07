@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>ELM Visualizer — Guaranteed On-Screen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{ --bg:#050c1f; --panel:#0b1633; --ink:#dfe9ff; --muted:#9bb3ff; --accent:#5ad1ff; --good:#6ee7a2; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:radial-gradient(1200px 700px at 50% -200px,#0b1633 0%,#050c1f 55%,#020614 100%);
+      color:var(--ink); font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    }
+    .app{display:flex; height:100vh; width:100vw; overflow:hidden}
+    .left{
+      width:360px; min-width:300px; max-width:420px;
+      background:linear-gradient(180deg, rgba(12,24,54,.9), rgba(6,14,30,.9));
+      border-right:1px solid rgba(255,255,255,.06);
+      padding:16px; overflow:auto;
+    }
+    .left h1{margin:0 0 8px; font-size:20px; font-weight:700}
+    .left .sub{color:var(--muted); font-size:12px; line-height:1.4; margin-bottom:14px}
+    label{display:block; font-size:12px; color:var(--muted); margin:10px 0 6px}
+    input[type="text"], select, button, textarea, input[type="number"]{
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
+      background:#0a142f; color:var(--ink); outline:none;
+    }
+    .row{display:flex; gap:8px} .row>*{flex:1}
+    .small{font-size:11px; color:var(--muted)}
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+    .controls button{background:#0d1a3d; border:1px solid rgba(255,255,255,.12); cursor:pointer}
+    .controls button:hover{border-color:rgba(255,255,255,.25)}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:#0c1b3f;border:1px solid rgba(255,255,255,.08);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+    .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:12px;color:var(--muted)}
+    .kv div:nth-child(odd){color:#8ea8ff}
+    .right{flex:1; position:relative}
+    #stage{position:absolute; inset:0; width:100%; height:100%; display:block;} /* <- ensures full-height canvas */
+    .legend{
+      position:absolute; right:12px; top:12px; background:rgba(10,20,47,.6);
+      border:1px solid rgba(255,255,255,.08); padding:10px 12px; border-radius:12px; font-size:12px; z-index:1;
+    }
+    .legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .bad{color:#ff7b7b} .good{color:var(--good)}
+    .hr{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);margin:14px 0}
+    .meter{height:8px;background:#0a1430;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+    .meter>div{height:100%;background:linear-gradient(90deg,#3aa9ff,#6ee7a2);width:0%}
+    .hint{font-size:12px;color:var(--muted)} .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="left">
+      <h1>Extreme Learning Machine (ELM)</h1>
+      <div class="sub">Random hidden layer + one-shot solve for output weights (β). No backprop.</div>
+
+      <label>1) Enter text to classify</label>
+      <input id="inp" type="text" value="TypeScript adds types to JavaScript."/>
+      <div class="row">
+        <select id="lbl">
+          <option value="go">go</option>
+          <option value="python">python</option>
+          <option value="typescript" selected>typescript</option>
+          <option value="javascript">javascript</option>
+        </select>
+        <button id="add">Add example</button>
+      </div>
+      <div class="small">Click “Add example” to grow the training set. Then “Train (closed-form)”.</div>
+
+      <label>2) Hidden nodes <span id="hnShow" class="pill">128</span></label>
+      <input id="hn" type="range" min="8" max="256" value="128"/>
+      <div class="row">
+        <button id="shuffle">Shuffle Hidden (random W,b)</button>
+        <button id="clear">Clear Data</button>
+      </div>
+
+      <label>3) Train</label>
+      <div class="controls">
+        <button id="train">Train (closed-form)</button>
+        <button id="predict">Predict</button>
+      </div>
+
+      <div class="hr"></div>
+      <div class="kv">
+        <div>Classes:</div><div id="cls" class="mono">go, python, typescript, javascript</div>
+        <div>Examples:</div><div id="nex">0</div>
+        <div>λ (ridge):</div><div><input id="lam" type="number" step="0.0001" value="0.001"/></div>
+        <div>Activation:</div><div><select id="act"><option>relu</option><option>tanh</option><option selected>sigmoid</option></select></div>
+      </div>
+
+      <div class="hr"></div>
+      <div>Training quality</div>
+      <div class="meter"><div id="meter"></div></div>
+      <div id="msg" class="hint">Add a few examples for each class, then train.</div>
+
+      <div class="hr"></div>
+      <div class="hint">
+        Pipeline:
+        <ol>
+          <li>Text → bag-of-chars vector (fixed vocab)</li>
+          <li>Random hidden layer: <span class="mono">H = φ(X·W + b)</span></li>
+          <li>Closed-form solve: <span class="mono">β = (HᵀH + λI)⁻¹ HᵀY</span></li>
+          <li>Prediction: <span class="mono">ŷ = softmax(H·β)</span></li>
+        </ol>
+      </div>
+    </aside>
+
+    <main class="right">
+      <canvas id="stage"></canvas>
+      <div class="legend">
+        <div><span class="dot" style="background:var(--accent)"></span>Input features</div>
+        <div><span class="dot" style="background:#ff6ec7"></span>Hidden nodes (random)</div>
+        <div><span class="dot" style="background:#6ee7a2"></span>Output nodes (classes)</div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ---------- Utils ----------
+    const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+    const randn=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+    const oneHot=(k,n)=>{const y=Array(n).fill(0);y[k]=1;return y;};
+    const softmax=a=>{const m=Math.max(...a),ex=a.map(x=>Math.exp(x-m)),s=ex.reduce((p,c)=>p+c,0);return ex.map(e=>e/s);};
+
+    // ---------- Text vector ----------
+    const VOCAB = "abcdefghijklmnopqrstuvwxyz# +-,.()/:";
+    const VDIM = VOCAB.length;
+    function textToVec(s){
+      s=(s||"").toLowerCase(); const v=new Array(VDIM).fill(0);
+      for(const ch of s){const i=VOCAB.indexOf(ch); if(i>=0) v[i]+=1;}
+      const n=Math.sqrt(v.reduce((a,b)=>a+b*b,0))||1; return v.map(x=>x/n);
+    }
+
+    // ---------- Tiny matrix helpers ----------
+    function matMul(A,B){const m=A.length,n=A[0].length,p=B[0].length;const C=Array.from({length:m},()=>Array(p).fill(0));
+      for(let i=0;i<m;i++){for(let k=0;k<n;k++){const aik=A[i][k];for(let j=0;j<p;j++)C[i][j]+=aik*B[k][j];}} return C;}
+    const matT=A=>A[0].map((_,j)=>A.map(r=>r[j]));
+    function eye(n){return Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0));}
+    function matInv(M){
+      const n=M.length,A=M.map(r=>r.slice()),I=eye(n);
+      for(let i=0;i<n;i++){
+        let piv=i; for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[piv][i])) piv=r;
+        if(Math.abs(A[piv][i])<1e-12) throw new Error("Singular");
+        if(piv!==i){[A[i],A[piv]]=[A[piv],A[i]]; [I[i],I[piv]]=[I[piv],I[i]];}
+        const d=A[i][i]; for(let j=0;j<n;j++){A[i][j]/=d; I[i][j]/=d;}
+        for(let r=0;r<n;r++){ if(r===i) continue; const f=A[r][i];
+          for(let j=0;j<n;j++){A[r][j]-=f*A[i][j]; I[r][j]-=f*I[i][j];}}
+      } return I;
+    }
+    const addRidge=(HTH,lam)=>HTH.map((row,i)=>row.map((v,j)=>v+(i===j?lam:0)));
+
+    // ---------- ELM core ----------
+    const state = {
+      classes:["go","python","typescript","javascript"],
+      dataset:[],
+      HN:128, actName:"sigmoid", lambda:0.001,
+      W:null, b:null, beta:null
+    };
+
+    function setHN(h){
+      state.HN=h|0;
+      state.W=Array.from({length:VDIM},()=>Array.from({length:state.HN},()=>randn()*0.7));
+      state.b=Array.from({length:state.HN},()=>randn()*0.1);
+      state.beta=null; viz.relayout(); info("Hidden layer reshuffled. Train to solve β.");
+    }
+    function act(name,x){ if(name==="relu") return Math.max(0,x); if(name==="tanh") return Math.tanh(x); return 1/(1+Math.exp(-x)); }
+    function forwardHidden(X){
+      const N=X.length,HN=state.HN; const H=Array.from({length:N},()=>Array(HN).fill(0));
+      for(let n=0;n<N;n++){for(let j=0;j<HN;j++){let s=0;for(let i=0;i<VDIM;i++) s+=X[n][i]*state.W[i][j]; s+=state.b[j]; H[n][j]=act(state.actName,s);}}
+      return H;
+    }
+    function trainELM(){
+      if(!state.dataset.length){info("Add examples first.",true);return;}
+      const X=state.dataset.map(d=>d.x), Y=state.dataset.map(d=>d.y);
+      const H=forwardHidden(X), HT=matT(H), HTH=matMul(HT,H), R=addRidge(HTH,state.lambda);
+      let Rinv; try{Rinv=matInv(R);}catch(e){info("Matrix near singular. Increase λ or reduce hidden nodes.",true);return;}
+      const HTY=matMul(HT,Y); state.beta=matMul(Rinv,HTY);
+      const preds=X.map(x=>predictRaw(x)); const correct=preds.filter((p,i)=>argmax(p)===argmax(Y[i])).length;
+      const acc=correct/X.length; setMeter(acc); info(`Trained β with N=${X.length}. Train acc: ${(acc*100).toFixed(1)}%`); viz.pulseSolve();
+    }
+    function predictRaw(x){
+      if(!state.beta) return Array(state.classes.length).fill(0);
+      const H=new Array(state.HN);
+      for(let j=0;j<state.HN;j++){let s=0;for(let i=0;i<VDIM;i++) s+=x[i]*state.W[i][j]; s+=state.b[j]; H[j]=act(state.actName,s);}
+      const y=new Array(state.classes.length).fill(0);
+      for(let c=0;c<state.classes.length;c++){let s=0;for(let j=0;j<state.HN;j++) s+=H[j]*state.beta[j][c]; y[c]=s;}
+      return softmax(y);
+    }
+    const argmax=arr=>arr.reduce((bi,_,i,ar)=>ar[i]>ar[bi]?i:bi,0);
+
+    // ---------- Visualization ----------
+    const canvas=document.getElementById("stage");
+    const ctx=canvas.getContext("2d");
+    const viz={
+      nodes:{input:[],hidden:[],output:[]}, edges:[], animParticles:[], pulse:0, resized:false,
+
+      relayout(){
+        const w=canvas.clientWidth, h=canvas.clientHeight;
+
+        // Dynamic right inset so outputs never sit under the legend
+        const legendEl = document.querySelector('.legend');
+        const legendW  = legendEl ? legendEl.getBoundingClientRect().width : 0;
+        const LM=0, TM=0, BM=0;
+        const RM=Math.max(110, Math.ceil(legendW) + 24);
+
+        // Start positions (auto-compress gaps if needed)
+        const minDim = Math.min(Math.max(320,w-LM-RM), Math.max(260,h-TM-BM));
+        let gap = Math.min(180, Math.max(110, 0.33*minDim));
+        const xStart = LM + 80;
+
+        let xInput  = xStart;
+        let xHidden = xInput + gap;
+        let xOutput = xHidden + gap;
+
+        const maxX = w - RM - 20; // keep 20px inside right edge
+        if (xOutput > maxX) {
+          const totalGap = (xOutput - xInput);
+          const allowed  = Math.max(160, maxX - xInput);
+          const scale    = clamp(allowed / totalGap, 0.4, 1);
+          gap *= scale;
+          xHidden = xInput + gap;
+          xOutput = xHidden + gap;
+        }
+        xOutput = Math.min(xOutput, maxX);
+
+        // ----- Vertical layout (radius-aware, CSS px) -----
+        const top = TM + 16;
+        const bottom = h - BM - 16;
+
+        const IN_SHOW = 14;
+        const HN_SHOW = Math.min(state.HN, Math.floor((h - TM - BM) / 15), 52);
+        const C = state.classes.length;
+
+        const R_IN=4, R_H=4, R_OUT=6;
+        const yPositions=(count,r)=>{
+          const yMin = top    + r + 2;
+          const yMax = bottom - r - 2;
+          if (count<=1) return [(yMin+yMax)/2];
+          const step=(yMax-yMin)/(count-1);
+          const ys=[]; for(let i=0;i<count;i++) ys.push(yMin + i*step); return ys;
+        };
+
+        const yIn  = yPositions(IN_SHOW,R_IN);
+        const yHid = yPositions(HN_SHOW,R_H);
+        const yOut = yPositions(C,     R_OUT);
+
+        this.nodes.input  = yIn .map(y => ({ x:xInput,  y, r:R_IN,  col:getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#5ad1ff' }));
+        this.nodes.hidden = yHid.map(y => ({ x:xHidden, y, r:R_H,   col:'#ff6ec7' }));
+        this.nodes.output = yOut.map(y => ({ x:xOutput, y, r:R_OUT, col:'#6ee7a2' }));
+
+        // Edges (sparse for readability)
+        this.edges=[];
+        const inS=this.nodes.input, hidS=this.nodes.hidden, outS=this.nodes.output;
+        const fanIn=Math.min(4,inS.length);
+        for(let j=0;j<hidS.length;j++){
+          for(let t=0;t<fanIn;t++){
+            const i=(j*3+t)%inS.length;
+            this.edges.push({a:inS[i], b:hidS[j]});
+          }
+        }
+        const step=Math.max(1,Math.ceil(hidS.length/12));
+        for(let k=0;k<outS.length;k++){
+          for(let j=0;j<hidS.length;j+=step){
+            this.edges.push({a:hidS[j], b:outS[k]});
+          }
+        }
+        this.resized=true;
+      },
+
+      pulseSolve(){ this.pulse=1; },
+      shootParticles(){
+        const samples=12; const inS=this.nodes.input, hidS=this.nodes.hidden, outS=this.nodes.output;
+        for(let s=0;s<samples;s++){
+          const a=inS[(s*3)%inS.length], b=hidS[(s*5)%hidS.length], c=outS[(s*7)%outS.length];
+          this.animParticles.push({path:[a,b,c], t:0});
+        }
+      },
+
+      draw(){
+        // draw in CSS pixels
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // grid
+        ctx.globalAlpha=0.08; ctx.strokeStyle="#dfe9ff"; ctx.lineWidth=1;
+        for(let x=60;x<w;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+        for(let y=60;y<h;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        ctx.globalAlpha=1;
+
+        // edges
+        ctx.globalAlpha=0.25; ctx.lineWidth=1; ctx.strokeStyle="rgba(200,220,255,0.3)";
+        for(const e of this.edges){ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.stroke();}
+        ctx.globalAlpha=1;
+
+        // nodes
+        const drawNodes=ns=>{for(const n of ns){ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=n.col;ctx.fill();}};
+        drawNodes(this.nodes.input); drawNodes(this.nodes.hidden); drawNodes(this.nodes.output);
+
+        // particles
+        const speed=0.015;
+        for(const p of this.animParticles){
+          const seg=Math.min(Math.floor(p.t), p.path.length-2), t=p.t%1;
+          const A=p.path[seg], B=p.path[seg+1];
+          const x=A.x+(B.x-A.x)*t, y=A.y+(B.y-A.y)*t;
+          ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle="#ffffff"; ctx.fill(); p.t+=speed;
+        }
+        this.animParticles=this.animParticles.filter(p=>p.t<(p.path.length-1)+0.001);
+
+        // pulse
+        if(this.pulse>0){
+          ctx.save(); ctx.globalAlpha=this.pulse*0.35; ctx.fillStyle="#6ee7a2";
+          for(const o of this.nodes.output){ctx.beginPath();ctx.arc(o.x,o.y,16+8*(1-this.pulse),0,Math.PI*2);ctx.fill();}
+          ctx.restore(); this.pulse=Math.max(0,this.pulse-0.02);
+        }
+      }
+    };
+
+    // ---------- Responsive canvas ----------
+    function resize(){
+      const dpr=window.devicePixelRatio||1;
+      const {clientWidth:w, clientHeight:h} = canvas;
+      canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+      viz.relayout();
+    }
+    const ro=new ResizeObserver(resize);
+    ro.observe(document.querySelector(".right"));
+
+    // ---------- UI ----------
+    const $=s=>document.querySelector(s);
+    const inp=$("#inp"), lbl=$("#lbl"), add=$("#add"), train=$("#train"), predictBtn=$("#predict");
+    const hn=$("#hn"), hnShow=$("#hnShow"), shuffleBtn=$("#shuffle"), clearBtn=$("#clear");
+    const cls=$("#cls"), nex=$("#nex"), lam=$("#lam"), actSel=$("#act");
+    const meter=$("#meter"), msg=$("#msg");
+
+    function info(t,bad=false){ msg.textContent=t; msg.classList.toggle("bad",bad); msg.classList.toggle("good",!bad && /acc|Predicted/.test(t)); }
+    function setMeter(v){ meter.style.width = Math.max(0,Math.min(100,v*100))+"%"; }
+
+    add.addEventListener("click", ()=>{
+      const x=textToVec(inp.value); const ci=state.classes.indexOf(lbl.value);
+      if(ci<0){info("Unknown class label.",true);return;}
+      state.dataset.push({x,y:oneHot(ci,state.classes.length)}); nex.textContent=String(state.dataset.length);
+      info("Example added. Add a few per class, then train."); viz.shootParticles();
+    });
+    shuffleBtn.addEventListener("click", ()=> setHN(state.HN));
+    clearBtn.addEventListener("click", ()=>{ state.dataset.length=0; state.beta=null; nex.textContent="0"; setMeter(0); info("Cleared dataset and β."); });
+    train.addEventListener("click", ()=>{ state.lambda=parseFloat(lam.value)||0.001; try{trainELM();}catch(e){info("Training failed: "+e.message,true);} });
+    predictBtn.addEventListener("click", ()=>{ const y=predictRaw(textToVec(inp.value)); const i=argmax(y); info(`Predicted: ${state.classes[i]}  (p=${y[i].toFixed(2)})`); viz.shootParticles(); });
+
+    hn.addEventListener("input", ()=>{
+      hnShow.textContent=hn.value; state.HN=parseInt(hn.value,10);
+      state.W=Array.from({length:VDIM},()=>Array.from({length:state.HN},()=>randn()*0.7));
+      state.b=Array.from({length:state.HN},()=>randn()*0.1);
+      state.beta=null; viz.relayout();
+    });
+    actSel.addEventListener("change", ()=>{ state.actName=actSel.value; state.beta=null; info(`Activation = ${state.actName}. Re-train to update β.`); });
+
+    // ---------- Boot ----------
+    function seed(){
+      const seedData=[
+        {text:"Go is a statically typed compiled language.",label:"go"},
+        {text:"Go has goroutines and channels.",label:"go"},
+        {text:"Python is dynamically typed and interpreted.",label:"python"},
+        {text:"Python has simple syntax and many libraries.",label:"python"},
+        {text:"TypeScript adds types to JavaScript.",label:"typescript"},
+        {text:"TypeScript is popular for web development.",label:"typescript"},
+        {text:"JavaScript runs in the browser and Node.js.",label:"javascript"},
+        {text:"JavaScript powers interactive web apps.",label:"javascript"},
+      ];
+      seedData.forEach(d=>state.dataset.push({x:textToVec(d.text),y:oneHot(state.classes.indexOf(d.label),state.classes.length)}));
+      nex.textContent=String(state.dataset.length); info("Seeded 8 examples. Click Train to solve β.");
+    }
+    function tick(){ viz.draw(); requestAnimationFrame(tick); }
+    function boot(){ setHN(parseInt(hn.value,10)); seed(); resize(); requestAnimationFrame(tick); }
+    window.addEventListener("load", boot);
+  </script>
+</body>
+</html>
