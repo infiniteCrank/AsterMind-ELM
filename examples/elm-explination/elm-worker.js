@@ -357,4 +357,33 @@ self.onmessage = async (e) => {
             postMessage({ type: 'predicted', payload: { pred: null, scores: [], err: String(err) } });
         }
     }
+
+    if (type === 'export_model') {
+        // include vectorizer basis so the model can truly be "frozen"
+        const basis = {
+            kind: tfidf ? 'tfidf' : (vocab ? 'fallback' : 'none'),
+            featureNames: featureNames || null,
+            vocab: vocab ? Array.from(vocab.entries()) : null,  // [token, index]
+            idf: idf ? Array.from(idf.entries()) : null         // [token, weight]
+        };
+        const payload = {
+            usingFallback,
+            labels: labelSpace,
+            model: model && model.kind === 'fallback'
+                ? { kind: 'fallback', W: model.W, b: model.b, beta: model.beta, activation: model.activation }
+                : (model ? { kind: 'umd', hiddenW: model.hiddenW, hiddenB: model.hiddenB, beta: model.beta } : null),
+            lastHidden,
+            basis
+        };
+        postMessage({ type: 'exported_model', payload });
+    }
+
+    if (type === 'reset') {
+        basisFrozen = false;
+        tfidf = null; vocab = null; idf = null; featureNames = null;
+        model = null; usingFallback = false; labelSpace = [];
+        lastHidden = { W: null, b: null };
+        postMessage({ type: 'status', payload: 'reset complete' });
+    }
+
 };

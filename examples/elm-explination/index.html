@@ -21,7 +21,7 @@
       border-bottom:1px solid #13244f;
     }
     header h1{font-size:1.05rem; margin:0; font-weight:600; letter-spacing:0.2px}
-    .nav{ display:flex; gap:8px; }
+    .nav{display:flex; gap:8px;}
     button{
       background:#102043; color:var(--ink); border:1px solid #1f3570; border-radius:10px; padding:8px 12px; cursor:pointer;
     }
@@ -33,9 +33,9 @@
       padding:16px; background:rgba(7,16,41,0.66); border:1px solid #14244e; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.30);
     }
     .left, .right{min-height:380px; background:rgba(8,19,44,0.72); border:1px solid #182d61; border-radius:14px; overflow:hidden; position:relative}
-    .panel{ padding:14px 14px 10px 14px; height:100%; display:flex; flex-direction:column; gap:10px; }
+    .panel{padding:14px 14px 10px 14px; height:100%; display:flex; flex-direction:column; gap:10px;}
     h2{margin:0 0 6px 0; font-size:1.05rem}
-    p{margin:.25rem 0; color:var(--muted); line-height:1.3}
+    p{margin:.25rem 0; color:var(--muted); line-height:1.35}
     label{font-size:.9rem; color:var(--muted)}
     select,input[type=range]{width:100%}
     .kv{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center}
@@ -48,10 +48,10 @@
     .note{font-size:.85rem; color:#93a9e8}
     .ok{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
     @media (max-width: 980px){
-      .slide{grid-template-columns: 1fr;}
+      .slide{grid-template-columns: 1fr; }
       .left,.right{min-height:300px}
     }
-    [hidden] { 
+        [hidden] { 
       display: none !important;
     }
     /* Slide 2 heatmap extras */
@@ -85,27 +85,52 @@
       background:#0c1a3d; border:1px solid #203a7c; padding:4px 6px; border-radius:6px;
       font-size:.8rem; color:#cfe1ff; display:none; pointer-events:none; white-space:nowrap;
     }
-
   </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>Extreme Learning Machines — A Visual Primer for JS Engineers</h1>
+    <h1>Extreme Learning Machines — a visual primer for JS engineers</h1>
     <div class="nav">
       <button id="prevBtn">◀ Back</button>
-      <div class="chip" id="slideLabel">Slide 1 / 4</div>
+      <div class="chip" id="slideLabel">Slide 1 / 5</div>
       <button id="nextBtn">Next ▶</button>
     </div>
   </header>
 
   <main>
-    <!-- Slide 1 -->
-    <section class="slide" id="slide1" hidden>
+    <!-- INTRO (new) -->
+    <section class="slide" id="slideIntro" data-stage="intro" hidden>
+      <div class="left">
+        <div class="panel">
+          <h2>0) Why ELM? The Rebel Idea</h2>
+          <p><strong>Backprop felt like waiting for a full webpack build.</strong> In the mid-2000s, training neural nets was slow and fussy.</p>
+          <p>Guang-Bin Huang asked a “this can’t be right… can it?” question: <em>what if we don’t train the hidden layer at all?</em></p>
+          <p>ELM’s recipe is shockingly simple:</p>
+          <ul class="note">
+            <li><strong>Throw a random grid</strong> on the data (hidden layer = random weights).</li>
+            <li><strong>Don’t touch it.</strong></li>
+            <li><strong>Solve the last layer in one shot</strong> with a pseudoinverse (linear algebra’s “best fit”).</li>
+          </ul>
+          <p>Think of it like grabbing a <em>ready-made toolkit</em> instead of writing your own state manager. It’s fast, simple, and good enough for lots of problems.</p>
+          <div class="note">We’ll walk the pipeline: <strong>Neuron → Input → Hidden → Output</strong>, then make a prediction on a tiny AG-News snippet.</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>Plain English</h2>
+          <p>ELM uses <em>random features</em> to give the model a coordinate system. The final layer then draws the separating line in that space—no iterative training.</p>
+          <p class="note">Metaphor: like dropping a random grid over a messy map so you can say “row 3, col 5”, then using GPS to go straight there.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 1 -->
+    <section class="slide" id="slide1" data-stage="neuron" hidden>
       <div class="left">
         <div class="panel">
           <h2>1) Single Neuron + Activations</h2>
-          <p>Adjust <em>w</em> and <em>b</em>, choose an activation, and watch <code>y = f(w·x + b)</code> respond in real-time.</p>
+          <p>Adjust <em>w</em> and <em>b</em>, choose an activation, and watch <code>y = g(w·x + b)</code> change in real time.</p>
           <div class="row">
             <div style="flex:1">
               <label>Activation</label>
@@ -126,35 +151,32 @@
           <div class="canvasWrap" style="height:260px">
             <canvas id="neuronCanvas"></canvas>
           </div>
-          <div class="note">Uses activations implementations via the Worker (astermind.umd.js). Falls back to local versions if not present.</div>
+          <div class="note">“Affine” just means: compute <code>z = w·x + b</code> (a line), then bend it with an activation <code>g(z)</code>.</div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
-          <h2>What you’re seeing</h2>
-          <p>ELM ≈ a single hidden layer network where the hidden layer is random and fixed; only the output layer is solved analytically.</p>
-          <p>This slide isolates a single neuron to build intuition about activations and affine (“Affine” (pronounced uh-FEEN) is math-speak for a linear transform plus a shift.) transforms (<code>w</code>, <code>b</code>).</p>
-          <div class="code">
-<pre>// y = f(w·x + b)
+          <h2>Plain English</h2>
+          <p>A neuron is a little function that takes a number, nudges it (<em>w</em> and <em>b</em>), then runs it through a squiggle (activation).</p>
+          <p>Try negative <strong>w</strong> with <strong>ReLU</strong> vs <strong>tanh</strong> to feel different shapes.</p>
+          <div class="code"><pre>// y = g(w·x + b)
 const z = w * x + b;
-const y = activation(z);</pre>
-          </div>
-          <p class="note">Try moving <strong>w</strong> negative and flipping between <strong>ReLU</strong> and <strong>tanh</strong> to feel different non-linearities.</p>
+const y = activation(z);</pre></div>
         </div>
       </div>
     </section>
 
-    <!-- Slide 2 -->
-    <section class="slide" id="slide2" hidden>
+    <!-- SLIDE 2 -->
+    <section class="slide" id="slide2" data-stage="input" hidden>
       <div class="left">
         <div class="panel">
           <h2>2) Input Encoding (AG-News snippet)</h2>
-          <p>Pick a training row. We’ll vectorize the text (TF-IDF if available, else a simple bag-of-words) and preview the input vector magnitude.</p>
+          <p>Select a training row. We’ll vectorize the text and render a small feature heatmap.</p>
           <div class="row">
             <select id="rowSelect" style="flex:1"></select>
             <button id="encodeBtn">Encode →</button>
           </div>
-          <div class="canvasWrap" style="height:260px">
+          <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="encodeCanvas"></canvas>
           </div>
           <div id="tokensOut" class="code" style="min-height:80px"></div>
@@ -162,33 +184,30 @@ const y = activation(z);</pre>
       </div>
       <div class="right">
         <div class="panel">
-          <h2>What you’re seeing</h2>
-          <p>ELM doesn’t dictate how you encode inputs. Here we use text vectors.</p>
-          <ul class="note">
-            <li><strong>TF-IDF/EncoderELM</strong> from your UMD, if present</li>
-            <li>Fallback: simple token counts</li>
-          </ul>
-          <p>We stream the single vector to the next slides as <code>x</code> for hidden layer projection.</p>
+          <h2>Plain English</h2>
+          <p>Text becomes numbers (features). Each little square is one number. <span class="note">Blue = positive, red = negative, brighter = larger magnitude.</span></p>
+          <p>ELM doesn’t care how you encode—TF-IDF, bag-of-words, etc. We just need a vector so the hidden layer can project it.</p>
         </div>
       </div>
     </section>
 
-    <!-- Slide 3 -->
-    <section class="slide" id="slide3" hidden>
+    <!-- SLIDE 3 -->
+    <section class="slide" id="slide3" data-stage="hidden" hidden>
       <div class="left">
         <div class="panel">
           <h2>3) Hidden Layer (Random &amp; Shuffle)</h2>
-          <p>See the hidden matrix <code>W</code> (weights) and bias <code>b</code>. Shuffle reseeds the hidden layer and shows a fresh <code>W</code>.</p>
+          <p>Random projection: <code>H = g(X·W + b)</code>. Shuffle to reseed the hidden layer.</p>
           <div class="row">
             <div style="flex:1">
               <label>Hidden size</label>
-              <input id="hiddenSize" type="range" min="4" max="256" step="1" value="32">
-              <div class="note"><span id="hiddenSizeVal">32</span> neurons</div>
+              <!-- Slide 3 control -->
+              <input id="hiddenSize" type="range" min="4" max="1024" step="1" value="32">
+              <div class="note"><span id="hiddenSizeVal">32</span> neurons (downsampled for display if huge)</div>
             </div>
             <button id="shuffleBtn" title="Reseed hidden layer">Shuffle Hidden</button>
             <button id="previewHBtn" title="Project current x">Project H = g(X·W + b)</button>
           </div>
-          <div class="canvasWrap" style="height:260px">
+          <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="hiddenCanvas"></canvas>
           </div>
           <div id="WPreview" class="code" style="min-height:80px"></div>
@@ -196,72 +215,31 @@ const y = activation(z);</pre>
       </div>
       <div class="right">
         <div class="panel">
-          <div class="note" id="s3-explainer" style="margin-top:6px">
-            <h3 style="margin:0 0 6px 0; font-size:1rem; color:#e5efff;">What am I looking at?</h3>
-
-            <ul style="margin:0 0 8px 18px; padding:0; line-height:1.4">
-              <li><strong>Heatmap (left) = a 2D array called <code>W</code></strong><br>
-                Think <code>W[neuronIndex][featureIndex]</code>.
-                <div style="margin-top:4px">
-                  • <em>Row</em> = one hidden “neuron” (a tiny function with its own params)<br>
-                  • <em>Column</em> = one input feature from the text vector<br>
-                  • <em>Cell</em> <code>W[i][j]</code> = how much feature <code>j</code> pushes neuron <code>i</code><br>
-                  • Colors: <span style="color:#fb7185">red</span> = negative, <span style="color:#6ee7a2">blue</span> = positive, brighter = bigger magnitude
-                </div>
-              </li>
-
-              <li style="margin-top:8px"><strong>Green bars (right) = what each neuron outputs for this text</strong><br>
-                We take your encoded text vector <code>x[]</code> and run each neuron:
-                <div class="code" style="margin-top:6px">
-                  <pre>
-// For one input x[]
-for (let i = 0; i &lt; hidden; i++) {
-  let z = b[i]; // start with the neuron’s bias
-  for (let j = 0; j &lt; features; j++) {
-    z += x[j] * W[i][j]; // weighted sum of features
-  }
-  H[i] = Math.max(0, z); // ReLU activation = g(z)
-}
-                  </pre>
-                </div>
-                Bar length is <code>H[i]</code>. The formula <code>H = g(Wx + b)</code> just means:
-                “do the weighted sum, add bias, then apply a function (<code>g</code>)”. Here <code>g</code> is ReLU.
-              </li>
-
-              <li style="margin-top:8px"><strong>“Hidden size”</strong> = how many neurons (rows)</li>
-            </ul>
-
-            <p style="margin:6px 0 0 0; line-height:1.4">
-              More rows = more random “feature makers,” which can capture more patterns. The trade-off:
-              it makes the next step’s matrix <code>β</code> bigger and the solve a bit slower.
-            </p>
-
-            <p style="margin:6px 0 0 0; line-height:1.4">
-              The numbers box below the heatmap prints an <strong>8×8 sample</strong> of <code>W</code>
-              (first 8 neurons × first 8 features) so you can see the actual values behind the colors.
-            </p>
-
-            <p style="margin:6px 0 0 0; line-height:1.4">
-              <strong>Tip:</strong> Click <em>Shuffle Hidden</em> to reseed <code>W</code> and <code>b</code> randomly and
-              feel how a different random projection changes the green bars.
-            </p>
-          </div>
-
+          <h2>Plain English</h2>
+          <p>Imagine dropping a <em>random grid</em> on a messy city so you can say “row 3, col 5”. That’s what the hidden layer does for your data.</p>
+          <p>Each heatmap <em>row</em> = a hidden neuron. Each <em>column</em> = an input feature. Colors show sign &amp; magnitude of <code>W[i,j]</code>.</p>
+          <p>The green bars show <code>H = g(Wx+b)</code> for the currently encoded text. More hidden neurons = more random features to catch patterns.</p>
+          <p>The numbers box below is an <strong>8×8 slice of W</strong> so you can see real values.</p>
         </div>
       </div>
     </section>
 
-    <!-- Slide 4 -->
-    <section class="slide" id="slide4" hidden>
+    <!-- SLIDE 4 -->
+    <section class="slide" id="slide4" data-stage="output" hidden>
       <div class="left">
         <div class="panel">
           <h2>4) Output Layer (Pseudoinverse Solve)</h2>
-          <p>We’ll fit <code>β</code> by solving <code>Hβ ≈ Y</code> with a pseudo-inverse. Then we’ll predict the class for a sample headline.</p>
+          <p>We solve <code>Hβ ≈ Y</code> in one shot (pseudoinverse). Then we predict for a selected row.</p>
+          <!-- Slide 4 buttons (add two on the right) -->
           <div class="row">
             <button id="trainBtn">Train on snippet</button>
-            <button id="predictBtn">Predict selected row</button>
+            <button id="predictBtn" title="Train first">Predict selected row</button>
+            <span style="flex:1"></span>
+            <button id="downloadBtn" title="Save W,b,β and basis">Download model</button>
+            <button id="resetBtn" title="Clear model & basis">Reset</button>
           </div>
-          <div id="solveOut" class="code" style="min-height:80px">Waiting…</div>
+
+          <div id="solveOut" class="code" style="min-height:100px">Waiting…</div>
           <div class="canvasWrap" style="height:220px">
             <canvas id="betaCanvas"></canvas>
           </div>
@@ -269,14 +247,13 @@ for (let i = 0; i &lt; hidden; i++) {
       </div>
       <div class="right">
         <div class="panel">
-          <h2>What you’re seeing</h2>
-          <p>Once <code>β</code> is solved (ridge/L2 if configured), inference is just:</p>
-          <div class="code">
-<pre>// Predict
+          <h2>Plain English</h2>
+          <p>The final layer is like a GPS: once the random coordinates exist, we draw a straight boundary there. No epochs, just a single solve.</p>
+          <div class="code"><pre>// Predict
 const Hx = g(x·W + b);
-const logits = Hx · β;  // class scores</pre>
-          </div>
-          <p class="note">We show shape/dims and a tiny heatmap of <code>β</code>. Then classify the sample row.</p>
+const logits = Hx · β;          // class scores
+// (softmax if you want probabilities)</pre></div>
+          <p class="note">Speed is the point. It’s like switching from a long webpack build to an instant esbuild—train in a blink.</p>
         </div>
       </div>
     </section>
@@ -285,14 +262,13 @@ const logits = Hx · β;  // class scores</pre>
   <div style="padding:8px 16px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
     <div id="status" class="note">Worker: <span id="workerStatus">connecting…</span></div>
     <div class="footerBar">
-      <button id="toOne">1</button>
-      <button id="toTwo">2</button>
-      <button id="toThree">3</button>
-      <button id="toFour">4</button>
+      <!-- Buttons are generated dynamically by JS to match slide count -->
+      <button>1</button><button>2</button><button>3</button><button>4</button>
     </div>
   </div>
 </div>
 
-<script src="/elm-demo.js" type="module"></script>
+<!-- App script -->
+<script src="elm-demo.js"></script>
 </body>
 </html>

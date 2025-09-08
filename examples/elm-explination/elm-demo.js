@@ -1,8 +1,9 @@
 /* =========================================================
    ELM Visual Primer — App Script (self-contained)
-   - Mini-map of ELM (Input→Hidden→Output) with live highlight
+   - Intro slide + plain-English copy (with your metaphors)
+   - Mini-map now includes "Neuron" and highlights per slide
    - Safer tooltips, guardrails, clear instructions
-   - Slide registry for easy add/remove/reorder
+   - Slide registry auto-detects slides (easy add/remove)
    ========================================================= */
 document.addEventListener('DOMContentLoaded', () => {
     /* ---------------- Small style additions (mini-map, tips) -------------- */
@@ -45,23 +46,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return v.toFixed(a < 1 ? 3 : 2);
     };
 
-    /* ---------------- Slide registry (easy add/remove) ---------------- */
-    // If you add/remove slides in HTML, this script will adapt automatically.
+    /* ---------------- Slide registry (auto) ---------------- */
     const slideNodes = Array.from(document.querySelectorAll('section.slide'));
-    const slides = slideNodes.map((node, idx) => {
-        // You can still override with data-stage="neuron|input|hidden|output" on a <section>
-        const stage = node.dataset.stage || (idx === 0 ? 'neuron' : idx === 1 ? 'input' : idx === 2 ? 'hidden' : 'output');
+    const slides = slideNodes.map((node) => {
+        // Use explicit data-stage to avoid relying on index
+        const stage = node.dataset.stage || 'hidden';
         return { id: node.id, node, stage };
     });
 
-    // Header bits + dynamic numeric nav
-    const header = document.querySelector('header');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const slideLabel = document.getElementById('slideLabel');
     const footerBar = document.querySelector('.footerBar');
 
-    // Replace footer number buttons with dynamic ones
+    // Keyboard: ← / → to switch slides
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') { prevBtn.click(); }
+        if (e.key === 'ArrowRight') { nextBtn.click(); }
+    });
+
+    // Build numeric nav dynamically based on slide count
     if (footerBar) {
         footerBar.innerHTML = '';
         slides.forEach((_, i) => {
@@ -72,7 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mini-map UI (created once)
+    // Mini-map in header
+    const header = document.querySelector('header');
     const miniWrap = document.createElement('div');
     miniWrap.className = 'mini-map';
     const miniLabel = document.createElement('span');
@@ -80,9 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     miniLabel.style.fontSize = '.9rem';
     miniLabel.style.color = 'var(--muted)';
     const mini = document.createElement('canvas');
-    // wider & slightly taller to fit 4 boxes
-    mini.width = 320;
-    mini.height = 54;
+    mini.width = 320; mini.height = 54; // wider to fit Neuron + 3 boxes
     miniWrap.appendChild(miniLabel);
     miniWrap.appendChild(mini);
     header.appendChild(miniWrap);
@@ -91,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const c = mini, g = c.getContext('2d'), W = c.width, H = c.height;
         g.clearRect(0, 0, W, H);
 
-        // Layout: Neuron (standalone) + Input → Hidden → Output flow
+        // Neuron (standalone) + main ELM path: Input → Hidden → Output
         const boxes = [
             { x: 10, y: 14, w: 68, h: 26, label: 'Neuron', key: 'neuron', dashed: true },
             { x: 92, y: 14, w: 60, h: 26, label: 'Input', key: 'input' },
@@ -99,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { x: 252, y: 14, w: 60, h: 26, label: 'Output', key: 'output' }
         ];
 
-        // Arrows for the main ELM path: Input → Hidden → Output
+        // Arrows for main path
         g.strokeStyle = '#5ad1ff'; g.lineWidth = 1.5; g.setLineDash([]);
         g.beginPath(); g.moveTo(92 + 60, 27); g.lineTo(170, 27); g.stroke();
         g.beginPath(); g.moveTo(170 + 66, 27); g.lineTo(252, 27); g.stroke();
@@ -122,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ------- IMPORTANT: declare S1 and init flags BEFORE show() -------- */
+    /* ------- Declare S1 + init flags BEFORE show() -------- */
     const S1 = { act: 'relu', availableActs: [], rafId: null, actSelect: null, wRange: null, bRange: null, wVal: null, bVal: null, canvas: null };
     let s1Inited = false, s2Inited = false, s3Inited = false, s4Inited = false;
 
@@ -141,10 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (prevIdx === 0 && idx !== 0) stopNeuronLoop();
 
-        if (idx === 0) { if (!s1Inited) { ensureSlide1(); s1Inited = true; } drawNeuron(); }
-        if (idx === 1) { if (!s2Inited) { ensureSlide2(); s2Inited = true; } drawEncode(); }
-        if (idx === 2) { if (!s3Inited) { ensureSlide3(); s3Inited = true; } drawHidden(); }
-        if (idx === 3) { if (!s4Inited) { ensureSlide4(); s4Inited = true; } drawBeta(); }
+        // Skip intro for init hooks
+        if (slides[idx].id === 'slide1') { if (!s1Inited) { ensureSlide1(); s1Inited = true; } drawNeuron(); }
+        if (slides[idx].id === 'slide2') { if (!s2Inited) { ensureSlide2(); s2Inited = true; } drawEncode(); }
+        if (slides[idx].id === 'slide3') { if (!s3Inited) { ensureSlide3(); s3Inited = true; } drawHidden(); }
+        if (slides[idx].id === 'slide4') { if (!s4Inited) { ensureSlide4(); s4Inited = true; } drawBeta(); }
     }
     prevBtn.onclick = () => show(idx - 1);
     nextBtn.onclick = () => show(idx + 1);
@@ -158,6 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ---------------- Worker wiring ---------------- */
     const workerStatus = document.getElementById('workerStatus');
     const worker = new Worker('./elm-worker.js'); // classic worker
+    worker.onerror = (err) => {
+        workerStatus.textContent = 'worker failed to load (serve files from http://localhost, same origin).';
+        console.error(err);
+    };
+
     const post = (type, payload = {}) => worker.postMessage({ type, payload });
 
     worker.onmessage = (e) => {
@@ -169,6 +178,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'hidden_project') { onHiddenProject(payload); }
         if (type === 'trained') { onTrained(payload); }
         if (type === 'predicted') { onPredicted(payload); }
+        if (type === 'exported_model') {
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'elm-model.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
     };
     post('hello');
     post('list_activations');
@@ -182,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         S1.bVal = document.getElementById('bVal');
         S1.canvas = document.getElementById('neuronCanvas');
 
-        // Add “Try this” helper (idempotent)
         addHelper('slide1', {
             title: 'Try this:',
             steps: [
@@ -190,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Drag the weight (w) and bias (b).',
                 'Watch y = g(w·x + b) and the moving dots react.'
             ],
-            blurb: 'This is one neuron. “Affine” just means we compute z = w·x + b (a line), then apply a squiggle g(z) so the model can bend.'
+            blurb: 'This is one neuron. “Affine” just means we compute z = w·x + b (a line), then apply an activation g(z) so the model can bend.'
         });
 
         S1.actSelect.addEventListener('change', () => { S1.act = S1.actSelect.value; drawNeuron(); });
@@ -280,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
         encodeCanvas = document.getElementById('encodeCanvas');
         tokensOut = document.getElementById('tokensOut');
 
-        // Helpers block
         addHelper('slide2', {
             title: 'Try this:',
             steps: [
@@ -537,9 +555,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!S3.W) { g.fillStyle = '#93a9e8'; g.fillText('Click “Shuffle Hidden” to initialize W,b', 12, 22); S3.gridW = S3.gridBars = null; return; }
         const pad = 10, ww = Math.floor(W * 0.66), xHeat = pad, yHeat = pad, xBars = ww + pad, yBars = pad;
         const vW = S3.W, rows = vW.length, cols = vW[0].length;
-        const cellW = Math.max(1, Math.floor((ww - 2 * pad) / cols));
-        const cellH = Math.max(1, Math.floor((H - 2 * pad) / rows));
-        let vmax = 1e-6; for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) vmax = Math.max(vmax, Math.abs(vW[i][j]));
+
+
+        // Downsample to at most 256x256 for display quality/perf
+        const MAXD = 256;
+        const dr = Math.max(1, Math.ceil(rows / MAXD));
+        const dc = Math.max(1, Math.ceil(cols / MAXD));
+        const dsRows = Math.ceil(rows / dr);
+        const dsCols = Math.ceil(cols / dc);
+
+        // compute vmax on the sampled grid
+        let vmax = 1e-6;
+        for (let i = 0; i < rows; i += dr) {
+            for (let j = 0; j < cols; j += dc) {
+                const val = vW[i][j];
+                if (Math.abs(val) > vmax) vmax = Math.abs(val);
+            }
+        }
+
+        const cellW = Math.max(1, Math.floor((ww - 2 * pad) / dsCols));
+        const cellH = Math.max(1, Math.floor((H - 2 * pad) / dsRows));
+
+        // paint sampled cells
+        for (let i = 0, ri = 0; i < rows; i += dr, ri++) {
+            for (let j = 0, rj = 0; j < cols; j += dc, rj++) {
+                const val = vW[i][j];
+                const alpha = Math.min(1, Math.abs(val) / vmax);
+                const hue = val >= 0 ? 200 : 0;
+                g.fillStyle = `hsla(${hue},90%,60%,${0.15 + 0.85 * alpha})`;
+                g.fillRect(xHeat + rj * cellW, yHeat + ri * cellH, cellW, cellH);
+            }
+        }
+
+        // thin grid lines to keep it light
+        g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 1;
+        for (let j = 0; j <= dsCols; j++) { g.beginPath(); g.moveTo(xHeat + j * cellW, yHeat); g.lineTo(xHeat + j * cellW, yHeat + dsRows * cellH); g.stroke(); }
+        for (let i = 0; i <= dsRows; i++) { g.beginPath(); g.moveTo(xHeat, yHeat + i * cellH); g.lineTo(xHeat + dsCols * cellW, yHeat + dsRows * cellH); g.stroke(); }
+
+        S3.gridW = { x: xHeat, y: yHeat, cols: dsCols, rows: dsRows, cellW, cellH };
+
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 const val = vW[i][j], alpha = Math.min(1, Math.abs(val) / vmax), hue = val >= 0 ? 200 : 0;
@@ -583,6 +637,22 @@ document.addEventListener('DOMContentLoaded', () => {
             S4.predictBtn.title = 'Train first to enable prediction';
         }
 
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        downloadBtn.onclick = () => post('export_model');
+        resetBtn.onclick = () => {
+            post('reset');
+            uiBasisFrozen = false;
+            S2.lastEncoded = null;
+            S3.W = S3.b = S3.Hx = S3.Z = null;
+            S4.dims = S4.betaSample = null;
+            drawEncode(); drawHidden(); drawBeta();
+            S4.solveOut.textContent = 'Reset complete. Re-train to continue.';
+            if (S4.predictBtn) { S4.predictBtn.disabled = true; S4.predictBtn.title = 'Train first to enable prediction'; }
+        };
+
+
         addHelper('slide4', {
             title: 'Try this:',
             steps: [
@@ -593,7 +663,6 @@ document.addEventListener('DOMContentLoaded', () => {
             blurb: 'After training, inference is quick: Hx = g(x·W + b) then logits = Hx · β.'
         });
 
-        // rows getter (works even if you never visited slide 2)
         const getRows = () => {
             if (S2.dataRows?.length) return S2.dataRows;
             if (dataRows?.length) return dataRows;
@@ -609,19 +678,30 @@ document.addEventListener('DOMContentLoaded', () => {
         S4.trainBtn.onclick = () => {
             const rows = getRows();
             if (!rows.length) { alert('No training rows available'); return; }
-            const hidden = S3.hiddenSize ? +S3.hiddenSize.value : 32;
+            const hidden = document.getElementById('hiddenSize') ? +document.getElementById('hiddenSize').value : 32;
             post('train', { rows: rows.map(r => ({ y: r.cls, text: r.text })), hidden });
         };
         S4.predictBtn.onclick = () => {
-            if (S4.predictBtn.disabled) return; // guardrail
-            const rows = getRows();
-            if (!rows.length) { alert('No rows to predict'); return; }
-            const i = getSelectedIndex();
-            S4.lastSel = i;
-            post('predict', { text: rows[i].text });
+            S4.predictBtn.onclick = async () => {
+                if (S4.predictBtn.disabled) return;
+                const rows = getRows();
+                if (!rows.length) { alert('No rows to predict'); return; }
+                const i = getSelectedIndex();
+                S4.lastSel = i;
+
+                // If we don't have an encoded vector yet (fresh page load), auto-encode
+                if (!S2.lastEncoded) {
+                    post('encode', { text: rows[i].text });
+                    // tiny delay to let the worker respond in UI; then predict
+                    setTimeout(() => post('predict', { text: rows[i].text }), 60);
+                } else {
+                    post('predict', { text: rows[i].text });
+                }
+            };
+
         };
 
-        // If user trained before opening slide 4, auto-enable Predict now.
+        // If trained before opening slide 4, enable Predict now.
         if (S4.dims && S4.predictBtn) { S4.predictBtn.disabled = false; S4.predictBtn.title = ''; }
     }
 
@@ -631,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
         S4.labels = labels || [];
         if (S4.predictBtn) { S4.predictBtn.disabled = false; S4.predictBtn.title = ''; }
 
-        S4.solveOut.textContent = `Solved β with pseudo-inverse${note ? ` (${note})` : ''}\n` +
+        S4.solveOut.textContent = `Solved β with pseudoinverse${note ? ` (${note})` : ''}\n` +
             `H shape: ${dims.H_rows}×${dims.H_cols},  Y shape: ${dims.Y_rows}×${dims.Y_cols}\n` +
             `β shape: ${dims.B_rows}×${dims.B_cols}\n` +
             `β (8×8 sample):\n${betaSample}`;
@@ -681,7 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function addHelper(slideId, { title, steps, blurb }) {
         const root = document.getElementById(slideId);
         if (!root) return;
-        // Prefer the right panel if present, else append to first panel
         const rightPanel = root.querySelector('.right .panel') || root.querySelector('.panel');
         if (!rightPanel || rightPanel.querySelector('.helper')) return; // idempotent
         const box = document.createElement('div');
