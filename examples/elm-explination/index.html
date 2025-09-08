@@ -85,6 +85,46 @@
       background:#0c1a3d; border:1px solid #203a7c; padding:4px 6px; border-radius:6px;
       font-size:.8rem; color:#cfe1ff; display:none; pointer-events:none; white-space:nowrap;
     }
+
+    /* Let each slide have a top hero row that spans both columns */
+    .slide{
+      grid-template-rows: auto 1fr;       /* hero (cap) + content */
+    }
+
+    /* Cap image */
+    .slide > .hero{
+      grid-column: 1 / -1;
+      height: clamp(500px, 28vh, 380px);  /* tweak to taste */
+      border-radius: 14px;
+      border: 1px solid #182d61;
+      background-position: center 50%;    /* baseline anchor */
+      background-repeat: no-repeat;
+      background-size: cover;             /* needed for the parallax effect */
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.28);
+      will-change: background-position;   /* smoother parallax */
+    }
+
+    /* Optional overlay & caption (keeps text legible) */
+    .slide > .hero::after{
+      content:"";
+      position:absolute; inset:0;
+      background: linear-gradient(180deg, rgba(5,12,31,0) 0%, rgba(5,12,31,.25) 60%, rgba(5,12,31,.55) 100%);
+      pointer-events:none;
+    }
+    .hero .caption{
+      position:absolute; left:12px; bottom:10px;
+      font-size:.9rem; color:#cfe1ff; opacity:.95;
+      background: rgba(12,26,61,.55);
+      border:1px solid #203a7c;
+      padding:4px 8px; border-radius:8px;
+    }
+
+    /* Helpful if your page gets a momentum scroll */
+    html, body { scroll-behavior: smooth; }
+
   </style>
 </head>
 <body>
@@ -101,26 +141,40 @@
   <main>
     <!-- INTRO (new) -->
     <section class="slide" id="slideIntro" data-stage="intro" hidden>
+      <figure class="hero" data-hero="images/slide1.png">
+        <div class="caption">The “skip the hidden-layer training” idea</div>
+      </figure>
       <div class="left">
         <div class="panel">
-          <h2>0) Why ELM? The Rebel Idea</h2>
-          <p><strong>Backprop felt like waiting for a full webpack build.</strong> In the mid-2000s, training neural nets was slow and fussy.</p>
-          <p>Guang-Bin Huang asked a “this can’t be right… can it?” question: <em>what if we don’t train the hidden layer at all?</em></p>
-          <p>ELM’s recipe is shockingly simple:</p>
-          <ul class="note">
-            <li><strong>Throw a random grid</strong> on the data (hidden layer = random weights).</li>
-            <li><strong>Don’t touch it.</strong></li>
-            <li><strong>Solve the last layer in one shot</strong> with a pseudoinverse (linear algebra’s “best fit”).</li>
-          </ul>
-          <p>Think of it like grabbing a <em>ready-made toolkit</em> instead of writing your own state manager. It’s fast, simple, and good enough for lots of problems.</p>
-          <div class="note">We’ll walk the pipeline: <strong>Neuron → Input → Hidden → Output</strong>, then make a prediction on a tiny AG-News snippet.</div>
+          <h2>Extreme Learning Machines — The “skip training the hidden layer” idea</h2>
+          <div class="intro-copy">
+            <p>In the mid-2000s, machine learning was in a very different place than it is today.
+            Deep learning was starting to get attention, but it was still this… mysterious, heavy beast. If you wanted to train a neural network, you had to set up long loops of backpropagation. You had to carefully tune learning rates, watch your gradients explode or vanish, and pray your model converged.
+            And it was slow. Painfully slow. Imagine trying to write modern React code, but every time you made a change, you had to recompile your whole project from scratch and wait hours just to see if it worked. That’s what training felt like.</p>
+
+            <p>Then along comes Guang-Bin Huang.
+            And he asks a question that, to most people at the time, sounded like madness. What if we didn’t train the hidden layers at all?
+            Let me pause here. <em>[look around the audience]</em>
+            To engineers in the room, this is like saying: what if we shipped production code without writing any unit tests? It goes against the grain. The hidden layers are where the magic happens, right? Why on earth would you skip training them?</p>
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
-          <h2>Plain English</h2>
-          <p>ELM uses <em>random features</em> to give the model a coordinate system. The final layer then draws the separating line in that space—no iterative training.</p>
-          <p class="note">Metaphor: like dropping a random grid over a messy map so you can say “row 3, col 5”, then using GPS to go straight there.</p>
+           <p>But Huang’s insight was bold and simple.
+            He said: let’s just randomize the hidden layer. Flip a bunch of coins, assign random weights. Then, don’t touch them.
+            Instead, let’s focus all our effort on solving the output layer in a single step. Mathematically, this meant using something called the pseudoinverse — basically, linear algebra’s version of a one-shot “give me the best fit.”
+            So instead of looping for hours, you could train a neural net in seconds.</p>
+
+            <p>Think about that in JavaScript terms. It’s like discovering that instead of writing your own state management system, you could just import Redux Toolkit or Zustand and be done in one line. Or instead of writing your own DOM diffing algorithm, you could just use React.
+            It’s that same moment of: wait… this can’t be that simple… can it?
+            And yet, it worked.</p>
+
+            <p>Out of that rebellious thought — skipping the ‘sacred’ training of hidden layers — was born the Extreme Learning Machine.
+            Now, at first, people dismissed it. It was too weird, too outside the norms. Backpropagation was the hammer, and every problem looked like a nail.
+            But slowly, folks started to realize: there’s something here. ELMs are not just a toy. They’re fast. They’re simple. They can actually solve problems where speed and efficiency matter more than absolute state-of-the-art accuracy.
+            And that’s why we’re here today. To dig into this oddball invention and ask: can it help us in the world of web apps, browsers, and JavaScript engineering?</p>
+          
         </div>
       </div>
     </section>

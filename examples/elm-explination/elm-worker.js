@@ -9,7 +9,7 @@ postMessage({ type: 'status', payload: `UMD: ${ELM ? 'ELM available' : 'no ELM'}
 // ---------- Activations ----------
 const Acts = {
     relu: x => Math.max(0, x),
-    leakyRelu: (x, a = 0.01) => x >= 0 ? x : a * x,
+    leakyRelu: (x, a = 0.01) => (x >= 0 ? x : a * x),
     sigmoid: x => 1 / (1 + Math.exp(-x)),
     tanh: x => Math.tanh(x),
 };
@@ -20,12 +20,12 @@ function simpleTokens(text) {
     return (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
 }
 
-// Basis management: before training, "preview" encodes are isolated; after training, basis is frozen
+// Basis management
 let basisFrozen = false;
-let tfidf = null;                // frozen TFIDF after training (if available)
-let vocab = null;                // frozen fallback vocab: Map token -> index
-let idf = null;                  // frozen fallback idf: Map token -> weight
-let featureNames = null;         // frozen feature names (array by index)
+let tfidf = null;
+let vocab = null;        // Map token -> index
+let idf = null;          // Map token -> weight
+let featureNames = null; // Array indexed by feature id
 
 function buildFrozenFallback(texts) {
     const df = new Map();
@@ -40,7 +40,7 @@ function buildFrozenFallback(texts) {
         }
     }
     const id = new Map();
-    for (const [t, d] of df.entries()) { id.set(t, Math.log((N + 1) / (d + 1)) + 1); }
+    for (const [t, d] of df.entries()) id.set(t, Math.log((N + 1) / (d + 1)) + 1);
     const names = [];
     for (const [t, j] of v.entries()) names[j] = t;
     vocab = v; idf = id; featureNames = names;
@@ -60,22 +60,24 @@ function vecFrozenFallback(text) {
 function isolatedPreviewVector(text) {
     const toks = simpleTokens(text);
     const idx = new Map(); const names = [];
-    for (const t of toks) { if (!idx.has(t)) { idx.set(t, idx.size); names.push(t); } }
+    for (const t of toks) if (!idx.has(t)) { idx.set(t, idx.size); names.push(t); }
     const v = new Float32Array(names.length);
-    for (const t of toks) { v[idx.get(t)] += 1; }
+    for (const t of toks) v[idx.get(t)] += 1;
     return { tokens: toks, vector: Array.from(v), featureNames: names, usedTFIDF: false };
 }
 
 // ---------- Hidden-layer preview for Slide 3 ----------
-let lastHidden = { W: null, b: null }; // W: hidden x inputDim (rows=neurons)
+let lastHidden = { W: null, b: null }; // W: hidden x inputDim
 function initHidden({ inputDim = 512, hidden = 32 }) {
-    const W = new Array(hidden).fill(0).map(() => new Array(inputDim).fill(0).map(() => (Math.random() * 2 - 1) * 0.5));
-    const b = new Array(hidden).fill(0).map(() => (Math.random() * 2 - 1) * 0.1);
+    const W = Array.from({ length: hidden }, () =>
+        Array.from({ length: inputDim }, () => (Math.random() * 2 - 1) * 0.5)
+    );
+    const b = Array.from({ length: hidden }, () => (Math.random() * 2 - 1) * 0.1);
     lastHidden.W = W; lastHidden.b = b;
     postMessage({ type: 'hidden_init', payload: { W, b } });
 }
 function projectHidden({ x }) {
-    if (!lastHidden.W) { initHidden({ inputDim: x.length, hidden: 32 }); }
+    if (!lastHidden.W) initHidden({ inputDim: x.length, hidden: 32 });
     const { W, b } = lastHidden;
     const H = new Array(W.length);
     const Z = new Array(W.length);
@@ -88,80 +90,85 @@ function projectHidden({ x }) {
     postMessage({ type: 'hidden_project', payload: { Hx: H, Z, activation: 'relu' } });
 }
 
-// ---------- Minimal math helpers for fallback ELM ----------
+// ---------- Minimal math helpers (fallback) ----------
 const transpose = A => {
     const R = A.length, C = A[0].length;
-    const T = new Array(C); for (let j = 0; j < C; j++) { T[j] = new Array(R); for (let i = 0; i < R; i++) T[j][i] = A[i][j]; }
+    const T = Array.from({ length: C }, () => Array(R));
+    for (let j = 0; j < C; j++) for (let i = 0; i < R; i++) T[j][i] = A[i][j];
     return T;
 };
 const matmul = (A, B) => {
     const R = A.length, C = A[0].length, C2 = B[0].length;
-    const out = new Array(R); for (let i = 0; i < R; i++) {
-        const row = new Array(C2).fill(0);
+    const out = Array.from({ length: R }, () => Array(C2).fill(0));
+    for (let i = 0; i < R; i++) {
         for (let k = 0; k < C; k++) {
-            const aik = A[i][k]; const Bk = B[k];
-            for (let j = 0; j < C2; j++) row[j] += aik * Bk[j];
+            const aik = A[i][k], Bk = B[k];
+            for (let j = 0; j < C2; j++) out[i][j] += aik * Bk[j];
         }
-        out[i] = row;
     }
     return out;
 };
 function addRidgeI(A, lambda) {
-    const n = A.length; const out = new Array(n);
-    for (let i = 0; i < n; i++) { out[i] = A[i].slice(); out[i][i] += lambda; }
+    const n = A.length; const out = A.map(r => r.slice());
+    for (let i = 0; i < n; i++) out[i][i] += lambda;
     return out;
 }
-// Solve A X = B for multiple RHS via Gauss-Jordan (ok for small hidden sizes)
+// Solve A X = B (Gauss–Jordan): small hidden sizes only
 function solveLinear(A, B) {
     const n = A.length, m = B[0].length;
-    const M = new Array(n);
-    for (let i = 0; i < n; i++) { M[i] = A[i].concat(B[i]); } // [A | B]
+    const M = Array.from({ length: n }, (_, i) => A[i].concat(B[i]));
     for (let col = 0; col < n; col++) {
-        // pivot
         let piv = col, max = Math.abs(M[col][col]);
         for (let r = col + 1; r < n; r++) { const v = Math.abs(M[r][col]); if (v > max) { max = v; piv = r; } }
         if (max < 1e-12) continue;
         if (piv !== col) { const tmp = M[piv]; M[piv] = M[col]; M[col] = tmp; }
-        // normalize pivot row
         const p = M[col][col];
         for (let j = col; j < n + m; j++) M[col][j] /= p;
-        // eliminate
         for (let r = 0; r < n; r++) {
             if (r === col) continue;
-            const f = M[r][col];
-            if (Math.abs(f) < 1e-12) continue;
+            const f = M[r][col]; if (Math.abs(f) < 1e-12) continue;
             for (let j = col; j < n + m; j++) M[r][j] -= f * M[col][j];
         }
     }
-    // extract X
-    const X = new Array(n);
-    for (let i = 0; i < n; i++) { X[i] = M[i].slice(n); }
-    return X;
+    return Array.from({ length: n }, (_, i) => M[i].slice(n));
+}
+function ridgeSolveBeta(H, Y, lambda = 1e-2) {
+    const Ht = transpose(H);
+    const A = addRidgeI(matmul(Ht, H), lambda);
+    const B = matmul(Ht, Y);
+    return solveLinear(A, B); // returns h x k
 }
 
-function ridgeSolveBeta(H, Y, lambda = 1e-2) {
-    // H: n x h, Y: n x k  => beta: h x k
-    const Ht = transpose(H);           // h x n
-    const A = addRidgeI(matmul(Ht, H), lambda); // h x h
-    const B = matmul(Ht, Y);           // h x k
-    return solveLinear(A, B);
+// ---------- β visual downsampler (for Slide 4) ----------
+const MAXB = 64;
+function downsampleBeta(B, maxR = MAXB, maxC = MAXB) {
+    if (!B || !B.length || !B[0].length) return null;
+    const R = B.length, C = B[0].length;
+    const dr = Math.max(1, Math.ceil(R / maxR));
+    const dc = Math.max(1, Math.ceil(C / maxC));
+    const out = [];
+    for (let i = 0; i < R; i += dr) {
+        const row = [];
+        for (let j = 0; j < C; j += dc) row.push(B[i][j]);
+        out.push(row);
+    }
+    return out;
 }
 
 // ---------- Model state ----------
-let model = null;            // either UMD ELM instance or our fallback struct
+let model = null;     // UMD ELM instance or our fallback struct
 let usingFallback = false;
-let labelSpace = [];         // e.g., [1,3,4]
+let labelSpace = [];  // e.g., [1,2,3,4]
 
 // ---------- Messages ----------
 self.onmessage = async (e) => {
     const { type, payload } = e.data || {};
 
-    if (type === 'hello') { postMessage({ type: 'status', payload: 'ready' }); }
-    if (type === 'list_activations') { postMessage({ type: 'actCurve', payload: { fnName: 'relu', fnList: Object.keys(Acts) } }); }
+    if (type === 'hello') postMessage({ type: 'status', payload: 'ready' });
+    if (type === 'list_activations') postMessage({ type: 'actCurve', payload: { fnName: 'relu', fnList: Object.keys(Acts) } });
 
     if (type === 'encode') {
         const { text } = payload;
-        // After training: encode in the frozen basis
         if (basisFrozen) {
             try {
                 if (tfidf) {
@@ -174,38 +181,34 @@ self.onmessage = async (e) => {
                     postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false, featureNames: names } });
                 }
             } catch {
-                const iso = isolatedPreviewVector(text);
-                postMessage({ type: 'encoded', payload: iso });
+                postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
             }
             return;
         }
-        // Preview (isolated) before training
+        // preview (isolated) before training
         try {
             if (TFIDFVectorizer) {
-                const v = new TFIDFVectorizer();
-                v.fit([text]);
+                const v = new TFIDFVectorizer(); v.fit([text]);
                 const vec = v.transform([text])[0];
                 const names = (typeof v.getFeatureNames === 'function') ? v.getFeatureNames() : null;
                 const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
                 postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names } });
             } else {
-                const iso = isolatedPreviewVector(text);
-                postMessage({ type: 'encoded', payload: iso });
+                postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
             }
         } catch {
-            const iso = isolatedPreviewVector(text);
-            postMessage({ type: 'encoded', payload: iso });
+            postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
         }
     }
 
-    if (type === 'init_hidden') { initHidden(payload); }
-    if (type === 'project_hidden') { projectHidden(payload); }
+    if (type === 'init_hidden') initHidden(payload);
+    if (type === 'project_hidden') projectHidden(payload);
 
     if (type === 'train') {
         const { rows, hidden = 32 } = payload || {};
         try {
             const texts = rows.map(r => r.text);
-            // Freeze basis
+            // freeze basis
             basisFrozen = true;
             let X = [];
             let note = '';
@@ -226,16 +229,15 @@ self.onmessage = async (e) => {
                 X = texts.map(t => vecFrozenFallback(t).vector);
                 note = 'fallback vectorizer (frozen basis)';
             }
+
             labelSpace = Array.from(new Set(rows.map(r => r.y))).sort((a, b) => a - b);
             const Y = rows.map(r => {
-                const k = labelSpace.length;
-                const v = new Array(k).fill(0);
-                const idx = labelSpace.indexOf(r.y);
-                if (idx >= 0) v[idx] = 1;
+                const k = labelSpace.length, v = Array(k).fill(0);
+                const idx = labelSpace.indexOf(r.y); if (idx >= 0) v[idx] = 1;
                 return v;
             });
 
-            // Try UMD ELM first
+            // UMD path
             usingFallback = false;
             if (ELM) {
                 try {
@@ -246,8 +248,8 @@ self.onmessage = async (e) => {
                         activation: 'relu',
                         lambda: 1e-2
                     });
-                    model.train(X, Y); // may throw inside UMD
-                    // Also seed lastHidden (for visual consistency)
+                    model.train(X, Y);
+
                     if (Array.isArray(model.hiddenW) && Array.isArray(model.hiddenB)) {
                         lastHidden.W = model.hiddenW; lastHidden.b = model.hiddenB;
                     }
@@ -258,48 +260,57 @@ self.onmessage = async (e) => {
                         B_rows: model?.beta?.length || hidden,
                         B_cols: model?.beta?.[0]?.length || labelSpace.length
                     };
-                    const betaSample = (model.beta || []).slice(0, 8).map(r => r.slice(0, 8).map(v => (Math.abs(v) < 1e-3 ? '0.000' : (+v).toFixed(3))).join(' ')).join('\n');
-                    postMessage({ type: 'trained', payload: { dims, betaSample, note, labels: labelSpace } });
+                    const betaSample = (model.beta || []).slice(0, 8)
+                        .map(r => r.slice(0, 8).map(v => (Math.abs(v) < 1e-3 ? '0.000' : (+v).toFixed(3))).join(' '))
+                        .join('\n');
+                    const betaVis = model.beta ? downsampleBeta(model.beta) : null;
+
+                    postMessage({ type: 'trained', payload: { dims, betaSample, note, labels: labelSpace, betaVis } });
                     return;
-                } catch (e) {
+                } catch {
                     usingFallback = true;
                 }
             } else {
                 usingFallback = true;
             }
 
-            // Pure-JS fallback ELM
+            // Fallback ELM
             const inputDim = X[0].length;
-            // Hidden layer for training; also update the preview hidden layer
-            const W = new Array(hidden).fill(0).map(() => new Array(inputDim).fill(0).map(() => (Math.random() * 2 - 1) * 0.5));
-            const b = new Array(hidden).fill(0).map(() => (Math.random() * 2 - 1) * 0.1);
+            const W = Array.from({ length: hidden }, () =>
+                Array.from({ length: inputDim }, () => (Math.random() * 2 - 1) * 0.5)
+            );
+            const b = Array.from({ length: hidden }, () => (Math.random() * 2 - 1) * 0.1);
             lastHidden.W = W; lastHidden.b = b;
 
-            // Build H: n x hidden
-            const H = new Array(X.length);
+            // H: n x hidden
+            const H = Array.from({ length: X.length }, () => Array(hidden));
             for (let n = 0; n < X.length; n++) {
                 const x = X[n];
-                const row = new Array(hidden);
                 for (let i = 0; i < hidden; i++) {
-                    let s = b[i];
-                    const Wi = W[i];
+                    let s = b[i], Wi = W[i];
                     for (let j = 0; j < inputDim; j++) s += Wi[j] * x[j];
-                    row[i] = Acts.relu(s);
+                    H[n][i] = Acts.relu(s);
                 }
-                H[n] = row;
             }
-            const beta = ridgeSolveBeta(H, Y, 1e-2); // hidden x classes
+            const beta = ridgeSolveBeta(H, Y, 1e-2); // h x k
 
             model = { kind: 'fallback', W, b, beta, activation: 'relu' };
             const dims = { H_rows: H.length, H_cols: H[0].length, Y_rows: Y.length, Y_cols: Y[0].length, B_rows: beta.length, B_cols: beta[0].length };
-            const betaSample = beta.slice(0, 8).map(r => r.slice(0, 8).map(v => (Math.abs(v) < 1e-3 ? '0.000' : (+v).toFixed(3))).join(' ')).join('\n');
-            postMessage({ type: 'trained', payload: { dims, betaSample, note: note + (usingFallback ? '; fallback ELM' : ''), labels: labelSpace } });
+            const betaSample = beta.slice(0, 8)
+                .map(r => r.slice(0, 8).map(v => (Math.abs(v) < 1e-3 ? '0.000' : (+v).toFixed(3))).join(' '))
+                .join('\n');
+            const betaVis = downsampleBeta(beta);
+
+            postMessage({
+                type: 'trained',
+                payload: { dims, betaSample, note: note + (usingFallback ? '; fallback ELM' : ''), labels: labelSpace, betaVis }
+            });
         } catch (err) {
             postMessage({
-                type: 'trained', payload: {
+                type: 'trained',
+                payload: {
                     dims: { H_rows: 0, H_cols: 0, Y_rows: 0, Y_cols: 0, B_rows: 0, B_cols: 0 },
-                    betaSample: String(err), note: 'train error',
-                    labels: labelSpace
+                    betaSample: String(err), note: 'train error', labels: labelSpace, betaVis: null
                 }
             });
         }
@@ -307,49 +318,34 @@ self.onmessage = async (e) => {
 
     if (type === 'predict') {
         const { text } = payload || {};
-        if (!model) {
-            postMessage({ type: 'predicted', payload: { pred: null, scores: [] } });
-            return;
-        }
+        if (!model) { postMessage({ type: 'predicted', payload: { pred: null, scores: [] } }); return; }
         try {
-            // Vectorize with frozen basis
             let v = [];
-            if (tfidf) {
-                v = tfidf.transform([text])[0];
-            } else if (vocab) {
-                v = vecFrozenFallback(text).vector;
-            } else {
-                // extremely defensive
-                v = isolatedPreviewVector(text).vector;
-            }
+            if (tfidf) v = tfidf.transform([text])[0];
+            else if (vocab) v = vecFrozenFallback(text).vector;
+            else v = isolatedPreviewVector(text).vector;
 
             let logits = [];
             if (model.kind === 'fallback') {
-                // Hx (1 x hidden)
-                const hidden = model.W.length;
-                const inputDim = v.length;
+                const hidden = model.W.length, inputDim = v.length;
                 const Hx = new Array(hidden);
                 for (let i = 0; i < hidden; i++) {
-                    let s = model.b[i];
-                    const Wi = model.W[i];
+                    let s = model.b[i], Wi = model.W[i];
                     for (let j = 0; j < inputDim; j++) s += Wi[j] * v[j];
                     Hx[i] = Acts.relu(s);
                 }
-                // logits = Hx (1×h) · beta (h×k)
                 const k = model.beta[0].length;
                 logits = new Array(k).fill(0);
                 for (let i = 0; i < hidden; i++) {
-                    const hi = Hx[i];
-                    const row = model.beta[i];
+                    const hi = Hx[i], row = model.beta[i];
                     for (let j = 0; j < k; j++) logits[j] += hi * row[j];
                 }
             } else {
                 logits = model.predict([v])[0];
             }
 
-            // pick argmax
             let best = -Infinity, bi = -1;
-            for (let i = 0; i < logits.length; i++) { if (logits[i] > best) { best = logits[i]; bi = i; } }
+            for (let i = 0; i < logits.length; i++) if (logits[i] > best) { best = logits[i]; bi = i; }
             const pred = labelSpace[bi] ?? null;
 
             postMessage({ type: 'predicted', payload: { pred, scores: logits, labels: labelSpace, predIndex: bi } });
@@ -359,12 +355,11 @@ self.onmessage = async (e) => {
     }
 
     if (type === 'export_model') {
-        // include vectorizer basis so the model can truly be "frozen"
         const basis = {
             kind: tfidf ? 'tfidf' : (vocab ? 'fallback' : 'none'),
             featureNames: featureNames || null,
-            vocab: vocab ? Array.from(vocab.entries()) : null,  // [token, index]
-            idf: idf ? Array.from(idf.entries()) : null         // [token, weight]
+            vocab: vocab ? Array.from(vocab.entries()) : null,
+            idf: idf ? Array.from(idf.entries()) : null
         };
         const payload = {
             usingFallback,
@@ -385,5 +380,4 @@ self.onmessage = async (e) => {
         lastHidden = { W: null, b: null };
         postMessage({ type: 'status', payload: 'reset complete' });
     }
-
 };

@@ -6,6 +6,52 @@
    - Slide registry auto-detects slides (easy add/remove)
    ========================================================= */
 document.addEventListener('DOMContentLoaded', () => {
+
+    (function initHeroImages() {
+        const heroes = Array.from(document.querySelectorAll('.slide > .hero'));
+        if (!heroes.length) return;
+
+        // Lazy-load backgrounds
+        for (const fig of heroes) {
+            const src = fig.getAttribute('data-hero');
+            if (src) {
+                const img = new Image();
+                img.onload = () => { fig.style.backgroundImage = `url("${src}")`; };
+                img.src = src;
+            }
+        }
+
+        // Parallax: recompute each hero's rect on scroll/resize
+        const rafState = { ticking: false };
+
+        function applyParallax() {
+            rafState.ticking = false;
+            const vh = window.innerHeight || 800;
+
+            heroes.forEach(el => {
+                const r = el.getBoundingClientRect();     // ← fresh rect each frame
+                const height = r.height || el.offsetHeight;
+                const start = -height;                     // when just entering from top
+                const end = vh;                            // when about to leave bottom
+                const t = Math.min(1, Math.max(0, (r.top - start) / (end - start)));
+                const px = Math.round((t - 0.5) * 24);     // [-12, +12] px shift
+                el.style.backgroundPosition = `center calc(50% ${px >= 0 ? '+' : ''}${px}px)`;
+            });
+        }
+
+        function onScroll() {
+            if (!rafState.ticking) {
+                rafState.ticking = true;
+                requestAnimationFrame(applyParallax);
+            }
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        // Initial paint
+        requestAnimationFrame(applyParallax);
+    })();
+
     /* ---------------- Small style additions (mini-map, tips) -------------- */
     (function injectStyles() {
         const css = `
@@ -640,8 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
 
-        downloadBtn.onclick = () => post('export_model');
-        resetBtn.onclick = () => {
+        if (downloadBtn) downloadBtn.onclick = () => post('export_model');
+        if (resetBtn) resetBtn.onclick = () => {
             post('reset');
             uiBasisFrozen = false;
             S2.lastEncoded = null;
@@ -651,6 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
             S4.solveOut.textContent = 'Reset complete. Re-train to continue.';
             if (S4.predictBtn) { S4.predictBtn.disabled = true; S4.predictBtn.title = 'Train first to enable prediction'; }
         };
+
 
 
         addHelper('slide4', {
@@ -681,46 +728,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const hidden = document.getElementById('hiddenSize') ? +document.getElementById('hiddenSize').value : 32;
             post('train', { rows: rows.map(r => ({ y: r.cls, text: r.text })), hidden });
         };
-        S4.predictBtn.onclick = () => {
-            S4.predictBtn.onclick = async () => {
-                if (S4.predictBtn.disabled) return;
-                const rows = getRows();
-                if (!rows.length) { alert('No rows to predict'); return; }
-                const i = getSelectedIndex();
-                S4.lastSel = i;
+        S4.predictBtn.onclick = async () => {
+            if (S4.predictBtn.disabled) return;
+            const rows = getRows();
+            if (!rows.length) { alert('No rows to predict'); return; }
+            const i = getSelectedIndex();
+            S4.lastSel = i;
 
-                // If we don't have an encoded vector yet (fresh page load), auto-encode
-                if (!S2.lastEncoded) {
-                    post('encode', { text: rows[i].text });
-                    // tiny delay to let the worker respond in UI; then predict
-                    setTimeout(() => post('predict', { text: rows[i].text }), 60);
-                } else {
-                    post('predict', { text: rows[i].text });
-                }
-            };
-
+            if (!S2.lastEncoded) {
+                post('encode', { text: rows[i].text });
+                setTimeout(() => post('predict', { text: rows[i].text }), 60);
+            } else {
+                post('predict', { text: rows[i].text });
+            }
         };
 
         // If trained before opening slide 4, enable Predict now.
         if (S4.dims && S4.predictBtn) { S4.predictBtn.disabled = false; S4.predictBtn.title = ''; }
     }
 
-    function onTrained({ dims, betaSample, note, labels }) {
+    function onTrained({ dims, betaSample, note, labels, betaVis }) {
         uiBasisFrozen = true;
-        S4.dims = dims; S4.betaSample = betaSample;
-        S4.labels = labels || [];
+        S4.dims = dims; S4.betaSample = betaSample; S4.labels = labels || [];
+        S4.betaVis = betaVis || null;
         if (S4.predictBtn) { S4.predictBtn.disabled = false; S4.predictBtn.title = ''; }
-
-        S4.solveOut.textContent = `Solved β with pseudoinverse${note ? ` (${note})` : ''}\n` +
-            `H shape: ${dims.H_rows}×${dims.H_cols},  Y shape: ${dims.Y_rows}×${dims.Y_cols}\n` +
-            `β shape: ${dims.B_rows}×${dims.B_cols}\n` +
-            `β (8×8 sample):\n${betaSample}`;
-        if ((S4.labels || []).length <= 1) {
-            S4.solveOut.textContent += `\n\nNote: training data contained a SINGLE class (${S4.labels[0]}). Predictions will always be that class. Add at least one row from another class to demo multi-class.`;
-        }
+        // ...existing text...
         drawBeta();
-        drawEncode(); // update slide2 legend ("basis: trained")
     }
+
+    function drawBeta() {
+        const c = S4.canvas, g = c.getContext('2d');
+        const dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+        c.width = Math.max(1, W * dpr); c.height = Math.max(1, H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, W, H);
+        if (!S4.betaVis) { g.fillStyle = '#93a9e8'; g.fillText('Train first to visualize β.', 12, 22); return; }
+        const B = S4.betaVis, R = B.length, C = B[0].length;
+        const m = 10, cw = Math.floor((W - 2 * m) / C), ch = Math.floor((H - 2 * m) / R);
+        // find max |β|
+        let vmax = 1e-6; for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) vmax = Math.max(vmax, Math.abs(B[i][j]));
+        for (let i = 0; i < R; i++) {
+            for (let j = 0; j < C; j++) {
+                const v = B[i][j], a = Math.min(1, Math.abs(v) / vmax);
+                const hue = v >= 0 ? 200 : 0; // blue for +, red for -
+                g.fillStyle = `hsla(${hue},90%,60%,${0.15 + 0.85 * a})`;
+                g.fillRect(m + j * cw, m + i * ch, cw - 1, ch - 1);
+            }
+        }
+    }
+
 
     function onPredicted({ pred, scores, labels }) {
         const probs = softmax(scores || []);
@@ -737,24 +792,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         S4.solveOut.textContent += `\n\nPredicted: ${predName} (${pred})  |  Truth: ${truthName} (${truthId})  |  ${verdict}\n` +
             `Probabilities: ${probText}`;
-    }
-
-    function drawBeta() {
-        if (!S4.canvas) return;
-        const c = S4.canvas, dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
-        c.width = Math.max(1, W * dpr); c.height = Math.max(1, H * dpr);
-        const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        g.clearRect(0, 0, W, H);
-        if (!S4.dims) { g.fillStyle = '#93a9e8'; g.fillText('Train first to visualize β.', 12, 22); return; }
-        const rows = Math.min(24, S4.dims.B_rows), cols = Math.min(24, S4.dims.B_cols);
-        const cw = Math.floor((W - 20) / cols), ch = Math.floor((H - 20) / rows);
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                const phase = (i * 13 + j * 7) % 100, a = 0.25 + 0.7 * (phase / 100);
-                g.fillStyle = `hsla(${180 + (j * 6) % 60},100%,60%,${a})`;
-                g.fillRect(10 + j * cw, 10 + i * ch, cw - 2, ch - 2);
-            }
-        }
     }
 
     /* ---------------- Helpers shared by slides ---------------- */
