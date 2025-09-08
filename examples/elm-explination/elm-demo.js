@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // If you add/remove slides in HTML, this script will adapt automatically.
     const slideNodes = Array.from(document.querySelectorAll('section.slide'));
     const slides = slideNodes.map((node, idx) => {
-        // optional: <section class="slide" data-stage="input|hidden|output">
-        const stage = node.dataset.stage || (idx === 0 ? 'hidden' : idx === 1 ? 'input' : idx === 2 ? 'hidden' : 'output');
+        // You can still override with data-stage="neuron|input|hidden|output" on a <section>
+        const stage = node.dataset.stage || (idx === 0 ? 'neuron' : idx === 1 ? 'input' : idx === 2 ? 'hidden' : 'output');
         return { id: node.id, node, stage };
     });
 
@@ -80,7 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     miniLabel.style.fontSize = '.9rem';
     miniLabel.style.color = 'var(--muted)';
     const mini = document.createElement('canvas');
-    mini.width = 210; mini.height = 44;
+    // wider & slightly taller to fit 4 boxes
+    mini.width = 320;
+    mini.height = 54;
     miniWrap.appendChild(miniLabel);
     miniWrap.appendChild(mini);
     header.appendChild(miniWrap);
@@ -88,31 +90,45 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawMiniMap(stage) {
         const c = mini, g = c.getContext('2d'), W = c.width, H = c.height;
         g.clearRect(0, 0, W, H);
-        const boxes = [
-            { x: 10, y: 10, w: 56, h: 24, label: 'Input', key: 'input' },
-            { x: 82, y: 6, w: 56, h: 32, label: 'Hidden', key: 'hidden' },
-            { x: 154, y: 10, w: 46, h: 24, label: 'Output', key: 'output' }
-        ];
-        // arrows
-        g.strokeStyle = '#5ad1ff'; g.lineWidth = 1.5;
-        g.beginPath(); g.moveTo(10 + 56, 22); g.lineTo(82, 22); g.stroke();
-        g.beginPath(); g.moveTo(82 + 56, 22); g.lineTo(154, 22); g.stroke();
 
+        // Layout: Neuron (standalone) + Input → Hidden → Output flow
+        const boxes = [
+            { x: 10, y: 14, w: 68, h: 26, label: 'Neuron', key: 'neuron', dashed: true },
+            { x: 92, y: 14, w: 60, h: 26, label: 'Input', key: 'input' },
+            { x: 170, y: 10, w: 66, h: 34, label: 'Hidden', key: 'hidden' },
+            { x: 252, y: 14, w: 60, h: 26, label: 'Output', key: 'output' }
+        ];
+
+        // Arrows for the main ELM path: Input → Hidden → Output
+        g.strokeStyle = '#5ad1ff'; g.lineWidth = 1.5; g.setLineDash([]);
+        g.beginPath(); g.moveTo(92 + 60, 27); g.lineTo(170, 27); g.stroke();
+        g.beginPath(); g.moveTo(170 + 66, 27); g.lineTo(252, 27); g.stroke();
+
+        // Draw boxes
         boxes.forEach(b => {
             const active = (b.key === stage);
             g.fillStyle = active ? 'rgba(90,209,255,0.18)' : 'rgba(12,26,61,.8)';
             g.strokeStyle = active ? '#5ad1ff' : '#203a7c';
             g.lineWidth = active ? 2 : 1;
+
+            if (b.dashed) g.setLineDash([5, 3]); else g.setLineDash([]);
             g.fillRect(b.x, b.y, b.w, b.h);
             g.strokeRect(b.x, b.y, b.w, b.h);
+            g.setLineDash([]);
+
             g.fillStyle = active ? '#e5efff' : '#a7b8e8';
             g.font = '11px system-ui,Segoe UI,Roboto,Arial';
             g.fillText(b.label, b.x + 6, b.y + b.h - 8);
         });
     }
 
+    /* ------- IMPORTANT: declare S1 and init flags BEFORE show() -------- */
+    const S1 = { act: 'relu', availableActs: [], rafId: null, actSelect: null, wRange: null, bRange: null, wVal: null, bVal: null, canvas: null };
+    let s1Inited = false, s2Inited = false, s3Inited = false, s4Inited = false;
+
     let idx = 0;
     let uiBasisFrozen = false; // becomes true after training
+
     function show(i) {
         const prevIdx = idx;
         idx = Math.max(0, Math.min(slides.length - 1, i));
@@ -158,9 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
     post('list_activations');
 
     /* ---------------- Slide 1: Single neuron ---------------- */
-    const S1 = { act: 'relu', availableActs: [], rafId: null, actSelect: null, wRange: null, bRange: null, wVal: null, bVal: null, canvas: null };
-    let s1Inited = false, s2Inited = false, s3Inited = false, s4Inited = false;
-
     function ensureSlide1() {
         S1.actSelect = document.getElementById('actSelect');
         S1.wRange = document.getElementById('wRange');
@@ -607,6 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
             S4.lastSel = i;
             post('predict', { text: rows[i].text });
         };
+
+        // If user trained before opening slide 4, auto-enable Predict now.
+        if (S4.dims && S4.predictBtn) { S4.predictBtn.disabled = false; S4.predictBtn.title = ''; }
     }
 
     function onTrained({ dims, betaSample, note, labels }) {
