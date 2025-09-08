@@ -2,6 +2,14 @@
    One clean module scope. No duplicate global identifiers.
    ========================================================= */
 document.addEventListener('DOMContentLoaded', () => {
+    const AG_LABELS = { 1: 'World', 2: 'Sports', 3: 'Business', 4: 'Sci/Tech' };
+    const softmax = (arr) => {
+        if (!arr || !arr.length) return [];
+        const m = Math.max(...arr);
+        const exps = arr.map(x => Math.exp(x - m));
+        const s = exps.reduce((a, b) => a + b, 0);
+        return exps.map(e => e / s);
+    };
 
     const S1 = {
         act: 'relu',
@@ -9,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
         rafId: null,
         actSelect: null, wRange: null, bRange: null, wVal: null, bVal: null, canvas: null,
     };
+
+    let uiBasisFrozen = false; // set to true after training; used for legends
 
     // ---------------- Navigation shell ----------------
     const slides = ['slide1', 'slide2', 'slide3', 'slide4'].map(id => document.getElementById(id));
@@ -157,7 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let rowSelect, encodeBtn, encodeCanvas, tokensOut;
     const CSV_SNIPPET = `Class Index,Title,Description
 3,Wall St. Bears Claw Back Into the Black (Reuters),"Reuters - Short-sellers, Wall Street's dwindling\\band of ultra-cynics, are seeing green again."
-3,Carlyle Looks Toward Commercial Aerospace (Reuters),"Reuters - Private investment firm Carlyle Group,\\which has a reputation for making well-timed and occasionally\\controversial plays in the defense industry, has quietly placed\\its bets on another part of the market."`;
+3,Carlyle Looks Toward Commercial Aerospace (Reuters),"Reuters - Private investment firm Carlyle Group,\\which has a reputation for making well-timed and occasionally\\controversial plays in the defense industry, has quietly placed\\its bets on another part of the market."
+1,UN Council Weighs Ceasefire Proposal,"Leaders from several nations met to discuss a draft resolution aimed at de-escalation in the region."
+4,Chip Startup Unveils Faster AI Accelerator,"The company claims a 2× speedup on transformer inference with a new memory layout."
+2,Local Club Wins Championship Final,"Fans celebrated after the underdogs clinched the title with a late goal."`;
+
 
     let dataRows = [];
     const S2 = {
@@ -184,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return out;
     }
-
     function ensureSlide2() {
         rowSelect = document.getElementById('rowSelect');
         encodeBtn = document.getElementById('encodeBtn');
@@ -200,11 +213,15 @@ document.addEventListener('DOMContentLoaded', () => {
             o.textContent = `[${dataRows[i].cls}] ${dataRows[i].text.slice(0, 80)}…`;
             rowSelect.appendChild(o);
         }
+        // expose to other slides
+        S2.rowSelect = rowSelect;
+        S2.dataRows = dataRows;
+
         encodeBtn.onclick = () => {
             const i = +rowSelect.value || 0;
             post('encode', { text: dataRows[i].text });
         };
-        let basisFrozen = false; // UI flag only
+
         // Legend (explains colors + quick stats)
         if (!S2.legend) {
             S2.legend = document.createElement('div');
@@ -217,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
             S2.legendInfo = document.createElement('span');
             S2.legendInfo.style.marginLeft = 'auto';
             S2.legend.appendChild(S2.legendInfo);
-            // insert right under the canvas, before tokensOut
             tokensOut.before(S2.legend);
         }
 
@@ -301,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update legend stats line (right side)
         if (S2.legendInfo) {
             S2.legendInfo.textContent =
-                `showing ${n} dims  |  nnz ${nnz}  |  ‖v‖₂ ${l2.toFixed(2)}  |  max |v| ${maxAbs.toFixed(2)}  |  basis: ${basisFrozen ? 'trained' : 'isolated'}`;
+                `showing ${n} dims  |  nnz ${nnz}  |  ‖v‖₂ ${l2.toFixed(2)}  |  max |v| ${maxAbs.toFixed(2)}  |  basis: ${uiBasisFrozen ? 'trained' : 'isolated'}`;
         }
 
     }
@@ -544,38 +560,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------- Slide 4 ----------------
-    const S4 = { trainBtn: null, predictBtn: null, solveOut: null, canvas: null, dims: null, betaSample: null };
-
+    const S4 = { trainBtn: null, predictBtn: null, solveOut: null, canvas: null, dims: null, betaSample: null, labels: [], lastSel: 0 };
     function ensureSlide4() {
         S4.trainBtn = document.getElementById('trainBtn');
         S4.predictBtn = document.getElementById('predictBtn');
         S4.solveOut = document.getElementById('solveOut');
         S4.canvas = document.getElementById('betaCanvas');
 
+        // Helper: always have rows available
+        const getRows = () => {
+            if (S2.dataRows && S2.dataRows.length) return S2.dataRows;
+            if (dataRows && dataRows.length) return dataRows;
+            // if Slide 2 never ran, parse now
+            dataRows = parseCSVMini(CSV_SNIPPET);
+            S2.dataRows = dataRows;
+            return dataRows;
+        };
+
+        // Helper: selected index (works even if Slide 2 never ran)
+        const getSelectedIndex = () => {
+            const sel = S2.rowSelect || document.getElementById('rowSelect');
+            return +(sel?.value ?? 0);
+        };
+
         S4.trainBtn.onclick = () => {
+            const rows = getRows();
+            if (!rows.length) { alert('No training rows available'); return; }
+            const hidden = S3.hiddenSize ? +S3.hiddenSize.value : 32; // safe default if Slide 3 not visited
             post('train', {
-                rows: S2.dataRows.map(r => ({ y: r.cls, text: r.text })),
-                hidden: +S3.hiddenSize.value
+                rows: rows.map(r => ({ y: r.cls, text: r.text })),
+                hidden
             });
         };
+
         S4.predictBtn.onclick = () => {
-            const i = +S2.rowSelect.value || 0;
-            post('predict', { text: S2.dataRows[i].text });
+            const rows = getRows();
+            if (!rows.length) { alert('No rows to predict'); return; }
+            const i = +(S2.rowSelect?.value ?? 0);
+            S4.lastSel = i;
+            post('predict', { text: (S2.dataRows || dataRows)[i].text });
         };
     }
 
-    function onTrained({ dims, betaSample, note }) {
-        basisFrozen = true;
+    function onTrained({ dims, betaSample, note, labels }) {
+        uiBasisFrozen = true;              // <- mark basis as frozen for legends/tooltips
         S4.dims = dims; S4.betaSample = betaSample;
+        S4.labels = labels || [];
         S4.solveOut.textContent = `Solved β with pseudo-inverse${note ? ` (${note})` : ''}\n` +
             `H shape: ${dims.H_rows}×${dims.H_cols},  Y shape: ${dims.Y_rows}×${dims.Y_cols}\n` +
             `β shape: ${dims.B_rows}×${dims.B_cols}\n` +
             `β (8×8 sample):\n${betaSample}`;
+        if ((S4.labels || []).length <= 1) {
+            S4.solveOut.textContent += `\n\nNote: training data contained a SINGLE class (${S4.labels[0]}). ` +
+                `Predictions will always be that class. Add at least one row from another class to demo multi-class.`;
+        }
         drawBeta();
+        drawEncode();                      // update Slide-2 legend to show "basis: trained"
     }
-    function onPredicted({ pred, scores }) {
-        const label = `Predicted class: ${pred}  |  scores: [${(scores || []).map(x => x.toFixed(2)).join(', ')}]`;
-        S4.solveOut.textContent += `\n\n${label}`;
+    function onPredicted({ pred, scores, labels }) {
+        const probs = softmax(scores || []);
+        const lbls = labels || S4.labels || [];
+        const predName = (pred != null) ? (AG_LABELS[pred] || String(pred)) : '—';
+
+        const rows = S2.dataRows || dataRows || [];
+        const truthId = rows[S4.lastSel]?.cls ?? null;
+        const truthName = (truthId != null) ? (AG_LABELS[truthId] || String(truthId)) : 'N/A';
+        const verdict = (truthId == null) ? 'truth unknown' : (pred === truthId ? '✓ correct' : '✗ incorrect');
+
+        // Pair probs with labels if we have them
+        const probText = (lbls.length === probs.length && probs.length > 0)
+            ? lbls.map((lab, i) => `${lab}(${AG_LABELS[lab] || ''}): ${probs[i].toFixed(2)}`).join('  |  ')
+            : `[${probs.map(p => p.toFixed(2)).join(', ')}]`;
+
+        S4.solveOut.textContent += `\n\nPredicted: ${predName} (${pred})  |  Truth: ${truthName} (${truthId})  |  ${verdict}\n` +
+            `Probabilities: ${probText}`;
     }
     function drawBeta() {
         if (!S4.canvas) return;
