@@ -1,4 +1,4 @@
-// elm-worker.js  — classic worker (not type: 'module')
+// elm-worker.js — classic worker (not type: 'module')
 function resolve(url) { try { return new URL(url, self.location.href).toString(); } catch { return url; } }
 try { importScripts(resolve('astermind.umd.js')); } catch { }
 const lib = self.astermind || {};
@@ -17,10 +17,10 @@ postMessage({ type: 'actCurve', payload: { fnName: 'relu', fnList: Object.keys(A
 
 // ---------- Tokenization / Vectorization ----------
 function simpleTokens(text) {
-    return (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    return (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/).filter(Boolean);
 }
 
-// Basis management
 let basisFrozen = false;
 let tfidf = null;
 let vocab = null;        // Map token -> index
@@ -66,7 +66,7 @@ function isolatedPreviewVector(text) {
     return { tokens: toks, vector: Array.from(v), featureNames: names, usedTFIDF: false };
 }
 
-// ---------- Hidden-layer preview for Slide 3 ----------
+// ---------- Hidden-layer preview for demo ----------
 let lastHidden = { W: null, b: null }; // W: hidden x inputDim
 function initHidden({ inputDim = 512, hidden = 32 }) {
     const W = Array.from({ length: hidden }, () =>
@@ -113,7 +113,7 @@ function addRidgeI(A, lambda) {
     for (let i = 0; i < n; i++) out[i][i] += lambda;
     return out;
 }
-// Solve A X = B (Gauss–Jordan): small hidden sizes only
+// Gauss–Jordan for small systems
 function solveLinear(A, B) {
     const n = A.length, m = B[0].length;
     const M = Array.from({ length: n }, (_, i) => A[i].concat(B[i]));
@@ -139,7 +139,7 @@ function ridgeSolveBeta(H, Y, lambda = 1e-2) {
     return solveLinear(A, B); // returns h x k
 }
 
-// ---------- β visual downsampler (for Slide 4) ----------
+// ---------- β visual downsampler ----------
 const MAXB = 64;
 function downsampleBeta(B, maxR = MAXB, maxC = MAXB) {
     if (!B || !B.length || !B[0].length) return null;
@@ -156,7 +156,7 @@ function downsampleBeta(B, maxR = MAXB, maxC = MAXB) {
 }
 
 // ---------- Model state ----------
-let model = null;     // UMD ELM instance or our fallback struct
+let model = null;     // UMD ELM instance or fallback
 let usingFallback = false;
 let labelSpace = [];  // e.g., [1,2,3,4]
 
@@ -167,6 +167,7 @@ self.onmessage = async (e) => {
     if (type === 'hello') postMessage({ type: 'status', payload: 'ready' });
     if (type === 'list_activations') postMessage({ type: 'actCurve', payload: { fnName: 'relu', fnList: Object.keys(Acts) } });
 
+    // Encode preview / frozen
     if (type === 'encode') {
         const { text } = payload;
         if (basisFrozen) {
@@ -185,7 +186,6 @@ self.onmessage = async (e) => {
             }
             return;
         }
-        // preview (isolated) before training
         try {
             if (TFIDFVectorizer) {
                 const v = new TFIDFVectorizer(); v.fit([text]);
