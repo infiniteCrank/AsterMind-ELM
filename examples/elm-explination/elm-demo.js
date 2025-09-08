@@ -153,14 +153,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------- Slide 2 ----------------
-    const S2 = {
-        rowSelect: null, encodeBtn: null, canvas: null, tokensOut: null,
-        dataRows: [], lastEncoded: null
-    };
-
+    /* ---------- Slide 2: Encoding (legend + tooltip) ---------- */
+    let rowSelect, encodeBtn, encodeCanvas, tokensOut;
     const CSV_SNIPPET = `Class Index,Title,Description
 3,Wall St. Bears Claw Back Into the Black (Reuters),"Reuters - Short-sellers, Wall Street's dwindling\\band of ultra-cynics, are seeing green again."
 3,Carlyle Looks Toward Commercial Aerospace (Reuters),"Reuters - Private investment firm Carlyle Group,\\which has a reputation for making well-timed and occasionally\\controversial plays in the defense industry, has quietly placed\\its bets on another part of the market."`;
+
+    let dataRows = [];
+    const S2 = {
+        legend: null,
+        legendInfo: null,
+        tipEl: null,
+        lastEncoded: null,
+        grid: null, // {x0,y0,cols,rows,cw,ch,n}
+    };
 
     function parseCSVMini(s) {
         const lines = s.trim().split(/\r?\n/);
@@ -180,64 +186,159 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function ensureSlide2() {
-        S2.rowSelect = document.getElementById('rowSelect');
-        S2.encodeBtn = document.getElementById('encodeBtn');
-        S2.canvas = document.getElementById('encodeCanvas');
-        S2.tokensOut = document.getElementById('tokensOut');
+        rowSelect = document.getElementById('rowSelect');
+        encodeBtn = document.getElementById('encodeBtn');
+        encodeCanvas = document.getElementById('encodeCanvas');
+        tokensOut = document.getElementById('tokensOut');
 
-        S2.dataRows = parseCSVMini(CSV_SNIPPET);
-        S2.rowSelect.innerHTML = '';
-        for (let i = 0; i < S2.dataRows.length; i++) {
+        // Build data rows
+        dataRows = parseCSVMini(CSV_SNIPPET);
+        rowSelect.innerHTML = '';
+        for (let i = 0; i < dataRows.length; i++) {
             const o = document.createElement('option');
             o.value = String(i);
-            o.textContent = `[${S2.dataRows[i].cls}] ${S2.dataRows[i].text.slice(0, 80)}…`;
-            S2.rowSelect.appendChild(o);
+            o.textContent = `[${dataRows[i].cls}] ${dataRows[i].text.slice(0, 80)}…`;
+            rowSelect.appendChild(o);
         }
-        S2.encodeBtn.onclick = () => {
-            const i = +S2.rowSelect.value || 0;
-            post('encode', { text: S2.dataRows[i].text });
+        encodeBtn.onclick = () => {
+            const i = +rowSelect.value || 0;
+            post('encode', { text: dataRows[i].text });
         };
+        let basisFrozen = false; // UI flag only
+        // Legend (explains colors + quick stats)
+        if (!S2.legend) {
+            S2.legend = document.createElement('div');
+            S2.legend.className = 'heat-legend';
+            S2.legend.innerHTML = `
+      <span>Heatmap key:</span>
+      <span>neg</span><span class="legend-bar"></span><span>pos</span>
+      <span style="margin-left:8px;">|value| intensity</span>
+    `;
+            S2.legendInfo = document.createElement('span');
+            S2.legendInfo.style.marginLeft = 'auto';
+            S2.legend.appendChild(S2.legendInfo);
+            // insert right under the canvas, before tokensOut
+            tokensOut.before(S2.legend);
+        }
+
+        // Tooltip for cell hover
+        if (!S2.tipEl) {
+            S2.tipEl = document.createElement('div');
+            S2.tipEl.className = 'encode-tip';
+            encodeCanvas.parentElement.appendChild(S2.tipEl);
+            encodeCanvas.addEventListener('mousemove', onEncodeHover);
+            encodeCanvas.addEventListener('mouseleave', () => { S2.tipEl.style.display = 'none'; });
+        }
     }
 
-    function onEncoded({ tokens, vector, usedTFIDF }) {
-        S2.lastEncoded = { tokens, vector };
-        S2.tokensOut.textContent = (usedTFIDF
+    function onEncoded({ tokens, vector, usedTFIDF, featureNames }) {
+        S2.lastEncoded = { tokens, vector, usedTFIDF, featureNames };
+        tokensOut.textContent = (usedTFIDF
             ? `TF-IDF tokens (top):\n${tokens.slice(0, 25).join(' ')}\n\nvector length: ${vector.length}`
             : `Tokens (fallback BOW):\n${tokens.slice(0, 25).join(' ')}\n\nvector length: ${vector.length}`);
         drawEncode();
     }
 
     function drawEncode() {
-        if (!S2.canvas) return;
-        const c = S2.canvas; const dpr = devicePixelRatio || 1; const W = c.clientWidth, H = c.clientHeight;
+        if (!encodeCanvas) return;
+
+        const c = encodeCanvas; const dpr = devicePixelRatio || 1; const W = c.clientWidth, H = c.clientHeight;
         c.width = Math.max(1, W * dpr); c.height = Math.max(1, H * dpr);
         const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
         g.clearRect(0, 0, W, H);
-        if (!S2.lastEncoded) { g.fillStyle = '#93a9e8'; g.fillText('Click “Encode →” to preview the input vector.', 12, 22); return; }
+
+        // No vector yet
+        if (!S2.lastEncoded) {
+            g.fillStyle = '#93a9e8'; g.fillText('Click “Encode →” to preview the input vector.', 12, 22);
+            if (S2.legendInfo) S2.legendInfo.textContent = '';
+            S2.grid = null;
+            return;
+        }
+
         const v = S2.lastEncoded.vector;
-        const n = Math.min(128, v.length);
+        const n = Math.min(128, v.length);          // show a manageable subset
         const cols = Math.ceil(Math.sqrt(n));
         const rows = Math.ceil(n / cols);
-        const cw = Math.floor((W - 20) / cols);
-        const ch = Math.floor((H - 20) / rows);
-        const max = Math.max(1e-6, Math.max(...v.map(x => Math.abs(x))));
-        let k = 0;
-        for (let r = 0; r < rows; r++) {
-            for (let ccol = 0; ccol < cols; ccol++) {
+        const margin = 10;
+        const x0 = margin, y0 = margin;
+        const cw = Math.floor((W - 2 * margin) / cols);
+        const ch = Math.floor((H - 2 * margin) / rows);
+
+        const maxAbs = Math.max(1e-6, Math.max(...v.slice(0, n).map(x => Math.abs(x))));
+        const nnz = v.slice(0, n).reduce((a, x) => a + (Math.abs(x) > 1e-12 ? 1 : 0), 0);
+        const l2 = Math.sqrt(v.slice(0, n).reduce((a, x) => a + x * x, 0));
+        let basisFrozen = false;
+
+        // Save grid for hit-testing
+        S2.grid = { x0, y0, cols, rows, cw, ch, n };
+
+        // Cells
+        for (let r = 0, k = 0; r < rows; r++) {
+            for (let ccol = 0; ccol < cols; ccol++, k++) {
                 if (k >= n) break;
-                const val = v[k++];
-                const alpha = Math.min(1, Math.abs(val) / max);
-                const hue = val >= 0 ? 200 : 0;
+                const val = v[k];
+                const alpha = Math.min(1, Math.abs(val) / maxAbs);
+                const hue = val >= 0 ? 200 : 0; // blue for +, red for -
                 g.fillStyle = `hsla(${hue}, 90%, 60%, ${0.15 + 0.85 * alpha})`;
-                g.fillRect(10 + ccol * cw, 10 + r * ch, cw - 2, ch - 2);
+                g.fillRect(x0 + ccol * cw, y0 + r * ch, cw - 2, ch - 2);
             }
+        }
+
+        // Grid lines for readability
+        g.strokeStyle = 'rgba(255,255,255,0.06)';
+        g.lineWidth = 1;
+        for (let ccol = 0; ccol <= cols; ccol++) {
+            g.beginPath(); g.moveTo(x0 + ccol * cw, y0); g.lineTo(x0 + ccol * cw, y0 + rows * ch); g.stroke();
+        }
+        for (let r = 0; r <= rows; r++) {
+            g.beginPath(); g.moveTo(x0, y0 + r * ch); g.lineTo(x0 + cols * cw, y0 + r * ch); g.stroke();
+        }
+
+        // Small caption
+        g.fillStyle = '#a7b8e8';
+        g.fillText(`features 0..${n - 1} (subset) — nnz: ${nnz}, ‖v‖₂: ${l2.toFixed(2)}, max |v|: ${maxAbs.toFixed(2)}`, 12, H - 12);
+
+        // Update legend stats line (right side)
+        if (S2.legendInfo) {
+            S2.legendInfo.textContent =
+                `showing ${n} dims  |  nnz ${nnz}  |  ‖v‖₂ ${l2.toFixed(2)}  |  max |v| ${maxAbs.toFixed(2)}  |  basis: ${basisFrozen ? 'trained' : 'isolated'}`;
+        }
+
+    }
+
+    function onEncodeHover(e) {
+        if (!S2.grid || !S2.lastEncoded) return;
+        const { x0, y0, cols, rows, cw, ch, n } = S2.grid;
+        const rect = encodeCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const col = Math.floor((x - x0) / cw);
+        const row = Math.floor((y - y0) / ch);
+        const k = row * cols + col;
+
+        if (row >= 0 && col >= 0 && row < rows && col < cols && k < n) {
+            const val = S2.lastEncoded.vector[k];
+            const names = S2.lastEncoded.featureNames || [];
+            const token = names[k] || null;              // ← stable mapping from worker
+            const label = token ? `#${k} “${token}”` : `feature #${k}`;
+            S2.tipEl.textContent = `${label}: ${val.toExponential(3)}`;
+            S2.tipEl.style.display = 'block';
+            const tip = S2.tipEl.getBoundingClientRect();
+            const left = Math.min(rect.width - tip.width - 6, Math.max(0, x + 8));
+            const top = Math.min(rect.height - tip.height - 6, Math.max(0, y - 28));
+            S2.tipEl.style.transform = `translate(${left}px, ${top}px)`;
+        } else {
+            S2.tipEl.style.display = 'none';
         }
     }
 
     // ---------------- Slide 3 ----------------
     const S3 = {
         hiddenSize: null, hiddenSizeVal: null, shuffleBtn: null, previewHBtn: null, canvas: null, WPreview: null,
-        W: null, b: null, Hx: null
+        W: null, b: null, Hx: null, Z: null,
+        legendEl: null, legendInfo: null, tipEl: null,
+        gridW: null, gridBars: null  // hit-test rectangles
     };
 
     function ensureSlide3() {
@@ -249,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         S3.WPreview = document.getElementById('WPreview');
 
         S3.hiddenSize.oninput = () => { S3.hiddenSizeVal.textContent = S3.hiddenSize.value; };
+
         S3.shuffleBtn.onclick = () => {
             post('init_hidden', { hidden: +S3.hiddenSize.value, inputDim: S2.lastEncoded?.vector?.length || 512 });
         };
@@ -256,15 +358,106 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!S2.lastEncoded) { alert('Encode a row on Slide 2 first'); return; }
             post('project_hidden', { x: S2.lastEncoded.vector });
         };
+
+        // Legend (under canvas, above the numbers box)
+        if (!S3.legendEl) {
+            S3.legendEl = document.createElement('div');
+            S3.legendEl.className = 'heat-legend';
+            S3.legendEl.innerHTML = `
+      <span class="legend-chip">W heatmap</span>
+      <span>neg</span><span class="legend-bar"></span><span>pos</span>
+      <span style="margin-left:8px;">|value| intensity</span>
+      <span style="margin-left:12px;" class="legend-chip">Hx bars = g(Wx+b)</span>
+    `;
+            S3.legendInfo = document.createElement('span');
+            S3.legendInfo.style.marginLeft = 'auto';
+            S3.legendEl.appendChild(S3.legendInfo);
+            S3.WPreview.before(S3.legendEl);
+
+            // Explanations block (compact)
+            const expl = document.createElement('div');
+            expl.className = 'note';
+            expl.style.marginTop = '6px';
+            expl.innerHTML = `
+      <strong>What is this?</strong> Each row of the heatmap is a <em>hidden neuron</em>, each column an input feature.
+      Cell <code>W[i,j]</code> is the weight from feature <code>j</code> to neuron <code>i</code>. Colors: red = negative, blue = positive, brighter = larger magnitude.<br>
+      The green bars on the right are the activations <code>H = g(Wx + b)</code> for the selected text vector <code>x</code> (here <code>g</code>=ReLU).
+      Increasing <em>Hidden size</em> adds more random features (rows), which can capture more patterns but also increases <code>β</code>'s size and solve time.<br>
+      The numbers box shows a small <em>8×8 sample</em> of <code>W</code> (first 8 neurons × first 8 features) so you can see concrete values.
+    `;
+            S3.legendEl.after(expl);
+        }
+
+        // Tooltip over the canvas
+        if (!S3.tipEl) {
+            S3.tipEl = document.createElement('div');
+            S3.tipEl.className = 'hidden-tip';
+            S3.canvas.parentElement.appendChild(S3.tipEl);
+            S3.canvas.addEventListener('mousemove', onHiddenHover);
+            S3.canvas.addEventListener('mouseleave', () => { S3.tipEl.style.display = 'none'; });
+        }
     }
 
     function onHiddenInit({ W, b }) {
-        S3.W = W; S3.b = b; S3.Hx = null;
-        S3.WPreview.textContent = `W: ${W.length}x${W[0]?.length || 0}\n b: ${b.length}\n(Showing 8×8 sample)\n` +
+        S3.W = W; S3.b = b; S3.Hx = null; S3.Z = null;
+        S3.WPreview.textContent = `W: ${W.length}x${W[0]?.length || 0}  b: ${b.length}  (Showing 8×8 sample)\n` +
             sampleMatrixText(W, 8, 8);
+        updateHiddenLegend();
         drawHidden();
     }
-    function onHiddenProject({ Hx }) { S3.Hx = Hx; drawHidden(); }
+
+    function onHiddenProject({ Hx, Z, activation }) {
+        S3.Hx = Hx; S3.Z = Z || null;
+        updateHiddenLegend(activation || 'relu');
+        drawHidden();
+    }
+
+    function onHiddenHover(e) {
+        const rect = S3.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Over heatmap?
+        if (S3.gridW) {
+            const { x: gx, y: gy, cols, rows, cellW, cellH } = S3.gridW;
+            const j = Math.floor((x - gx) / cellW);
+            const i = Math.floor((y - gy) / cellH);
+            if (i >= 0 && j >= 0 && i < rows && j < cols) {
+                const val = S3.W[i][j];
+                S3.tipEl.textContent = `W[${i},${j}] = ${val.toFixed(3)} (feature ${j} → neuron ${i})`;
+                S3.tipEl.style.display = 'block';
+                const tip = S3.tipEl.getBoundingClientRect();
+                S3.tipEl.style.transform = `translate(${Math.min(rect.width - tip.width - 6, Math.max(0, x + 8))}px, ${Math.min(rect.height - tip.height - 6, Math.max(0, y - 28))}px)`;
+                return;
+            }
+        }
+        // Over bars?
+        if (S3.gridBars) {
+            const { x: bx, y: by, n, eachH } = S3.gridBars;
+            if (x >= bx) {
+                const i = Math.floor((y - by) / eachH);
+                if (i >= 0 && i < n) {
+                    const h = S3.Hx[i];
+                    const z = S3.Z ? S3.Z[i] : null;
+                    S3.tipEl.textContent = z == null ? `H[${i}] = ${h.toFixed(3)}` : `H[${i}] = g(z) = ${h.toFixed(3)}  (z=${z.toFixed(3)})`;
+                    S3.tipEl.style.display = 'block';
+                    const tip = S3.tipEl.getBoundingClientRect();
+                    S3.tipEl.style.transform = `translate(${Math.min(rect.width - tip.width - 6, Math.max(0, x + 8))}px, ${Math.min(rect.height - tip.height - 6, Math.max(0, y - 28))}px)`;
+                    return;
+                }
+            }
+        }
+        S3.tipEl.style.display = 'none';
+    }
+
+    function updateHiddenLegend(act = 'relu') {
+        if (!S3.legendInfo) return;
+        const h = S3.W?.length || 0;
+        const d = S3.W?.[0]?.length || (S2.lastEncoded?.vector?.length || 0);
+        const hasHx = Array.isArray(S3.Hx);
+        S3.legendInfo.textContent = `W shape: ${h}×${d}   |   Hx ${hasHx ? 'computed' : 'pending'} (g=${act})`;
+    }
+
     function sampleMatrixText(M, r, c) {
         const R = Math.min(r, M.length);
         const C = Math.min(c, M[0]?.length || 0);
@@ -280,13 +473,25 @@ document.addEventListener('DOMContentLoaded', () => {
         c.width = Math.max(1, W * dpr); c.height = Math.max(1, H * dpr);
         const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
         g.clearRect(0, 0, W, H);
-        if (!S3.W) { g.fillStyle = '#93a9e8'; g.fillText('Click “Shuffle Hidden” to initialize W,b', 12, 22); return; }
-        const ww = Math.floor(W * 0.66);
+
+        if (!S3.W) {
+            g.fillStyle = '#93a9e8'; g.fillText('Click “Shuffle Hidden” to initialize W,b', 12, 22);
+            S3.gridW = S3.gridBars = null;
+            return;
+        }
+
+        // Layout
+        const pad = 10;
+        const ww = Math.floor(W * 0.66);         // left heatmap area width
+        const xHeat = pad, yHeat = pad;
+        const xBars = ww + pad, yBars = pad;
+
+        // --- Heatmap W ---
         const vW = S3.W;
         const rows = vW.length;
         const cols = vW[0].length;
-        const cellW = Math.max(1, Math.floor((ww - 20) / cols));
-        const cellH = Math.max(1, Math.floor((H - 20) / rows));
+        const cellW = Math.max(1, Math.floor((ww - 2 * pad) / cols));
+        const cellH = Math.max(1, Math.floor((H - 2 * pad) / rows));
         let vmax = 1e-6;
         for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) vmax = Math.max(vmax, Math.abs(vW[i][j]));
         for (let i = 0; i < rows; i++) {
@@ -295,25 +500,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 const alpha = Math.min(1, Math.abs(val) / vmax);
                 const hue = val >= 0 ? 200 : 0;
                 g.fillStyle = `hsla(${hue},90%,60%,${0.15 + 0.85 * alpha})`;
-                g.fillRect(10 + j * cellW, 10 + i * cellH, cellW, cellH);
+                g.fillRect(xHeat + j * cellW, yHeat + i * cellH, cellW, cellH);
             }
         }
+        // subtle grid lines
+        g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1;
+        for (let j = 0; j <= cols; j++) {
+            g.beginPath(); g.moveTo(xHeat + j * cellW, yHeat); g.lineTo(xHeat + j * cellW, yHeat + rows * cellH); g.stroke();
+        }
+        for (let i = 0; i <= rows; i++) {
+            g.beginPath(); g.moveTo(xHeat, yHeat + i * cellH); g.lineTo(xHeat + cols * cellW, yHeat + i * cellH); g.stroke();
+        }
+        // label
+        g.fillStyle = '#a7b8e8';
+        g.fillText('W (hidden × input weights)', xHeat, H - 8);
+
+        // Save hit-test rect
+        S3.gridW = { x: xHeat, y: yHeat, cols, rows, cellW, cellH };
+
+        // --- Bars: Hx ---
         if (S3.Hx) {
             const Hx = S3.Hx;
-            const x0 = ww + 10;
-            const barW = (W - x0 - 20);
             const n = Hx.length;
-            const eachH = Math.max(1, Math.floor((H - 20) / n));
+            const barW = (W - xBars - pad);
+            const eachH = Math.max(1, Math.floor((H - 2 * pad) / n));
             const absmax = Math.max(1e-6, ...Hx.map(x => Math.abs(x)));
             for (let i = 0; i < n; i++) {
                 const val = Hx[i];
                 const frac = Math.min(1, Math.abs(val) / absmax);
                 const len = Math.floor(frac * barW);
                 g.fillStyle = val >= 0 ? '#6ee7a2' : '#fb7185';
-                g.fillRect(x0, 10 + i * eachH, len, Math.max(1, eachH - 1));
+                g.fillRect(xBars, yBars + i * eachH, len, Math.max(1, eachH - 2));
             }
+            // y ticks every ~5 bars
+            g.fillStyle = '#a7b8e8';
+            g.fillText('Hx = g(Wx + b)', xBars, H - 8);
+            S3.gridBars = { x: xBars, y: yBars, n, eachH, barW };
         } else {
-            g.fillStyle = '#93a9e8'; g.fillText('Click “Project H = g(X·W + b)” after encoding.', Math.floor(W * 0.66) + 12, 22);
+            g.fillStyle = '#93a9e8';
+            g.fillText('Click “Project H = g(X·W + b)” after encoding.', xBars, 22);
+            S3.gridBars = null;
         }
     }
 
@@ -339,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function onTrained({ dims, betaSample, note }) {
+        basisFrozen = true;
         S4.dims = dims; S4.betaSample = betaSample;
         S4.solveOut.textContent = `Solved β with pseudo-inverse${note ? ` (${note})` : ''}\n` +
             `H shape: ${dims.H_rows}×${dims.H_cols},  Y shape: ${dims.Y_rows}×${dims.Y_cols}\n` +

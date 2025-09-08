@@ -21,6 +21,62 @@ postMessage({ type: 'actCurve', payload: { fnName: 'relu', fnList: Object.keys(L
 let tfidf = null;
 let vocab = new Map();
 let idf = new Map();
+let basisFrozen = false;            // becomes true after 'train'
+let currentFeatureNames = null;     // names for the frozen basis (after train)
+
+function featureNamesFromTFIDF(v = tfidf) {
+    try {
+        if (!v) return null;
+        if (typeof v.getFeatureNames === 'function') return v.getFeatureNames();
+        if (Array.isArray(v.featureNames)) return v.featureNames;
+        if (v.vocabulary && typeof v.vocabulary === 'object') {
+            const arr = [];
+            for (const [tok, idx] of Object.entries(v.vocabulary)) arr[idx] = tok;
+            return arr;
+        }
+        if (v.vocab && typeof v.vocab === 'object') {
+            const arr = [];
+            for (const [tok, idx] of Object.entries(v.vocab)) arr[idx] = tok;
+            return arr;
+        }
+    } catch { }
+    return null;
+}
+
+// Isolated, per-text fallback preview (fresh vocab just for this one vector)
+function isolatedFallbackVector(text) {
+    const toks = simpleTokens(text);
+    const idx = new Map(); const names = [];
+    for (const t of toks) { if (!idx.has(t)) { idx.set(t, idx.size); names.push(t); } }
+    const v = new Float32Array(names.length);
+    for (const t of toks) { v[idx.get(t)] += 1; } // simple counts (ok for preview)
+    return { tokens: toks, vector: Array.from(v), featureNames: names };
+}
+
+function featureNamesFromTFIDF() {
+    try {
+        if (!tfidf) return null;
+        if (typeof tfidf.getFeatureNames === 'function') return tfidf.getFeatureNames();
+        if (Array.isArray(tfidf.featureNames)) return tfidf.featureNames;
+        if (tfidf.vocabulary && typeof tfidf.vocabulary === 'object') {
+            const arr = [];
+            for (const [tok, idx] of Object.entries(tfidf.vocabulary)) arr[idx] = tok;
+            return arr;
+        }
+        if (tfidf.vocab && typeof tfidf.vocab === 'object') {
+            const arr = [];
+            for (const [tok, idx] of Object.entries(tfidf.vocab)) arr[idx] = tok;
+            return arr;
+        }
+    } catch { }
+    return null;
+}
+
+function featureNamesFromFallbackVocab() {
+    const arr = [];
+    for (const [tok, idx] of vocab.entries()) { arr[idx] = tok; }
+    return arr;
+}
 
 function simpleTokens(text) {
     return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
@@ -66,15 +122,18 @@ function initHidden({ inputDim = 512, hidden = 32 }) {
 function projectHidden({ x }) {
     if (!lastHidden.W) { initHidden({ inputDim: x.length, hidden: 32 }); }
     const { W, b } = lastHidden;
-    const H = new Array(W.length);
+    const Z = new Array(W.length);  // pre-activation: Wx+b
+    const H = new Array(W.length);  // activation: g(Z)
     for (let i = 0; i < W.length; i++) {
         let s = b[i];
         const row = W[i];
         for (let j = 0; j < row.length; j++) s += row[j] * x[j];
+        Z[i] = s;
         H[i] = Math.max(0, s); // ReLU for display
     }
-    postMessage({ type: 'hidden_project', payload: { Hx: H } });
+    postMessage({ type: 'hidden_project', payload: { Hx: H, Z, activation: 'relu' } });
 }
+
 
 /* ---------- ELM training/prediction ---------- */
 let model = null;
@@ -102,22 +161,46 @@ self.onmessage = async (e) => {
 
     if (type === 'encode') {
         const { text } = payload;
-        ensureTFIDF();
+
+        // If we've trained, DO NOT change the basis; just transform
+        if (basisFrozen) {
+            try {
+                if (tfidf) {
+                    const vec = tfidf.transform([text])[0];
+                    const feats = featureNamesFromTFIDF() || currentFeatureNames || null;
+                    const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
+                    postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: feats } });
+                } else {
+                    // Use existing global fallback vocab (don’t mutate it)
+                    const toks = simpleTokens(text);
+                    const v = new Float32Array(vocab.size);
+                    for (const t of toks) { const j = vocab.get(t); if (j != null) v[j] += (idf.get(t) || 1); }
+                    postMessage({ type: 'encoded', payload: { tokens: toks, vector: Array.from(v), usedTFIDF: false, featureNames: featureNamesFromFallbackVocab() } });
+                }
+            } catch {
+                // safe fallback to isolated preview
+                const iso = isolatedFallbackVector(text);
+                postMessage({ type: 'encoded', payload: { ...iso, usedTFIDF: false } });
+            }
+            return;
+        }
+
+        // PREVIEW mode (not trained yet): use an isolated basis per click
         try {
-            if (tfidf && typeof tfidf.fit === 'function' && typeof tfidf.transform === 'function') {
-                tfidf.fit([text]);
-                const vec = tfidf.transform([text])[0];
+            if (TFIDFVectorizer) {
+                const v = new TFIDFVectorizer(); // fresh vectorizer
+                v.fit([text]);
+                const vec = v.transform([text])[0];
+                const feats = featureNamesFromTFIDF(v);
                 const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
-                postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true } });
+                postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: feats } });
             } else {
-                if (vocab.size === 0) fitFallbackTFIDF([text]);
-                const { tokens, vector } = vecFallback(text);
-                postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false } });
+                const iso = isolatedFallbackVector(text);
+                postMessage({ type: 'encoded', payload: { ...iso, usedTFIDF: false } });
             }
         } catch {
-            if (vocab.size === 0) fitFallbackTFIDF([text]);
-            const { tokens, vector } = vecFallback(text);
-            postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false } });
+            const iso = isolatedFallbackVector(text);
+            postMessage({ type: 'encoded', payload: { ...iso, usedTFIDF: false } });
         }
     }
 
@@ -135,13 +218,16 @@ self.onmessage = async (e) => {
         let usedTF = false;
         let X = [];
         try {
+            basisFrozen = true; // lock feature space after training
             if (tfidf) {
                 tfidf.fit(texts);
                 X = tfidf.transform(texts);
                 usedTF = true;
+                currentFeatureNames = featureNamesFromTFIDF(); // keep frozen names
             } else {
-                fitFallbackTFIDF(texts);
+                fitFallbackTFIDF(texts);                       // builds global vocab/idf
                 X = texts.map(t => vecFallback(t).vector);
+                currentFeatureNames = featureNamesFromFallbackVocab();
             }
         } catch {
             fitFallbackTFIDF(texts);

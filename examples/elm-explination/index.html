@@ -54,6 +54,38 @@
     [hidden] { 
       display: none !important;
     }
+    /* Slide 2 heatmap extras */
+    .canvasWrap { position: relative; }            /* for tooltip positioning */
+    .heat-legend{
+      display:flex; align-items:center; gap:8px;
+      margin-top:6px; font-size:.85rem; color:var(--muted);
+    }
+    .legend-bar{
+      width:160px; height:10px; border-radius:999px; border:1px solid #203a7c;
+      background: linear-gradient(90deg, hsla(0,90%,60%,.85), hsla(210,30%,20%,.15) 50%, hsla(200,90%,60%,.85));
+    }
+    .encode-tip{
+      position:absolute; top:0; left:0; transform: translate(8px, -28px);
+      background:#0c1a3d; border:1px solid #203a7c; padding:4px 6px; border-radius:6px;
+      font-size:.8rem; color:#cfe1ff; display:none; pointer-events:none; white-space:nowrap;
+    }
+    /* Slide 3 legend + tooltips */
+    .heat-legend{
+      display:flex; align-items:center; gap:10px;
+      margin-top:8px; font-size:.85rem; color:var(--muted);
+    }
+    .legend-chip{ padding:2px 8px; border:1px solid #203a7c; border-radius:999px; }
+    .legend-bar{
+      width:160px; height:10px; border-radius:999px; border:1px solid #203a7c;
+      background: linear-gradient(90deg, hsla(0,90%,60%,.85), hsla(210,30%,20%,.15) 50%, hsla(200,90%,60%,.85));
+    }
+    .hidden-tip{
+      position:absolute; top:0; left:0;
+      transform: translate(8px,-28px);
+      background:#0c1a3d; border:1px solid #203a7c; padding:4px 6px; border-radius:6px;
+      font-size:.8rem; color:#cfe1ff; display:none; pointer-events:none; white-space:nowrap;
+    }
+
   </style>
 </head>
 <body>
@@ -164,9 +196,57 @@ const y = activation(z);</pre>
       </div>
       <div class="right">
         <div class="panel">
-          <h2>What you’re seeing</h2>
-          <p>ELM’s “secret” is that we don’t train <code>W</code> with backprop. We randomize it once, compute <code>H = g(XW + b)</code>, then solve the output layer.</p>
-          <p class="note">“Shuffle” here means: rebuild random hidden layer (new seed), so you can feel how different random projections change features.</p>
+          <div class="note" id="s3-explainer" style="margin-top:6px">
+            <h3 style="margin:0 0 6px 0; font-size:1rem; color:#e5efff;">What am I looking at?</h3>
+
+            <ul style="margin:0 0 8px 18px; padding:0; line-height:1.4">
+              <li><strong>Heatmap (left) = a 2D array called <code>W</code></strong><br>
+                Think <code>W[neuronIndex][featureIndex]</code>.
+                <div style="margin-top:4px">
+                  • <em>Row</em> = one hidden “neuron” (a tiny function with its own params)<br>
+                  • <em>Column</em> = one input feature from the text vector<br>
+                  • <em>Cell</em> <code>W[i][j]</code> = how much feature <code>j</code> pushes neuron <code>i</code><br>
+                  • Colors: <span style="color:#fb7185">red</span> = negative, <span style="color:#6ee7a2">blue</span> = positive, brighter = bigger magnitude
+                </div>
+              </li>
+
+              <li style="margin-top:8px"><strong>Green bars (right) = what each neuron outputs for this text</strong><br>
+                We take your encoded text vector <code>x[]</code> and run each neuron:
+                <div class="code" style="margin-top:6px">
+                  <pre>
+// For one input x[]
+for (let i = 0; i &lt; hidden; i++) {
+  let z = b[i]; // start with the neuron’s bias
+  for (let j = 0; j &lt; features; j++) {
+    z += x[j] * W[i][j]; // weighted sum of features
+  }
+  H[i] = Math.max(0, z); // ReLU activation = g(z)
+}
+                  </pre>
+                </div>
+                Bar length is <code>H[i]</code>. The formula <code>H = g(Wx + b)</code> just means:
+                “do the weighted sum, add bias, then apply a function (<code>g</code>)”. Here <code>g</code> is ReLU.
+              </li>
+
+              <li style="margin-top:8px"><strong>“Hidden size”</strong> = how many neurons (rows)</li>
+            </ul>
+
+            <p style="margin:6px 0 0 0; line-height:1.4">
+              More rows = more random “feature makers,” which can capture more patterns. The trade-off:
+              it makes the next step’s matrix <code>β</code> bigger and the solve a bit slower.
+            </p>
+
+            <p style="margin:6px 0 0 0; line-height:1.4">
+              The numbers box below the heatmap prints an <strong>8×8 sample</strong> of <code>W</code>
+              (first 8 neurons × first 8 features) so you can see the actual values behind the colors.
+            </p>
+
+            <p style="margin:6px 0 0 0; line-height:1.4">
+              <strong>Tip:</strong> Click <em>Shuffle Hidden</em> to reseed <code>W</code> and <code>b</code> randomly and
+              feel how a different random projection changes the green bars.
+            </p>
+          </div>
+
         </div>
       </div>
     </section>
