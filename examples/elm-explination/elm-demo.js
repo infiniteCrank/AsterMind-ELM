@@ -1,32 +1,17 @@
 /* =========================================================
    elm-demo.js — UI/App script for the ELM primer deck
-   Matches slides:
-   - slide0 (overview)
-   - slideIntroNeuron (neuron intro)
-   - slide1 (neuron demo)
-   - slide2 (vectorization)
-   - slideBP (pseudo backprop demo)
-   - slide4 (ELM train / one-shot)
-   - slidePred (prediction)
+   Updated to add:
+   - New slides (huang, grid, gps, why, compare)
+   - Mini-map (stage chips + progress bar)
+   - Speaker notes toggle (global, persists across slides)
    ========================================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* ---------------- Hero images + parallax ---------------- */
+    /* ---------------- Hero parallax (kept light) ---------------- */
     (function initHeroImages() {
         const heroes = Array.from(document.querySelectorAll('.slide > .hero'));
         if (!heroes.length) return;
 
-        // lazy-load backgrounds
-        for (const fig of heroes) {
-            const src = fig.getAttribute('data-hero');
-            if (src) {
-                const img = new Image();
-                img.onload = () => { fig.style.backgroundImage = `url("${src}")`; };
-                img.src = src;
-            }
-        }
-
-        // lightweight parallax based on element rect each frame
         const rafState = { ticking: false };
         function applyParallax() {
             rafState.ticking = false;
@@ -59,6 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextBtn = document.getElementById('nextBtn');
     const slideLabel = document.getElementById('slideLabel');
     const footerBar = document.querySelector('.footerBar');
+    const notesToggle = document.getElementById('notesToggle');
+    const progressBar = document.getElementById('progressBar');
+
+    // Mini-map chips
+    const stageChips = Array.from(document.querySelectorAll('[data-stagechip]'));
 
     // Build numbered nav buttons
     if (footerBar) {
@@ -75,9 +65,30 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') prevBtn.click();
         if (e.key === 'ArrowRight') nextBtn.click();
+        if (e.key.toLowerCase() === 'n') notesToggle?.click();
+    });
+
+    // Notes toggle: persist in session
+    const NOTES_KEY = 'elm_show_notes';
+    const initialNotes = sessionStorage.getItem(NOTES_KEY);
+    if (initialNotes === '1') document.body.classList.add('show-notes');
+    notesToggle?.addEventListener('click', () => {
+        document.body.classList.toggle('show-notes');
+        sessionStorage.setItem(NOTES_KEY, document.body.classList.contains('show-notes') ? '1' : '0');
     });
 
     let idx = 0;
+
+    function updateMinimap(stage, index) {
+        // Highlight current stage chip
+        stageChips.forEach(ch => {
+            const s = ch.getAttribute('data-stagechip');
+            ch.classList.toggle('active', s === stage);
+        });
+        // Update progress bar (based on slide index)
+        const pct = Math.max(0, Math.min(100, Math.round(((index + 1) / slides.length) * 100)));
+        if (progressBar) progressBar.style.width = pct + '%';
+    }
 
     function show(i) {
         idx = Math.max(0, Math.min(slides.length - 1, i));
@@ -87,8 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         slideLabel.textContent = `Slide ${idx + 1} / ${slides.length}`;
         location.hash = `#${idx + 1}`;
 
+        const { id, stage } = slides[idx];
+        updateMinimap(stage, idx);
+
         // init on demand
-        const id = slides[idx].id;
         if (id === 'slide1') ensureNeuron();
         if (id === 'slide2') ensureVectorize();
         if (id === 'slideBP') ensureBackprop();
@@ -153,11 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return exps.map(e => e / s);
     }
     const fmtVal = (v) => {
+        // Always show 3 decimals to highlight differences and avoid constant "1.00"
         if (!Number.isFinite(v)) return '0';
         const a = Math.abs(v);
         if (a === 0) return '0';
         if (a >= 1e3 || a < 1e-3) return v.toExponential(2);
-        return v.toFixed(a < 1 ? 3 : 2);
+        return v.toFixed(3);
     };
 
     /* ---------------- Slide 3: Neuron demo ---------------- */
@@ -260,39 +274,74 @@ document.addEventListener('DOMContentLoaded', () => {
             post('encode', { text: dataRows[i].text });
         };
 
-        // tooltip
+        // --- TOOLTIP: robust version ---
         let tipEl = document.querySelector('#slide2 .encode-tip');
         if (!tipEl) {
             tipEl = document.createElement('div');
             tipEl.className = 'encode-tip';
+            // parent is .canvasWrap (position: relative)
             encodeCanvas.parentElement.appendChild(tipEl);
         }
 
+        // Robust tooltip: checks bounds, resets transform, sets zIndex
         encodeCanvas.addEventListener('mousemove', (e) => {
-            if (!S2.grid || !S2.lastEncoded) return;
+            if (!S2.grid || !S2.lastEncoded) {
+                tipEl.style.display = 'none';
+                return;
+            }
             const { x0, y0, cols, rows, cw, ch, n } = S2.grid;
             const rect = encodeCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
-            const col = Math.floor((x - x0) / cw), row = Math.floor((y - y0) / ch);
-            const k = row * cols + col;
-            if (row >= 0 && col >= 0 && row < rows && col < cols && k < n) {
-                const v = S2.lastEncoded.vector;
-                const val = Number.isFinite(v[k]) ? v[k] : 0;
-                const names = S2.lastEncoded.featureNames || [];
-                const token = names[k] || null;
-                const label = token ? `#${k} “${token}”` : `feature #${k}`;
-                tipEl.textContent = `${label}: ${fmtVal(val)}`;
-                tipEl.style.display = 'block';
-                const tbox = tipEl.getBoundingClientRect();
-                const left = Math.min(rect.width - tbox.width - 6, Math.max(0, x + 8));
-                const top = Math.min(rect.height - tbox.height - 6, Math.max(0, y - 28));
-                tipEl.style.transform = `translate(${left}px, ${top}px)`;
-            } else {
-                tipEl.style.display = 'none';
-            }
-        });
-        encodeCanvas.addEventListener('mouseleave', () => { const el = document.querySelector('#slide2 .encode-tip'); if (el) el.style.display = 'none'; });
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
+            // Check pointer inside drawn grid
+            const inGrid =
+                cw > 0 &&
+                ch > 0 &&
+                x >= x0 &&
+                y >= y0 &&
+                x < x0 + cols * cw &&
+                y < y0 + rows * ch;
+            if (!inGrid) {
+                tipEl.style.display = 'none';
+                return;
+            }
+
+            // Convert pointer to feature index
+            const col = Math.floor((x - x0) / cw);
+            const row = Math.floor((y - y0) / ch);
+            const k = row * cols + col;
+            if (k < 0 || k >= n) {
+                tipEl.style.display = 'none';
+                return;
+            }
+
+            // Read value & feature name
+            const v = S2.lastEncoded.vector;
+            const val = Number.isFinite(v[k]) ? v[k] : 0;
+            const names = S2.lastEncoded.featureNames || [];
+            const token = names[k] || null;
+            const label = token ? `#${k} “${token}”` : `feature #${k}`;
+
+            tipEl.textContent = `${label}: ${fmtVal(val)}`;
+
+            // Reset transform from CSS, set z-index to ensure overlay
+            tipEl.style.transform = 'none';
+            tipEl.style.display = 'block';
+            tipEl.style.zIndex = '10';
+
+            // Position tooltip within parent container
+            const tbox = tipEl.getBoundingClientRect();
+            const pad = 6;
+            const left = Math.min(rect.width - tbox.width - pad, Math.max(pad, x + 10));
+            const top = Math.min(rect.height - tbox.height - pad, Math.max(pad, y - 28));
+            tipEl.style.left = `${left}px`;
+            tipEl.style.top = `${top}px`;
+        });
+
+        encodeCanvas.addEventListener('mouseleave', () => {
+            tipEl.style.display = 'none';
+        });
         // draw function
         function drawEncode() {
             const c = encodeCanvas, dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
@@ -301,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             g.clearRect(0, 0, W, H);
 
             if (!S2.lastEncoded) {
-                g.fillStyle = '#93a9e8'; g.fillText('Click “Encode →” to preview the input vector.', 12, 22);
+                g.fillStyle = '#93a9e8'; g.fillText('Click “Encode text” to preview the input vector.', 12, 22);
                 S2.grid = null; return;
             }
 
@@ -351,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* ---------------- Slide 5: Pseudo Backprop demo ---------------- */
+    /* ---------------- Slide 5: Backprop demo ---------------- */
     const BP = { canvas: null, lrRange: null, lrVal: null, raf: null, t0: 0, state: null };
     function ensureBackprop() {
         if (BP.inited) return;
@@ -361,7 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
         BP.lrVal = document.getElementById('bpLRVal');
         BP.lrVal.textContent = (+BP.lrRange.value).toFixed(2);
 
-        // small synthetic "weights" grid and loss curve
         const H = 24, W = 36; // visual grid size
         BP.state = {
             weights: Array.from({ length: H }, () => Array.from({ length: W }, () => (Math.random() * 2 - 1) * 0.6)),
@@ -375,12 +423,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function step(dt) {
             const lr = +BP.lrRange.value;
-            // fake a gradient descent-ish decay with noise proportional to lr
             const kDecay = 0.9 + 0.08 * Math.exp(-dt * 0.001); // slow approach
             BP.state.loss = Math.max(0.02, BP.state.loss * (kDecay - 0.08 * lr * 0.1));
             BP.state.noise = 0.02 + lr * 0.25;
 
-            // make weights "wiggle" towards zero, with noise
             for (let i = 0; i < H; i++) {
                 for (let j = 0; j < W; j++) {
                     const w = BP.state.weights[i][j];
@@ -401,7 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const pad = 10, gridW = Math.floor(Wc * 0.66);
             const cellW = Math.floor((gridW - 2 * pad) / W);
             const cellH = Math.floor((Hc - 2 * pad) / H);
-            // draw weight heatmap
             let vmax = 1e-6;
             for (let i = 0; i < H; i++) for (let j = 0; j < W; j++) vmax = Math.max(vmax, Math.abs(BP.state.weights[i][j]));
             for (let i = 0; i < H; i++) {
@@ -416,14 +461,12 @@ document.addEventListener('DOMContentLoaded', () => {
             g.fillStyle = '#a7b8e8';
             g.fillText('Hidden weights (changing each step)', pad, Hc - 8);
 
-            // draw loss curve on the right
+            // loss curve
             const x0 = gridW + 20, y0 = pad, w = Wc - x0 - pad, h = Hc - 2 * pad;
             g.strokeStyle = '#3857a8'; g.strokeRect(x0, y0, w, h);
-            // keep a small ring buffer of points
             BP.points = BP.points || [];
             BP.points.push(BP.state.loss);
             if (BP.points.length > 240) BP.points.shift();
-            // normalize and draw
             const minL = Math.min(...BP.points, 0), maxL = Math.max(...BP.points, 1);
             g.strokeStyle = '#6ee7a2'; g.lineWidth = 2; g.beginPath();
             BP.points.forEach((L, i) => {
@@ -560,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Heatmap W
         if (!HL.W) {
             g.fillStyle = '#93a9e8';
-            g.fillText('Click “Shuffle Hidden” to initialize W,b', 12, 22);
+            g.fillText('Click “Reseed hidden” to initialize W,b', 12, 22);
             HL.gridW = HL.gridBars = null;
             return;
         }
@@ -609,12 +652,12 @@ document.addEventListener('DOMContentLoaded', () => {
             HL.gridBars = { x: xBars, y: yBars, n, eachH, barW };
         } else {
             g.fillStyle = '#93a9e8';
-            g.fillText('Encode a row (Vectorization), then click “Project”.', xBars, 22);
+            g.fillText('Encode a row (Vectorization), then click “Project H”.', xBars, 22);
             HL.gridBars = null;
         }
     }
 
-    /* ---------------- Slide 6: ELM Train (one-shot) ---------------- */
+    /* ---------------- Slide 11: ELM Train (one-shot) ---------------- */
     const S4 = { canvas: null, betaVis: null, labels: [], dims: null };
     function ensureELMTrain() {
         if (S4.inited) return;
@@ -638,7 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             solveOut.textContent = 'Training… (freezing basis, solving β)…';
         };
+
         downloadBtn.onclick = () => post('export_model');
+
         resetBtn.onclick = () => {
             post('reset');
             uiBasisFrozen = false;
@@ -672,10 +717,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        S4.drawBeta = drawBeta; // expose
+        S4.drawBeta = drawBeta;
     }
 
-    /* ---------------- Slide 7: Prediction ---------------- */
+    /* ---------------- Slide 12: Prediction ---------------- */
     const SP = {};
     function ensurePredict() {
         if (SP.inited) return;
@@ -711,7 +756,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (type === 'trained') {
             uiBasisFrozen = true;
-            // enable predict slide button
+
+            // enable Predict button
             const predictBtn = document.getElementById('predictBtn');
             if (predictBtn) { predictBtn.disabled = false; predictBtn.title = ''; }
 
@@ -729,19 +775,11 @@ document.addEventListener('DOMContentLoaded', () => {
             solveOut.textContent = lines.join('\n');
 
             // store β visualization + labels
-            const S4Canvas = document.getElementById('betaCanvas');
-            if (S4Canvas) {
-                // store and redraw
-                const tmp = S4;
-                tmp.betaVis = payload.betaVis || null;
-                tmp.labels = payload.labels || [];
-                tmp.dims = payload.dims || null;
-                if (tmp.drawBeta) tmp.drawBeta();
-            }
+            S4.betaVis = payload.betaVis || null;
+            S4.labels = payload.labels || [];
+            S4.dims = payload.dims || null;
+            if (S4.drawBeta) S4.drawBeta();
 
-            // also prep predict dropdown if slide already inited
-            const predBtn = document.getElementById('predictBtn');
-            if (predBtn) predBtn.disabled = false;
             return;
         }
         if (type === 'predicted') {
@@ -760,20 +798,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? labels.map((lab, k) => `${lab}(${AG_LABELS[lab] || ''}): ${probs[k].toFixed(2)}`).join('  |  ')
                 : `[${probs.map(p => p.toFixed(2)).join(', ')}]`;
 
-            predOut.textContent = `Predicted: ${predName} (${pred})  |  Truth: ${truthName} (${truthId})  |  ${verdict}\n` +
+            predOut.textContent =
+                `Predicted: ${predName} (${pred})  |  Truth: ${truthName} (${truthId})  |  ${verdict}\n` +
                 `Probabilities: ${probText}`;
             return;
         }
         if (type === 'exported_model') {
-            // download already triggered inside worker; nothing else to do
+            // download already triggered inside worker
             return;
         }
         if (type === 'encoded') {
-            // handled inside ensureVectorize listener as well (for drawing)
+            // handled by ensureVectorize as well
             return;
         }
         if (type === 'actCurve') {
-            // not strictly needed on this build, but we could reflect available acts
+            // could reflect available activations
             return;
         }
         if (type === 'hidden_init') { onHiddenInit(payload); return; }

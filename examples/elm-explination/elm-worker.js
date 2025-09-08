@@ -361,7 +361,7 @@ self.onmessage = async (e) => {
             vocab: vocab ? Array.from(vocab.entries()) : null,
             idf: idf ? Array.from(idf.entries()) : null
         };
-        const payload = {
+        const payloadOut = {
             usingFallback,
             labels: labelSpace,
             model: model && model.kind === 'fallback'
@@ -370,7 +370,8 @@ self.onmessage = async (e) => {
             lastHidden,
             basis
         };
-        postMessage({ type: 'exported_model', payload });
+        // Let the main thread handle download UI (if any)
+        postMessage({ type: 'exported_model', payload: payloadOut });
     }
 
     if (type === 'reset') {

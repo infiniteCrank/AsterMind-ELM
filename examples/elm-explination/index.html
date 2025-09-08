@@ -7,6 +7,7 @@
   <style>
     :root{
       --bg:#050c1f; --panel:#0b1633; --ink:#e5efff; --muted:#a7b8e8; --accent:#5ad1ff; --good:#6ee7a2; --warn:#facc15; --bad:#fb7185;
+      --chip:#0c1a3d; --chip-border:#203a7c;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -19,14 +20,36 @@
       display:flex; align-items:center; justify-content:space-between; gap:12px;
       padding:14px 16px; background:linear-gradient(180deg,rgba(90,209,255,0.12),rgba(90,209,255,0.0));
       border-bottom:1px solid #13244f;
+      position:sticky; top:0; z-index:10;
     }
     header h1{font-size:1.05rem; margin:0; font-weight:600; letter-spacing:0.2px}
-    .nav{display:flex; gap:8px;}
+    .nav{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     button{
       background:#102043; color:var(--ink); border:1px solid #1f3570; border-radius:10px; padding:8px 12px; cursor:pointer;
     }
     button:hover{background:#12265a}
     button[disabled]{opacity:.6; cursor:not-allowed}
+
+    /* Mini-map */
+    .minimap{
+      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+      padding:8px 16px; border-top:1px solid #13244f; border-bottom:1px solid #13244f;
+      background:linear-gradient(180deg,rgba(90,209,255,0.06),rgba(90,209,255,0.0));
+    }
+    .stage-chip{
+      padding:4px 10px; border:1px solid var(--chip-border); border-radius:999px;
+      background:var(--chip); font-size:.8rem; color:#bcd0ff; opacity:.75; white-space:nowrap;
+    }
+    .stage-chip.active{opacity:1; border-color:#3b66d1; color:#eaf2ff; box-shadow:0 0 0 1px rgba(90,209,255,.25) inset;}
+    .progress{
+      height:6px; flex:1; border-radius:999px; background:#0b1633; border:1px solid #1f3570; position:relative; min-width:140px;
+    }
+    .progress > .bar{
+      position:absolute; top:-1px; left:-1px; height:calc(100% + 2px); width:0%;
+      background:linear-gradient(90deg, #2a64ff, #5ad1ff);
+      border-radius:999px;
+    }
+
     main{flex:1; display:flex; justify-content:center; padding:16px}
     .slide{
       width:min(1100px,100%); display:grid; grid-template-columns: 1.1fr .9fr; gap:16px;
@@ -37,7 +60,7 @@
     .panel{padding:14px 14px 10px 14px; height:100%; display:flex; flex-direction:column; gap:10px;}
     h2{margin:0 0 6px 0; font-size:1.05rem}
     p{margin:.25rem 0; color:var(--muted); line-height:1.35}
-    ul{margin:.4rem 0 .6rem 1.1rem; color:var(--muted)}
+    ul,ol{margin:.4rem 0 .6rem 1.1rem; color:var(--muted)}
     label{font-size:.9rem; color:var(--muted)}
     select,input[type=range]{width:100%}
     .kv{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center}
@@ -45,35 +68,36 @@
     .chip{padding:4px 8px; border:1px solid #203a7c; border-radius:999px; font-size:.8rem; color:#bcd0ff; background:#0c1a3d}
     .canvasWrap{flex:1; border:1px dashed #253f85; border-radius:10px; overflow:hidden; background:#071332}
     canvas{display:block; width:100%; height:100%}
-    .footerBar{display:flex; gap:10px; justify-content:flex-end; margin-top:8px}
+    .footerBar{display:flex; gap:10px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap}
     .code{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; background:#0c1a3d; border:1px solid #203a7c; border-radius:8px; padding:8px; font-size:.88rem; color:#cfe1ff; overflow:auto}
     .note{font-size:.85rem; color:#93a9e8}
-    .ok{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .notes{
+      margin-top:auto; border-top:1px dashed #243f86; padding-top:8px; font-size:.88rem; color:#cfe1ff; display:none;
+      background:rgba(12,26,61,.35); border-radius:8px; padding:10px; line-height:1.35;
+    }
+    body.show-notes .notes{display:block}
+    .notes .label{font-weight:600; color:#eaf2ff; opacity:.9; display:block; margin-bottom:4px;}
+
     @media (max-width: 980px){
       .slide{grid-template-columns: 1fr; }
       .left,.right{min-height:300px}
+      .minimap{gap:8px}
     }
     [hidden]{display:none !important;}
 
-    /* Hero cap w/ parallax */
+    /* Hero */
     .slide > .hero{
       grid-column: 1 / -1;
-      height: clamp(500px, 26vh, 500px);
+      height: clamp(320px, 45vh, 600px);
       border-radius: 14px;
       border: 1px solid #182d61;
-      background-position:center;
-      background-repeat: no-repeat;
-      background-size: cover;
-      position: relative;
-      overflow: hidden;
-      margin-bottom: 10px;
+      background: none;
+      display: grid; place-items: center;
+      position: relative; overflow: hidden; margin-bottom: 10px;
       box-shadow: 0 12px 30px rgba(0,0,0,.28);
-      will-change: background-position;
     }
-    .slide > .hero::after{
-      content:""; position:absolute; inset:0;
-      background: linear-gradient(180deg, rgba(5,12,31,0) 0%, rgba(5,12,31,.25) 60%, rgba(5,12,31,.55) 100%);
-      pointer-events:none;
+    .slide > .hero img{
+      width: 100%; height: 100%; object-fit: contain;
     }
     .hero .caption{
       position:absolute; left:12px; bottom:10px;
@@ -83,33 +107,23 @@
       padding:4px 8px; border-radius:8px;
     }
 
-    /* Legends / tips reused */
-    .canvasWrap { position: relative; }
-    .heat-legend{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:.85rem; color:var(--muted);}
-    .legend-bar{
-      width:160px; height:10px; border-radius:999px; border:1px solid #203a7c;
-      background: linear-gradient(90deg, hsla(0,90%,60%,.85), hsla(210,30%,20%,.15) 50%, hsla(200,90%,60%,.85));
-    }
-    .legend-chip{ padding:2px 8px; border:1px solid #203a7c; border-radius:999px; }
+    /* Tooltip positioning tweaks: rely on left/top from JS, no transform */
     .encode-tip,.hidden-tip,.bp-tip{
-      position:absolute; top:0; left:0; transform: translate(8px,-28px);
-      background:#0c1a3d; border:1px solid #203a7c; padding:4px 6px; border-radius:6px;
-      font-size:.8rem; color:#cfe1ff; display:none; pointer-events:none; white-space:nowrap;
+      position:absolute;
+      top:0;
+      left:0;
+      transform:none;
+      background:#0c1a3d;
+      border:1px solid #203a7c;
+      padding:4px 6px;
+      border-radius:6px;
+      font-size:.8rem;
+      color:#cfe1ff;
+      display:none;
+      pointer-events:none;
+      white-space:nowrap;
+      z-index:10; /* ensure above canvas */
     }
-
-    html, body { scroll-behavior: smooth; }
-
-    .slide > .hero{
-      background: none;               /* no background image */
-      height: clamp(320px, 45vh, 600px);
-      display: grid; place-items: center;
-    }
-    .slide > .hero img{
-      width: 100%;
-      height: 100%;
-      object-fit: contain;            /* show full image; letterbox if needed */
-    }
-
   </style>
 </head>
 <body>
@@ -118,10 +132,28 @@
     <h1>Extreme Learning Machines — a visual primer for JS engineers</h1>
     <div class="nav">
       <button id="prevBtn">◀ Back</button>
-      <div class="chip" id="slideLabel">Slide 1 / 7</div>
+      <div class="chip" id="slideLabel">Slide 1 / 12</div>
       <button id="nextBtn">Next ▶</button>
+      <button id="notesToggle" title="Show/Hide speaker notes">Notes</button>
     </div>
   </header>
+
+  <!-- Mini-map -->
+  <div class="minimap">
+    <div class="stage-chip" data-stagechip="overview">Overview</div>
+    <div class="stage-chip" data-stagechip="neuron">Neuron</div>
+    <div class="stage-chip" data-stagechip="input">Vectorize</div>
+    <div class="stage-chip" data-stagechip="backprop">Backprop</div>
+    <div class="stage-chip" data-stagechip="huang">Huang</div>
+    <div class="stage-chip" data-stagechip="grid">Random Grid</div>
+    <div class="stage-chip" data-stagechip="gps">GPS/Pinv</div>
+    <div class="stage-chip" data-stagechip="why">Why Random</div>
+    <div class="stage-chip" data-stagechip="hidden">Hidden</div>
+    <div class="stage-chip" data-stagechip="output">One-shot</div>
+    <div class="stage-chip" data-stagechip="compare">Compare</div>
+    <div class="stage-chip" data-stagechip="predict">Predict</div>
+    <div class="progress"><div class="bar" id="progressBar"></div></div>
+  </div>
 
   <main>
 
@@ -135,14 +167,17 @@
         <div class="panel">
           <h2>What we’ll learn</h2>
           <ul>
-            <li><strong>Neurons:</strong> tiny functions with a weight, a bias, and a “squiggle”.</li>
-            <li><strong>Vectorization:</strong> turning text into numbers a neuron can read.</li>
-            <li><strong>Why training is hard:</strong> too many knobs to tune by hand.</li>
-            <li><strong>Backprop (classic):</strong> how networks usually learn (slow in loops).</li>
+            <li><strong>Neurons:</strong> weight, bias, activation function.</li>
+            <li><strong>Vectorization:</strong> turning text into numeric features.</li>
+            <li><strong>Why training is hard:</strong> too many parameters to tune.</li>
+            <li><strong>Backprop (classic):</strong> iterative updates in loops.</li>
             <li><strong>ELM (shortcut):</strong> random hidden layer + one-shot solve.</li>
-            <li><strong>Prediction:</strong> try the trained model on a row.</li>
+            <li><strong>Prediction:</strong> run the trained model on a sample.</li>
           </ul>
           <p class="note">We’ll keep it JavaScript-friendly: sliders, canvases, and small code snippets.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Open with the promise: ELMs let us train in seconds. Point at the minimap and set expectations for the flow.
+          </div>
         </div>
       </div>
       <div class="right">
@@ -151,11 +186,20 @@
           <ol>
             <li>Neuron basics</li>
             <li>Neuron demo</li>
-            <li>Vectorization</li>
-            <li>Why hand-tuning fails → pseudo backprop</li>
-            <li>ELM training (one-shot)</li>
+            <li>Text → vector</li>
+            <li>Backprop loops</li>
+            <li>Huang’s question</li>
+            <li>Random grid intuition</li>
+            <li>GPS/pseudoinverse</li>
+            <li>Why randomness helps</li>
+            <li>Random hidden &amp; project</li>
+            <li>ELM one-shot training</li>
+            <li>Backprop vs ELM</li>
             <li>Prediction</li>
           </ol>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Mention we’ll avoid heavy math; we’ll visualize the ideas and keep code minimal.
+          </div>
         </div>
       </div>
     </section>
@@ -163,27 +207,33 @@
     <!-- SLIDE 2: NEURON INTRO -->
     <section class="slide" id="slideIntroNeuron" data-stage="neuron">
       <figure class="hero" data-hero="images/intro.png">
-        <div class="caption">Neurons are just mini functions</div>
+        <div class="caption">Neurons are small functions</div>
       </figure>
       <div class="left">
         <div class="panel">
           <h2>Neurons in plain JS</h2>
-          <p>A neuron takes a number <code>x</code>, nudges it with <code>w</code> (weight) and <code>b</code> (bias): <code>z = w*x + b</code>, then applies a “squiggle” (<em>activation</em>) like ReLU or tanh: <code>y = g(z)</code>.</p>
+          <p>A neuron takes a number <code>x</code>, computes <code>z = w*x + b</code>, then applies an <em>activation function</em> (e.g., ReLU, <code>tanh</code>): <code>y = g(z)</code>.</p>
           <div class="code"><pre>// one neuron
-const z = w * x + b;      // line
-const y = activation(z);  // bend it</pre></div>
-          <p class="note">That’s it. Networks are just lots of these chained together.</p>
+const z = w * x + b;      // affine transform
+const y = activation(z);  // apply nonlinearity</pre></div>
+          <p class="note">Networks are lots of these composed.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Reinforce “affine then nonlinearity.” We’ll visualize next.
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>Vocabulary</h2>
           <ul>
-            <li><strong>w</strong> (weight): how strongly x pushes up/down</li>
-            <li><strong>b</strong> (bias): a constant shift</li>
-            <li><strong>activation</strong>: the “squiggle” shape (ReLU, tanh, …)</li>
+            <li><strong>w</strong> (weight): how strongly x pushes output</li>
+            <li><strong>b</strong> (bias): constant offset</li>
+            <li><strong>activation function</strong>: controlled nonlinearity</li>
           </ul>
-          <p class="note">Next slide: play with one neuron live.</p>
+          <p class="note">Next: play with a single neuron live.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Keep the terms crisp; we’ll compare activations shortly.
+          </div>
         </div>
       </div>
     </section>
@@ -211,16 +261,25 @@ const y = activation(z);  // bend it</pre></div>
           <div class="kv"><label>Bias (b)</label><span id="bVal">0.00</span></div>
           <input id="bRange" type="range" min="-5" max="5" step="0.05" value="0">
           <div class="canvasWrap" style="height:260px"><canvas id="neuronCanvas"></canvas></div>
-          <div class="note">“Affine” = compute <code>z = w·x + b</code> (a line), then bend it with <code>g(z)</code>.</div>
+          <div class="note">“Affine” = compute <code>z = w·x + b</code>, then apply <code>g(z)</code>.</div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Try negative w; compare ReLU vs tanh; highlight clipping vs smoothness.
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>Try</h2>
-          <p>Set <strong>w</strong> negative and compare <strong>ReLU</strong> vs <strong>tanh</strong>.</p>
+          <ul>
+            <li>Set <strong>w = -2</strong>, <strong>b = 0.5</strong></li>
+            <li>Toggle ReLU ↔︎ tanh and observe shape changes</li>
+          </ul>
           <div class="code"><pre>// y = g(w·x + b)
 const z = w * x + b;
 const y = activation(z);</pre></div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Keep this brisk; we’re heading toward why training is hard.
+          </div>
         </div>
       </div>
     </section>
@@ -233,110 +292,237 @@ const y = activation(z);</pre></div>
           <p>Select a row. We’ll encode text to a feature vector and draw a mini heatmap.</p>
           <div class="row">
             <select id="rowSelect" style="flex:1"></select>
-            <button id="encodeBtn">Encode →</button>
+            <button id="encodeBtn">Encode text</button>
           </div>
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="encodeCanvas"></canvas>
           </div>
           <div id="tokensOut" class="code" style="min-height:80px"></div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Any reasonable encoding works for ELM; we just need a vector (TF-IDF or fallback).
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>Plain English</h2>
           <p>Text → numbers (features). Each square is one number. <span class="note">Blue = positive, red = negative, brighter = larger magnitude.</span></p>
-          <p>Any reasonable encoding works for ELM. We just need a vector.</p>
+          <p>ELM only needs a numeric vector; the specific encoder is flexible.</p>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 5: WHY HAND TUNING IS HARD → PSEUDO BACKPROP -->
+    <!-- SLIDE 5: WHY HAND TUNING IS HARD → BACKPROP -->
     <section class="slide" id="slideBP" data-stage="backprop">
       <div class="left">
         <div class="panel">
           <h2>Why manual tuning doesn’t scale</h2>
-          <p>A real network can have thousands of <em>w</em> and <em>b</em>. You can’t tweak those by hand.</p>
-          <p><strong>Backpropagation</strong> automates tuning in loops: measure error → nudge weights a bit → repeat.</p>
-          <div class="kv"><label>“Learning rate”</label><span id="bpLRVal">0.20</span></div>
+          <p>Real networks have many parameters—impossible to tweak by hand.</p>
+          <p><strong>Backpropagation</strong> automates tuning in loops: measure error → nudge weights → repeat.</p>
+          <div class="kv"><label>Learning rate</label><span id="bpLRVal">0.20</span></div>
           <input id="bpLR" type="range" min="0.01" max="1" step="0.01" value="0.20">
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="bpCanvas"></canvas>
           </div>
-          <div class="note">This is a <em>visual</em> mock: weights wiggle and loss trends down to show the idea.</div>
+          <div class="note">Visual mock: weights wiggle; loss trends down.</div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Call out “too high LR = noisy; too low = slow.” Set up the contrast with ELM.
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>What to look for</h2>
           <ul>
-            <li>Left heatmap = hidden weights changing each step</li>
-            <li>Right line = “loss” trending down</li>
-            <li>Learning rate too high → noisy; too low → slow</li>
+            <li>Left heatmap: hidden weights changing</li>
+            <li>Right chart: loss trending down</li>
+            <li>LR too high → noisy; too low → sluggish</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE X: HIDDEN LAYER (random W,b + project H) -->
+    <!-- SLIDE 6: HUANG'S QUESTION -->
+    <section class="slide" id="slideHuang" data-stage="huang">
+      <figure class="hero"><div class="caption">The bold question</div></figure>
+      <div class="left">
+        <div class="panel">
+          <h2>Then along comes Guang-Bin Huang</h2>
+          <p><em>What if we didn’t train the hidden layers at all?</em></p>
+          <p>To many engineers, that sounds like shipping production code without unit tests. Hidden layers are where the magic happens—so why skip training them?</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Pause, look around. Let the “no hidden training” line sit. Invite skepticism.
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>The insight</h2>
+          <p>Randomize the hidden layer once (weights &amp; biases), then never touch it.</p>
+          <p>Focus all effort on solving the output layer in one step with the Moore–Penrose pseudoinverse.</p>
+          <p class="note">Minutes or hours of loops → seconds.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: RANDOM GRID ANALOGY -->
+    <section class="slide" id="slideGrid" data-stage="grid">
+      <figure class="hero"><div class="caption">Random coordinates, useful structure</div></figure>
+      <div class="left">
+        <div class="panel">
+          <h2>The city from above</h2>
+          <p>From a skyscraper, the city looks messy—twisting streets, odd angles. Hard to give directions.</p>
+          <p>Drop a <strong>random grid</strong> on top. It won’t match perfectly, but now you can say: “Café at row 3, col 5.” The grid isn’t smart—but it’s a reference system.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Gesture with hands as a grid overlay; “it’s not perfect, it’s useful”.
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>ELM mapping</h2>
+          <p>The hidden layer is that grid: it projects messy, high-dimensional data into random coordinates.</p>
+          <p><code>H = g(X·W + b)</code></p>
+          <p class="note">Once you have coordinates, organization gets simpler.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: GPS / PSEUDOINVERSE -->
+    <section class="slide" id="slideGPS" data-stage="gps">
+      <figure class="hero"><div class="caption">One solve, like GPS routing</div></figure>
+      <div class="left">
+        <div class="panel">
+          <h2>Output layer as GPS</h2>
+          <p>With coordinates in hand, navigation is easy: straight lines in grid space. The output layer is the GPS: map random coordinates to labels in one exact step.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Promise: no epochs. We’ll compute β in a single calculation.
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>The math idea</h2>
+          <p>Use the <strong>Moore–Penrose pseudoinverse</strong> to solve <code>Hβ ≈ Y</code>.</p>
+          <p>Think of it like <code>Array.prototype.reduce()</code> for optimization: push inputs &amp; labels through, get the best output weights <code>β</code>.</p>
+          <p class="note">No gradient descent loops. One solve.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: WHY RANDOMNESS WORKS -->
+    <section class="slide" id="slideWhy" data-stage="why">
+      <figure class="hero"><div class="caption">Unfold the data</div></figure>
+      <div class="left">
+        <div class="panel">
+          <h2>Why randomness helps</h2>
+          <p>Raw input space is often not linearly separable. Random projection to a higher-dimensional space can make separation easier—like unfolding a crumpled paper ball onto a plane.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            “Higher dimension → simpler boundaries.” Mention regularization briefly.
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>ELM recipe</h2>
+          <ol>
+            <li>Project inputs with a randomized hidden layer to get <code>H</code>.</li>
+            <li>Solve a linear model once for <code>β</code> so <code>Hβ ≈ Y</code>.</li>
+          </ol>
+          <p class="note">Surprisingly strong with enough hidden units + sensible ridge.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: HIDDEN LAYER (random W,b + project H) -->
     <section class="slide" id="slideHidden" data-stage="hidden">
       <div class="left">
         <div class="panel">
           <h2>Hidden layer (Random &amp; Project)</h2>
-          <p>Random projection: <code>H = g(X·W + b)</code>. Shuffle to reseed the hidden layer; project the currently encoded row.</p>
+          <p>Random projection: <code>H = g(X·W + b)</code>. Reseed the hidden layer; project the currently encoded row.</p>
           <div class="row">
             <span class="chip">Hidden size</span>
             <input id="hiddenSizeHL" type="range" min="4" max="1024" step="1" value="32" style="flex:1">
             <span class="note" id="hiddenSizeHLVal">32</span>
-            <button id="shuffleBtnHL" title="Reseed W,b">Shuffle Hidden</button>
-            <button id="previewHBtnHL" title="Project current x">Project H = g(X·W + b)</button>
+            <button id="shuffleBtnHL" title="Reseed W,b">Reseed hidden</button>
+            <button id="previewHBtnHL" title="Project current x">Project H</button>
           </div>
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="hiddenCanvas"></canvas>
             <div class="hidden-tip"></div>
           </div>
           <div id="WPreview" class="code" style="min-height:80px"></div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Show W heatmap, then project a row to visualize H bars.
+          </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>What you’re seeing</h2>
-          <p>Heatmap: each <em>row</em> is a hidden neuron; each <em>column</em> is an input feature. Colors show sign &amp; magnitude of <code>W[i,j]</code>. Green bars on the right show <code>H = g(Wx + b)</code> for the selected text.</p>
-          <p class="note">Tip: go to “Vectorization”, click <em>Encode →</em>, come back, then hit <em>Project</em>.</p>
+          <p>Heatmap: rows = hidden neurons; cols = input features; color = sign &amp; magnitude of <code>W[i,j]</code>. Bars on right show <code>H = g(Wx + b)</code> for the selected text.</p>
+          <p class="note">Tip: encode on the previous slide, then project.</p>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 6: ELM TRAINING (ONE SHOT) -->
+    <!-- SLIDE 11: ELM TRAINING (ONE SHOT) -->
     <section class="slide" id="slide4" data-stage="output">
       <div class="left">
         <div class="panel">
           <h2>ELM: random hidden + one-shot solve</h2>
           <p>We solve <code>Hβ ≈ Y</code> once (pseudoinverse / ridge). No loops.</p>
           <div class="row">
-            <button id="trainBtn">Train on snippet</button>
+            <button id="trainBtn">Train (one shot)</button>
             <span class="chip">Hidden size</span>
             <input id="hiddenSize" type="range" min="4" max="1024" step="1" value="32" style="flex:1">
             <span class="note" id="hiddenSizeVal">32</span>
             <span style="flex:1"></span>
-            <button id="downloadBtn" title="Save W,b,β and basis">Download model</button>
-            <button id="resetBtn" title="Clear model & basis">Reset</button>
+            <button id="downloadBtn" title="Save W,b,β and basis">Export model</button>
+            <button id="resetBtn" title="Clear model & basis">Clear &amp; reset</button>
           </div>
           <div id="solveOut" class="code" style="min-height:100px">Waiting…</div>
           <div class="canvasWrap" style="height:220px">
             <canvas id="betaCanvas"></canvas>
+          </div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Call out dimensions H (n×h), Y (n×k), β (h×k). Mention ridge.
           </div>
         </div>
       </div>
       <div class="right">
         <div class="panel">
           <h2>Plain English</h2>
-          <p>Random hidden features act like coordinates. We draw a straight separator there. Done.</p>
-          <p class="note">This is the shortcut: train in one shot vs many backprop loops.</p>
+          <p>Random hidden features give coordinates. We draw a straight separator there. Done.</p>
+          <p class="note">The shortcut: one solve vs many backprop loops.</p>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 7: PREDICTION -->
+    <!-- SLIDE 12: BACKPROP VS ELM -->
+    <section class="slide" id="slideCompare" data-stage="compare">
+      <figure class="hero"><div class="caption">Two different mindsets</div></figure>
+      <div class="left">
+        <div class="panel">
+          <h2>Backprop</h2>
+          <p>Like sculpting a custom key for a lock: chip, test, adjust—many iterations until it fits.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Emphasize control/fidelity, but cost is time and tuning.
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>ELM</h2>
+          <p>Like trying a keyring of random keys (random hidden features). One fits; keep it by solving the output weights once.</p>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Great default for fast baselines, prototyping, or small/medium tasks.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 13: PREDICTION -->
     <section class="slide" id="slidePred" data-stage="predict">
       <div class="left">
         <div class="panel">
@@ -347,6 +533,9 @@ const y = activation(z);</pre></div>
             <button id="predictBtn" title="Train first" disabled>Predict</button>
           </div>
           <div id="predOut" class="code" style="min-height:120px">Train on the previous slide, then predict.</div>
+          <div class="notes"><span class="label">Speaker notes</span>
+            Read out Predicted vs Truth and probabilities; note ✓/✗.
+          </div>
         </div>
       </div>
       <div class="right">
