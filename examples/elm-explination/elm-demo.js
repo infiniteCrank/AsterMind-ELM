@@ -310,8 +310,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loop();
     }
 
-    /* ---------------- Slide 4: Vectorization ---------------- */
-    const S2 = { lastEncoded: null, grid: null };
+    /* ---------------- Slide: Vectorization ---------------- */
+    const S2 = { lastEncoded: null, grid: null, featureLimit: 128, lastMethod: 'tfidf' };
+
     function ensureVectorize() {
         if (S2.inited) return;
         S2.inited = true;
@@ -320,8 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const encodeBtn = document.getElementById('encodeBtn');
         const encodeCanvas = document.getElementById('encodeCanvas');
         const tokensOut = document.getElementById('tokensOut');
+        const encodingSelect = document.getElementById('encodingSelect');
+        const featureLimit = document.getElementById('featureLimit');
+        const featureLimitVal = document.getElementById('featureLimitVal');
 
-        // populate
+        // populate dropdown
         rowSelect.innerHTML = '';
         for (let i = 0; i < dataRows.length; i++) {
             const o = document.createElement('option');
@@ -330,68 +334,65 @@ document.addEventListener('DOMContentLoaded', () => {
             rowSelect.appendChild(o);
         }
 
+        // controls
+        S2.featureLimit = +featureLimit.value;
+        featureLimit.addEventListener('input', () => {
+            S2.featureLimit = +featureLimit.value;
+            featureLimitVal.textContent = featureLimit.value;
+            drawEncode();
+        });
+        encodingSelect.addEventListener('change', () => {
+            S2.lastMethod = encodingSelect.value;
+        });
+
+        // request encoding; IMPORTANT: pass a small corpus so TF-IDF has real IDF
         encodeBtn.onclick = () => {
             const i = +rowSelect.value || 0;
-            post('encode', { text: dataRows[i].text });
+            const method = encodingSelect.value || 'tfidf';
+            const corpus = dataRows.map(r => r.text);     // gives meaningful IDF
+            post('encode', { text: dataRows[i].text, method, corpus });
         };
 
-        // --- TOOLTIP: robust version ---
+        // tooltip element
         let tipEl = document.querySelector('#slide2 .encode-tip');
         if (!tipEl) {
             tipEl = document.createElement('div');
             tipEl.className = 'encode-tip';
-            // parent is .canvasWrap (position: relative)
-            encodeCanvas.parentElement.appendChild(tipEl);
+            encodeCanvas.parentElement.appendChild(tipEl); // parent has position:relative
         }
 
-        // Robust tooltip: checks bounds, resets transform, sets zIndex
+        // tooltip behavior
         encodeCanvas.addEventListener('mousemove', (e) => {
-            if (!S2.grid || !S2.lastEncoded) {
-                tipEl.style.display = 'none';
-                return;
-            }
+            if (!S2.grid || !S2.lastEncoded) { tipEl.style.display = 'none'; return; }
             const { x0, y0, cols, rows, cw, ch, n } = S2.grid;
             const rect = encodeCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
 
-            // Check pointer inside drawn grid
-            const inGrid =
-                cw > 0 &&
-                ch > 0 &&
-                x >= x0 &&
-                y >= y0 &&
-                x < x0 + cols * cw &&
-                y < y0 + rows * ch;
-            if (!inGrid) {
-                tipEl.style.display = 'none';
-                return;
-            }
+            const inside = cw > 0 && ch > 0 && x >= x0 && y >= y0 && x < x0 + cols * cw && y < y0 + rows * ch;
+            if (!inside) { tipEl.style.display = 'none'; return; }
 
-            // Convert pointer to feature index
             const col = Math.floor((x - x0) / cw);
             const row = Math.floor((y - y0) / ch);
             const k = row * cols + col;
-            if (k < 0 || k >= n) {
-                tipEl.style.display = 'none';
-                return;
-            }
+            if (k < 0 || k >= n) { tipEl.style.display = 'none'; return; }
 
-            // Read value & feature name
             const v = S2.lastEncoded.vector;
-            const val = Number.isFinite(v[k]) ? v[k] : 0;
             const names = S2.lastEncoded.featureNames || [];
             const token = names[k] || null;
-            const label = token ? `#${k} “${token}”` : `feature #${k}`;
+            const val = Number.isFinite(v[k]) ? v[k] : 0;
 
-            tipEl.textContent = `${label}: ${fmtVal(val)}`;
+            // small centered window preview around k for quick context
+            const WN = 6; // ±3
+            const start = Math.max(0, k - 3), end = Math.min(v.length, k + 4);
+            const preview = v.slice(start, end).map(x => fmtVal(x)).join(', ');
+            const dotsL = start > 0 ? '… ' : '';
+            const dotsR = end < v.length ? ' …' : '';
 
-            // Reset transform from CSS, set z-index to ensure overlay
-            tipEl.style.transform = 'none';
+            tipEl.textContent = `${token ? `#${k} “${token}”` : `feature #${k}`} = ${fmtVal(val)}`;
             tipEl.style.display = 'block';
+            tipEl.style.transform = 'none';
             tipEl.style.zIndex = '10';
 
-            // Position tooltip within parent container
             const tbox = tipEl.getBoundingClientRect();
             const pad = 6;
             const left = Math.min(rect.width - tbox.width - pad, Math.max(pad, x + 10));
@@ -399,11 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tipEl.style.left = `${left}px`;
             tipEl.style.top = `${top}px`;
         });
+        encodeCanvas.addEventListener('mouseleave', () => { tipEl.style.display = 'none'; });
 
-        encodeCanvas.addEventListener('mouseleave', () => {
-            tipEl.style.display = 'none';
-        });
-        // draw function
+        // draw heatmap (with numbers when space permits)
         function drawEncode() {
             const c = encodeCanvas, dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
             c.width = Math.max(1, W * dpr); c.height = Math.max(1, H * dpr);
@@ -411,12 +410,13 @@ document.addEventListener('DOMContentLoaded', () => {
             g.clearRect(0, 0, W, H);
 
             if (!S2.lastEncoded) {
-                g.fillStyle = '#93a9e8'; g.fillText('Click “Encode text” to preview the input vector.', 12, 22);
+                g.fillStyle = '#93a9e8';
+                g.fillText('Click “Encode text” to preview the input vector.', 12, 22);
                 S2.grid = null; return;
             }
 
             const v = S2.lastEncoded.vector;
-            const n = Math.min(128, v.length);
+            const n = Math.min(S2.featureLimit || 128, v.length);
             const cols = Math.ceil(Math.sqrt(n));
             const rows = Math.ceil(n / cols);
             const m = 10, x0 = m, y0 = m;
@@ -436,10 +436,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     const val = vSub[k];
                     const alpha = Math.min(1, Math.abs(val) / maxAbs);
                     const hue = val >= 0 ? 200 : 0; // blue or red
-                    g.fillStyle = `hsla(${hue},90%,60%,${0.15 + 0.85 * alpha})`;
-                    g.fillRect(x0 + ccol * cw, y0 + r * ch, cw - 2, ch - 2);
+                    const X = x0 + ccol * cw, Y = y0 + r * ch;
+
+                    // cell color
+                    const bg = `hsla(${hue},90%,60%,${0.15 + 0.85 * alpha})`;
+                    g.fillStyle = bg; g.fillRect(X, Y, cw - 2, ch - 2);
+
+                    // number overlay (only if space permits)
+                    if (cw >= 56 && ch >= 36) {
+                        g.save();
+                        g.fillStyle = 'rgba(255,255,255,0.95)';
+                        g.font = `600 ${Math.min(18, Math.floor(ch * 0.42))}px ui-sans-serif,system-ui`;
+                        g.textAlign = 'center'; g.textBaseline = 'middle';
+                        g.fillText(fmtVal(val), X + (cw - 2) / 2, Y + (ch - 2) / 2);
+                        g.restore();
+                    }
                 }
             }
+            // grid lines
             g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1;
             for (let ccol = 0; ccol <= cols; ccol++) { g.beginPath(); g.moveTo(x0 + ccol * cw, y0); g.lineTo(x0 + ccol * cw, y0 + rows * ch); g.stroke(); }
             for (let rr = 0; rr <= rows; rr++) { g.beginPath(); g.moveTo(x0, y0 + rr * ch); g.lineTo(x0 + cols * cw, y0 + rr * ch); g.stroke(); }
@@ -448,46 +462,69 @@ document.addEventListener('DOMContentLoaded', () => {
             g.fillText(`features 0..${n - 1} — nnz: ${nnz}, ‖v‖₂: ${l2.toFixed(2)}, max |v|: ${maxAbs.toFixed(2)}  |  basis: ${uiBasisFrozen ? 'trained' : 'isolated'}`, 12, H - 12);
         }
 
-        // listen to worker for encoded vec
+        // worker events for this slide
         worker.addEventListener('message', (e) => {
             const { type, payload } = e.data || {};
             if (type === 'encoded') {
                 S2.lastEncoded = payload;
-                tokensOut.textContent = (payload.usedTFIDF
-                    ? `TF-IDF tokens (top):\n${payload.tokens.slice(0, 25).join(' ')}\n\nvector length: ${payload.vector.length}`
-                    : `Tokens (fallback BOW):\n${payload.tokens.slice(0, 25).join(' ')}\n\nvector length: ${payload.vector.length}`);
+                const chosen = payload.methodUsed || encodingSelect.value;
+                const label =
+                    chosen === 'tfidf' ? 'TF-IDF' :
+                        chosen === 'bow' ? 'Bag-of-Words' : 'Isolated';
+
+                tokensOut.textContent =
+                    `${label} tokens (top):\n${payload.tokens.slice(0, 25).join(' ')}\n\nvector length: ${payload.vector.length}`;
                 drawEncode();
             }
         });
     }
 
-    /* ---------------- Slide 5: Backprop demo ---------------- */
+    /* ---------------- Slide: Backprop demo ---------------- */
     const BP = { canvas: null, lrRange: null, lrVal: null, raf: null, t0: 0, state: null };
     function ensureBackprop() {
         if (BP.inited) return;
         BP.inited = true;
+
         BP.canvas = document.getElementById('bpCanvas');
         BP.lrRange = document.getElementById('bpLR');
         BP.lrVal = document.getElementById('bpLRVal');
         BP.lrVal.textContent = (+BP.lrRange.value).toFixed(2);
 
-        const H = 24, W = 36; // visual grid size
-        BP.state = {
-            weights: Array.from({ length: H }, () => Array.from({ length: W }, () => (Math.random() * 2 - 1) * 0.6)),
-            loss: 1.0,
-            noise: 0.0
-        };
+        // Convergence + auto-repeat controls
+        const CONV_THRESH = 0.06;   // consider “converged” below this loss
+        const CONV_FRAMES = 90;     // must stay under threshold this many frames
+        const RESET_HOLD_MS = 400;  // short pause so the reset is noticeable
+
+        function resetBackpropDemo() {
+            const H = 24, W = 36; // visual grid size
+            BP.state = {
+                weights: Array.from({ length: H }, () =>
+                    Array.from({ length: W }, () => (Math.random() * 2 - 1) * 0.6)
+                ),
+                loss: 1.0,
+                noise: 0.0
+            };
+            BP.points = [];
+            BP.convergedFrames = 0;
+            BP.holdUntil = performance.now() + RESET_HOLD_MS; // small breathing room
+        }
+        resetBackpropDemo();
 
         BP.lrRange.addEventListener('input', () => {
             BP.lrVal.textContent = (+BP.lrRange.value).toFixed(2);
         });
 
         function step(dt) {
+            // respect brief hold between restarts
+            if (performance.now() < (BP.holdUntil || 0)) return;
+
             const lr = +BP.lrRange.value;
             const kDecay = 0.9 + 0.08 * Math.exp(-dt * 0.001); // slow approach
             BP.state.loss = Math.max(0.02, BP.state.loss * (kDecay - 0.08 * lr * 0.1));
             BP.state.noise = 0.02 + lr * 0.25;
 
+            const H = BP.state.weights.length;
+            const W = BP.state.weights[0].length;
             for (let i = 0; i < H; i++) {
                 for (let j = 0; j < W; j++) {
                     const w = BP.state.weights[i][j];
@@ -495,6 +532,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const noise = (Math.random() * 2 - 1) * BP.state.noise * 0.02;
                     BP.state.weights[i][j] = w - lr * 0.02 * grad + noise;
                 }
+            }
+
+            // detect convergence & restart
+            if (BP.state.loss <= CONV_THRESH) {
+                BP.convergedFrames = (BP.convergedFrames || 0) + 1;
+                if (BP.convergedFrames >= CONV_FRAMES) resetBackpropDemo();
+            } else {
+                BP.convergedFrames = 0;
             }
         }
 
@@ -506,10 +551,19 @@ document.addEventListener('DOMContentLoaded', () => {
             g.clearRect(0, 0, Wc, Hc);
 
             const pad = 10, gridW = Math.floor(Wc * 0.66);
+
+            // ✅ define H and W from current state
+            const H = BP.state.weights.length;
+            const W = BP.state.weights[0].length;
+
             const cellW = Math.floor((gridW - 2 * pad) / W);
             const cellH = Math.floor((Hc - 2 * pad) / H);
+
+            // heatmap of weights
             let vmax = 1e-6;
-            for (let i = 0; i < H; i++) for (let j = 0; j < W; j++) vmax = Math.max(vmax, Math.abs(BP.state.weights[i][j]));
+            for (let i = 0; i < H; i++) for (let j = 0; j < W; j++) {
+                vmax = Math.max(vmax, Math.abs(BP.state.weights[i][j]));
+            }
             for (let i = 0; i < H; i++) {
                 for (let j = 0; j < W; j++) {
                     const val = BP.state.weights[i][j];
@@ -522,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             g.fillStyle = '#a7b8e8';
             g.fillText('Hidden weights (changing each step)', pad, Hc - 8);
 
-            // loss curve
+            // loss chart
             const x0 = gridW + 20, y0 = pad, w = Wc - x0 - pad, h = Hc - 2 * pad;
             g.strokeStyle = '#3857a8'; g.strokeRect(x0, y0, w, h);
             BP.points = BP.points || [];

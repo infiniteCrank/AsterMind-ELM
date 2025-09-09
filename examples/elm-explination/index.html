@@ -18,8 +18,8 @@
     }
     .app{display:flex; flex-direction:column; min-height:100vh;}
     header{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; background:linear-gradient(180deg,rgba(90, 208, 255, 0.519),rgba(90, 208, 255, 0.338));
+      display:flex; align-items:center; justify-content:space-between; gap:5px;
+      padding:14px 16px; background:linear-gradient(180deg,rgb(0, 76, 191),rgb(1, 23, 32));
       border-bottom:1px solid #13244f;
       position:sticky; top:0; z-index:10;
     }
@@ -38,7 +38,7 @@
       z-index: 9; /* just under header (which has z-index:10) */
       display:flex; gap:6px; align-items:center; flex-wrap:wrap;
       padding:8px 16px; border-top:1px solid #13244f; border-bottom:1px solid #13244f;
-      background:linear-gradient(180deg,rgba(90, 208, 255, 0.456),rgba(90, 208, 255, 0.229));
+      background:linear-gradient(180deg,rgb(90, 208, 255),rgb(90, 208, 255));
     }
     .stage-chip{
       padding:4px 10px; border:1px solid var(--chip-border); border-radius:999px;
@@ -55,11 +55,21 @@
     }
 
     main{flex:1; display:flex; justify-content:center; padding:16px}
-    .slide{
-      width:min(1100px,100%); display:grid; grid-template-columns: 1.1fr .9fr; gap:16px;
-      padding:16px; background:rgba(7,16,41,0.66); border:1px solid #14244e; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.30);
-      grid-template-rows: auto 1fr; /* hero + content */
-    }
+/* Default: slides WITHOUT a hero get a single row */
+.slide{
+  width:min(1100px,100%);
+  display:grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.30);
+  /* ✅ One row when there is no hero */
+  grid-template-rows: 1fr;
+}
+
+/* ✅ If a slide HAS a hero, use two rows: hero + content */
+.slide:has(> .hero){
+  grid-template-rows: auto 1fr;
+}
     .left, .right{min-height:380px; background:rgba(8,19,44,0.72); border:1px solid #182d61; border-radius:14px; overflow:hidden; position:relative}
     .panel{padding:14px 14px 10px 14px; height:100%; display:flex; flex-direction:column; gap:10px;}
     h2{margin:0 0 6px 0; font-size:1.05rem}
@@ -92,9 +102,9 @@
     /* Hero */
     .slide > .hero{
       grid-column: 1 / -1;
-      height: clamp(320px, 45vh, 600px);
+      height: 200px;
       border-radius: 14px;
-      border: 1px solid #182d61;
+      /* border: 1px solid #182d61; */
       background: none;
       display: grid; place-items: center;
       position: relative; overflow: hidden; margin-bottom: 10px;
@@ -172,7 +182,7 @@
   </header>
 
   <!-- Mini-map -->
-  <div class="minimap">
+  <!-- <div class="minimap">
     <div class="stage-chip" data-stagechip="overview">Overview</div>
     <div class="stage-chip" data-stagechip="neuron">Neuron</div>
     <div class="stage-chip" data-stagechip="input">Vectorize</div>
@@ -186,7 +196,7 @@
     <div class="stage-chip" data-stagechip="compare">Compare</div>
     <div class="stage-chip" data-stagechip="predict">Predict</div>
     <div class="progress"><div class="bar" id="progressBar"></div></div>
-  </div>
+  </div> -->
 
   <main>
 
@@ -286,15 +296,11 @@
 const z = w * x + b;
 const y = activation(z);</pre></div>
 
-            <p>
-              In a neural network, a <strong>node</strong> or <strong>neuron</strong> is a tiny computational unit. 
-              It takes one or more <strong>inputs</strong>, multiplies each by a learned <em>weight</em>, adds a 
-              constant <em>bias</em>, and then feeds this sum into an <strong>activation function</strong>. 
-              The activation function introduces non‑linearity and decides how strongly the neuron should “fire.” 
-              These weights and biases are the model’s tunable <strong>parameters</strong>; they determine how much 
-              influence each input has on the neuron’s output.
-            </p>
-
+<ul>
+  <li>A neuron takes inputs, multiplies by weights, adds bias.</li>
+  <li>The sum passes through an activation function.</li>
+  <li>Weights and bias are the parameters that control output.</li>
+</ul>
           <div class="notes"><span class="label">Speaker notes</span>
             
           </div>
@@ -302,30 +308,64 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE: VECTORIZATION -->
+
+  <!-- SLIDE: VECTORIZATION -->
     <section class="slide" id="slide2" data-stage="input">
       <div class="left">
         <div class="panel">
           <h2>Vectorization (text → numbers)</h2>
-          <p>Select a row. We’ll encode text to a feature vector and draw a mini heatmap.</p>
+          <p>
+            Select a row and choose how you want to encode it. We’ll convert the text
+            into a numeric feature vector and draw a mini heatmap of those features.
+          </p>
+
+          <!-- NEW: Encoding method and feature-limit controls -->
+          <div class="row">
+            <span class="chip">Encoding</span>
+            <select id="encodingSelect" style="flex:1">
+              <option value="tfidf">TF‑IDF</option>
+              <option value="bow">Bag‑of‑Words</option>
+              <option value="isolated">Isolated</option>
+            </select>
+          </div>
+          <div class="row">
+            <span class="chip">Max features</span>
+            <input id="featureLimit" type="range" min="16" max="256" step="16" value="128" style="flex:1">
+            <span class="note" id="featureLimitVal">128</span>
+          </div>
+
           <div class="row">
             <select id="rowSelect" style="flex:1"></select>
             <button id="encodeBtn">Encode text</button>
           </div>
+
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="encodeCanvas"></canvas>
           </div>
           <div id="tokensOut" class="code" style="min-height:80px"></div>
-          <div class="notes"><span class="label">Speaker notes</span>
-            Any reasonable encoding works for ELM; we just need a vector (TF-IDF or fallback).
+
+          <div class="notes">
+            <span class="label">Speaker notes</span>
+            Explain that different encodings (Bag‑of‑Words vs TF‑IDF vs isolated counts) can change how much weight each token gets.  Encourage the audience to try each method and adjust the feature‑limit slider to see how the heatmap changes.  Remind them that any numeric encoding works for ELMs.
           </div>
         </div>
       </div>
+
       <div class="right">
         <div class="panel">
           <h2>Plain English</h2>
-          <p>Text → numbers (features). Each square is one number. <span class="note">Blue = positive, red = negative, brighter = larger magnitude.</span></p>
-          <p>ELM only needs a numeric vector; the specific encoder is flexible.</p>
+          <p>
+            Vectorization turns unstructured text into a fixed‑length numeric vector so a neural net can process it.
+          </p>
+          <p>
+            <strong>Bag‑of‑Words:</strong> each word becomes a feature and the value is its count; this simple tally ignores word order and context:contentReference[oaicite:0]{index=0}.
+          </p>
+          <p>
+            <strong>TF‑IDF:</strong> weighs word frequency by inverse document frequency so common words are down‑weighted; it emphasises rare yet distinctive words:contentReference[oaicite:1]{index=1}.
+          </p>
+          <p>
+            <strong>ELM flexibility:</strong> ELM only needs a numeric vector, so you can use any reasonable encoder (BoW, TF‑IDF or even embeddings).  The hidden layer’s random projection works the same no matter which features you choose.
+          </p>
         </div>
       </div>
     </section>
@@ -569,9 +609,9 @@ const y = activation(z);</pre></div>
 
   <div style="padding:8px 16px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
     <div id="status" class="note">Worker: <span id="workerStatus">connecting…</span></div>
-    <div class="footerBar">
-      <!-- Buttons auto-generated by JS -->
-    </div>
+    <!--<div class="footerBar">
+       Buttons auto-generated by JS 
+    </div>-->
   </div>
 </div>
 

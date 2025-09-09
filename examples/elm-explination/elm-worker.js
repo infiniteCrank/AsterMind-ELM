@@ -169,35 +169,91 @@ self.onmessage = async (e) => {
 
     // Encode preview / frozen
     if (type === 'encode') {
-        const { text } = payload;
+        const { text, method, corpus } = payload;
+
+        // quick isolated one-hot view (per-doc)
+        if (method === 'isolated') {
+            const result = isolatedPreviewVector(text);
+            postMessage({ type: 'encoded', payload: { ...result, methodUsed: 'isolated' } });
+            return;
+        }
+
+        // If we've already frozen a basis (after training), reuse it.
         if (basisFrozen) {
+            if (method === 'bow') {
+                try {
+                    if (vocab && idf) {
+                        const { tokens, vector, featureNames: names } = vecFrozenFallback(text);
+                        postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false, featureNames: names, methodUsed: 'bow' } });
+                    } else {
+                        const tmp = isolatedPreviewVector(text);
+                        postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'bow' } });
+                    }
+                } catch {
+                    const tmp = isolatedPreviewVector(text);
+                    postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'bow' } });
+                }
+                return;
+            }
+
             try {
                 if (tfidf) {
                     const vec = tfidf.transform([text])[0];
                     const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
                     const names = featureNames || (typeof tfidf.getFeatureNames === 'function' ? tfidf.getFeatureNames() : null);
-                    postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names } });
+                    postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names, methodUsed: 'tfidf' } });
                 } else {
                     const { tokens, vector, featureNames: names } = vecFrozenFallback(text);
-                    postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false, featureNames: names } });
+                    postMessage({ type: 'encoded', payload: { tokens, vector, usedTFIDF: false, featureNames: names, methodUsed: 'tfidf' } });
                 }
             } catch {
-                postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
+                const tmp = isolatedPreviewVector(text);
+                postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'tfidf' } });
             }
             return;
         }
+
+        // Basis NOT frozen yet — produce a meaningful preview.
+        if (method === 'bow') {
+            try {
+                const toks = simpleTokens(text);
+                const idx = new Map(); const names = [];
+                for (const t of toks) if (!idx.has(t)) { idx.set(t, idx.size); names.push(t); }
+                const v = new Float32Array(names.length);
+                for (const t of toks) v[idx.get(t)] += 1;
+                postMessage({ type: 'encoded', payload: { tokens: toks, vector: Array.from(v), usedTFIDF: false, featureNames: names, methodUsed: 'bow' } });
+            } catch {
+                const tmp = isolatedPreviewVector(text);
+                postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'bow' } });
+            }
+            return;
+        }
+
+        // TF-IDF preview with a corpus (so IDF is informative)
         try {
-            if (TFIDFVectorizer) {
-                const v = new TFIDFVectorizer(); v.fit([text]);
+            if (TFIDFVectorizer && Array.isArray(corpus) && corpus.length > 0) {
+                const v = new TFIDFVectorizer();
+                v.fit(corpus);
                 const vec = v.transform([text])[0];
                 const names = (typeof v.getFeatureNames === 'function') ? v.getFeatureNames() : null;
                 const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
-                postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names } });
+                postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names, methodUsed: 'tfidf' } });
+            } else if (TFIDFVectorizer) {
+                // fallback: single-doc fit (will look flat, but still valid)
+                const v = new TFIDFVectorizer();
+                v.fit([text]);
+                const vec = v.transform([text])[0];
+                const names = (typeof v.getFeatureNames === 'function') ? v.getFeatureNames() : null;
+                const toks = (EncoderELM && EncoderELM.tokenize) ? EncoderELM.tokenize(text) : simpleTokens(text);
+                postMessage({ type: 'encoded', payload: { tokens: toks, vector: vec, usedTFIDF: true, featureNames: names, methodUsed: 'tfidf' } });
             } else {
-                postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
+                // no TF-IDF library available → simple counts
+                const tmp = isolatedPreviewVector(text);
+                postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'tfidf' } });
             }
         } catch {
-            postMessage({ type: 'encoded', payload: isolatedPreviewVector(text) });
+            const tmp = isolatedPreviewVector(text);
+            postMessage({ type: 'encoded', payload: { ...tmp, methodUsed: 'tfidf' } });
         }
     }
 
