@@ -259,13 +259,14 @@
           <input id="wRange" type="range" min="-5" max="5" step="0.05" value="1">
           <div class="kv"><label>Bias (b)</label><span id="bVal">0.00</span></div>
           <input id="bRange" type="range" min="-5" max="5" step="0.05" value="0">
-          <div class="kv">
-            <label>Pre‑activation amplitude</label>
-            <span id="ampVal">0.00</span>
-          </div>
-          <div class="amp-gauge">
-            <div class="bar" id="ampBar"></div>
-          </div>
+          
+          <!-- Pre‑activation amplitude elements (already in place) -->
+          <div class="kv"><label>Pre‑activation amplitude</label><span id="ampVal">0.00</span></div>
+          <div class="amp-gauge"><div class="bar" id="ampBar"></div></div>
+
+          <!-- NEW: Post‑activation amplitude elements -->
+          <div class="kv"><label>Post‑activation amplitude</label><span id="postAmpVal">0.00</span></div>
+          <div class="amp-gauge"><div class="bar" id="postAmpBar"></div></div>
 
           <div class="canvasWrap" style="height:260px"><canvas id="neuronCanvas"></canvas></div>
           <div class="note">“Affine” = compute <code>z = w·x + b</code>, then apply <code>g(z)</code>.</div>

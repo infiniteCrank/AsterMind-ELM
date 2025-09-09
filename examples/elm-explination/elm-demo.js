@@ -191,16 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /* ---------------- Slide: Neuron demo ---------------- */
-    function updateAmplitude() {
-        const w = +wRange.value;
-        const b = +bRange.value;
-        // For z = w·x + b over x ∈ [-3, 3], the extrema are at the endpoints.
-        const amp = Math.max(Math.abs(w * 3 + b), Math.abs(w * -3 + b));
-        ampVal.textContent = amp.toFixed(2);
-        const maxAmp = 20;            // max possible amplitude for w,b ∈ [-5,5]
-        const pct = Math.min(100, (amp / maxAmp) * 100);
-        ampBar.style.width = pct + '%';
-    }
 
     const S1 = { act: 'relu', rafId: null, canvas: null };
     function ensureNeuron() {
@@ -214,6 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const bVal = document.getElementById('bVal');
         const ampVal = document.getElementById('ampVal');
         const ampBar = document.getElementById('ampBar');
+        const postAmpVal = document.getElementById('postAmpVal');
+        const postAmpBar = document.getElementById('postAmpBar');
+
 
         const actFn = (z) => {
             switch (S1.act) {
@@ -224,6 +217,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 default: return z;
             }
         };
+
+        function updateAmplitude() {
+            const w = +wRange.value;
+            const b = +bRange.value;
+            // For z = w·x + b over x ∈ [-3, 3], the extrema are at the endpoints.
+            const amp = Math.max(Math.abs(w * 3 + b), Math.abs(w * -3 + b));
+            ampVal.textContent = amp.toFixed(2);
+            const maxAmp = 20;            // max possible amplitude for w,b ∈ [-5,5]
+            const pct = Math.min(100, (amp / maxAmp) * 100);
+            ampBar.style.width = pct + '%';
+        }
+
+        function updatePostAmplitude() {
+            const w = +wRange.value;
+            const b = +bRange.value;
+            let maxAbsOutput = 0;
+
+            // Sample across the x-range [-3, 3] to find the largest |g(w·x + b)|
+            for (let i = 0; i <= 300; i++) {
+                const x = -3 + (i / 300) * 6;
+                const z = w * x + b;
+                const y = actFn(z);
+                maxAbsOutput = Math.max(maxAbsOutput, Math.abs(y));
+            }
+
+            // Display numeric amplitude
+            postAmpVal.textContent = maxAbsOutput.toFixed(2);
+
+            // Scale bar width relative to the maximum possible output for the current activation
+            // For ReLU/LeakyReLU the output can reach up to 20 (given w,b ranges),
+            // but sigmoid/tanh are bounded between 0..1 and -1..1 respectively.
+            let maxPossible = (S1.act === 'sigmoid' || S1.act === 'tanh') ? 1 : 20;
+            const pct = Math.min(100, (maxAbsOutput / maxPossible) * 100);
+            postAmpBar.style.width = pct + '%';
+        }
 
         function loop() {
             if (!S1.canvas) return;
@@ -263,17 +291,19 @@ document.addEventListener('DOMContentLoaded', () => {
             S1.rafId = requestAnimationFrame(loop);
         }
 
-        actSelect.addEventListener('change', () => { S1.act = actSelect.value; });
+        actSelect.addEventListener('change', () => { S1.act = actSelect.value; updatePostAmplitude(); });
         [wRange, bRange].forEach(r => {
             r.addEventListener('input', () => {
                 wVal.textContent = (+wRange.value).toFixed(2);
                 bVal.textContent = (+bRange.value).toFixed(2);
                 updateAmplitude();          // update amplitude gauge
+                updatePostAmplitude();   // new post‑activation function
             });
         });
         wVal.textContent = (+wRange.value).toFixed(2);
         bVal.textContent = (+bRange.value).toFixed(2);
         updateAmplitude();
+        updatePostAmplitude();
 
         // start animation
         if (S1.rafId) cancelAnimationFrame(S1.rafId);
