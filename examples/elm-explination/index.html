@@ -9,6 +9,7 @@
       --bg:#050c1f; --panel:#0b1633; --ink:#e5efff; --muted:#a7b8e8; --accent:#5ad1ff; --good:#6ee7a2; --warn:#facc15; --bad:#fb7185;
       --chip:#0c1a3d; --chip-border:#203a7c;
       --minimap-top: 0px; /* set by JS based on header height */
+      --header-h: 64px 
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -54,9 +55,11 @@
       border-radius:999px;
     }
 
-    main{flex:1; display:flex; justify-content:center; padding:16px}
+
+    main{ flex:1; display:flex; justify-content:center; padding:16px; align-items:stretch; }
 /* Default: slides WITHOUT a hero get a single row */
 .slide{
+  min-height: calc(100vh - var(--header-h) - 32px); 
   width:min(1100px,100%);
   display:grid;
   grid-template-columns: 1.1fr .9fr;
@@ -172,7 +175,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Extreme Learning Machines — a visual primer for JS engineers</h1>
+    <h1>Extreme Learning Machines — A Visual Primer for JS Engineers</h1>
     <div class="nav">
       <button id="prevBtn">◀ Back</button>
       <div class="chip" id="slideLabel">Slide 1 / 12</div>
@@ -203,7 +206,7 @@
     <!-- SLIDE: OVERVIEW -->
     <section class="slide" id="slide0" data-stage="overview">
       <figure class="hero">
-        <img src="images/intro.png" alt="ELM intro artwork" />
+        <img src="images/ELM3-scaled.png" alt="ELM intro artwork" />
         <div class="caption">What we’ll cover</div>
       </figure>
       <div class="left">
@@ -402,7 +405,10 @@ const y = activation(z);</pre></div>
 
     <!-- SLIDE: HUANG'S QUESTION -->
     <section class="slide" id="slideHuang" data-stage="huang">
-      <figure class="hero"><div class="caption">The bold question</div></figure>
+            <figure class="hero">
+        <img src="images/bold-question-final.png" alt="ELM intro artwork" />
+        <div class="caption">The Bold Question</div>
+      </figure>
       <div class="left">
         <div class="panel">
           <h2>Then along comes Guang-Bin Huang</h2>
