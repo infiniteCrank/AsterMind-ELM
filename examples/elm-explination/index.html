@@ -8,6 +8,7 @@
     :root{
       --bg:#050c1f; --panel:#0b1633; --ink:#e5efff; --muted:#a7b8e8; --accent:#5ad1ff; --good:#6ee7a2; --warn:#facc15; --bad:#fb7185;
       --chip:#0c1a3d; --chip-border:#203a7c;
+      --minimap-top: 0px; /* set by JS based on header height */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -18,7 +19,7 @@
     .app{display:flex; flex-direction:column; min-height:100vh;}
     header{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; background:linear-gradient(180deg,rgba(90,209,255,0.12),rgba(90,209,255,0.0));
+      padding:14px 16px; background:linear-gradient(180deg,rgba(90, 208, 255, 0.519),rgba(90, 208, 255, 0.338));
       border-bottom:1px solid #13244f;
       position:sticky; top:0; z-index:10;
     }
@@ -32,9 +33,12 @@
 
     /* Mini-map */
     .minimap{
+      position: sticky;
+      top: var(--minimap-top);
+      z-index: 9; /* just under header (which has z-index:10) */
       display:flex; gap:6px; align-items:center; flex-wrap:wrap;
       padding:8px 16px; border-top:1px solid #13244f; border-bottom:1px solid #13244f;
-      background:linear-gradient(180deg,rgba(90,209,255,0.06),rgba(90,209,255,0.0));
+      background:linear-gradient(180deg,rgba(90, 208, 255, 0.456),rgba(90, 208, 255, 0.229));
     }
     .stage-chip{
       padding:4px 10px; border:1px solid var(--chip-border); border-radius:999px;
@@ -124,6 +128,35 @@
       white-space:nowrap;
       z-index:10; /* ensure above canvas */
     }
+
+    .stageMap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--panel);
+      padding: 4px;
+    }
+
+    /* Amplitude gauge for neuron slide */
+    .amp-gauge {
+      height: 6px;
+      border-radius: 999px;
+      background: #0b1633;
+      border: 1px solid #1f3570;
+      position: relative;
+      margin: 4px 0 10px 0;
+    }
+    .amp-gauge > .bar {
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      height: calc(100% + 2px);
+      width: 0%;
+      /* color transitions from warn (yellow) to good (green) as amplitude grows */
+      background: linear-gradient(90deg, var(--warn), var(--good));
+      border-radius: 999px;
+    }
+
   </style>
 </head>
 <body>
@@ -157,7 +190,7 @@
 
   <main>
 
-    <!-- SLIDE 1: OVERVIEW -->
+    <!-- SLIDE: OVERVIEW -->
     <section class="slide" id="slide0" data-stage="overview">
       <figure class="hero">
         <img src="images/intro.png" alt="ELM intro artwork" />
@@ -184,7 +217,7 @@
         <div class="panel">
           <h2>Roadmap</h2>
           <ol>
-            <li>Neuron basics</li>
+            <li>Intro</li>
             <li>Neuron demo</li>
             <li>Text → vector</li>
             <li>Backprop loops</li>
@@ -204,41 +237,7 @@
       </div>
     </section>
 
-    <!-- SLIDE 2: NEURON INTRO -->
-    <section class="slide" id="slideIntroNeuron" data-stage="neuron">
-      <figure class="hero" data-hero="images/intro.png">
-        <div class="caption">Neurons are small functions</div>
-      </figure>
-      <div class="left">
-        <div class="panel">
-          <h2>Neurons in plain JS</h2>
-          <p>A neuron takes a number <code>x</code>, computes <code>z = w*x + b</code>, then applies an <em>activation function</em> (e.g., ReLU, <code>tanh</code>): <code>y = g(z)</code>.</p>
-          <div class="code"><pre>// one neuron
-const z = w * x + b;      // affine transform
-const y = activation(z);  // apply nonlinearity</pre></div>
-          <p class="note">Networks are lots of these composed.</p>
-          <div class="notes"><span class="label">Speaker notes</span>
-            Reinforce “affine then nonlinearity.” We’ll visualize next.
-          </div>
-        </div>
-      </div>
-      <div class="right">
-        <div class="panel">
-          <h2>Vocabulary</h2>
-          <ul>
-            <li><strong>w</strong> (weight): how strongly x pushes output</li>
-            <li><strong>b</strong> (bias): constant offset</li>
-            <li><strong>activation function</strong>: controlled nonlinearity</li>
-          </ul>
-          <p class="note">Next: play with a single neuron live.</p>
-          <div class="notes"><span class="label">Speaker notes</span>
-            Keep the terms crisp; we’ll compare activations shortly.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 3: NEURON DEMO -->
+    <!-- SLIDE: NEURON DEMO -->
     <section class="slide" id="slide1" data-stage="neuron">
       <div class="left">
         <div class="panel">
@@ -260,6 +259,14 @@ const y = activation(z);  // apply nonlinearity</pre></div>
           <input id="wRange" type="range" min="-5" max="5" step="0.05" value="1">
           <div class="kv"><label>Bias (b)</label><span id="bVal">0.00</span></div>
           <input id="bRange" type="range" min="-5" max="5" step="0.05" value="0">
+          <div class="kv">
+            <label>Pre‑activation amplitude</label>
+            <span id="ampVal">0.00</span>
+          </div>
+          <div class="amp-gauge">
+            <div class="bar" id="ampBar"></div>
+          </div>
+
           <div class="canvasWrap" style="height:260px"><canvas id="neuronCanvas"></canvas></div>
           <div class="note">“Affine” = compute <code>z = w·x + b</code>, then apply <code>g(z)</code>.</div>
           <div class="notes"><span class="label">Speaker notes</span>
@@ -277,14 +284,24 @@ const y = activation(z);  // apply nonlinearity</pre></div>
           <div class="code"><pre>// y = g(w·x + b)
 const z = w * x + b;
 const y = activation(z);</pre></div>
+
+            <p>
+              In a neural network, a <strong>node</strong> or <strong>neuron</strong> is a tiny computational unit. 
+              It takes one or more <strong>inputs</strong>, multiplies each by a learned <em>weight</em>, adds a 
+              constant <em>bias</em>, and then feeds this sum into an <strong>activation function</strong>. 
+              The activation function introduces non‑linearity and decides how strongly the neuron should “fire.” 
+              These weights and biases are the model’s tunable <strong>parameters</strong>; they determine how much 
+              influence each input has on the neuron’s output.
+            </p>
+
           <div class="notes"><span class="label">Speaker notes</span>
-            Keep this brisk; we’re heading toward why training is hard.
+            
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 4: VECTORIZATION -->
+    <!-- SLIDE: VECTORIZATION -->
     <section class="slide" id="slide2" data-stage="input">
       <div class="left">
         <div class="panel">
@@ -312,7 +329,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 5: WHY HAND TUNING IS HARD → BACKPROP -->
+    <!-- SLIDE: WHY HAND TUNING IS HARD → BACKPROP -->
     <section class="slide" id="slideBP" data-stage="backprop">
       <div class="left">
         <div class="panel">
@@ -342,7 +359,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 6: HUANG'S QUESTION -->
+    <!-- SLIDE: HUANG'S QUESTION -->
     <section class="slide" id="slideHuang" data-stage="huang">
       <figure class="hero"><div class="caption">The bold question</div></figure>
       <div class="left">
@@ -365,7 +382,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 7: RANDOM GRID ANALOGY -->
+    <!-- SLIDE: RANDOM GRID ANALOGY -->
     <section class="slide" id="slideGrid" data-stage="grid">
       <figure class="hero"><div class="caption">Random coordinates, useful structure</div></figure>
       <div class="left">
@@ -388,7 +405,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 8: GPS / PSEUDOINVERSE -->
+    <!-- SLIDE: GPS / PSEUDOINVERSE -->
     <section class="slide" id="slideGPS" data-stage="gps">
       <figure class="hero"><div class="caption">One solve, like GPS routing</div></figure>
       <div class="left">
@@ -410,7 +427,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 9: WHY RANDOMNESS WORKS -->
+    <!-- SLIDE: WHY RANDOMNESS WORKS -->
     <section class="slide" id="slideWhy" data-stage="why">
       <figure class="hero"><div class="caption">Unfold the data</div></figure>
       <div class="left">
@@ -434,7 +451,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 10: HIDDEN LAYER (random W,b + project H) -->
+    <!-- SLIDE: HIDDEN LAYER (random W,b + project H) -->
     <section class="slide" id="slideHidden" data-stage="hidden">
       <div class="left">
         <div class="panel">
@@ -466,7 +483,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 11: ELM TRAINING (ONE SHOT) -->
+    <!-- SLIDE: ELM TRAINING (ONE SHOT) -->
     <section class="slide" id="slide4" data-stage="output">
       <div class="left">
         <div class="panel">
@@ -499,7 +516,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 12: BACKPROP VS ELM -->
+    <!-- SLIDE: BACKPROP VS ELM -->
     <section class="slide" id="slideCompare" data-stage="compare">
       <figure class="hero"><div class="caption">Two different mindsets</div></figure>
       <div class="left">
@@ -522,7 +539,7 @@ const y = activation(z);</pre></div>
       </div>
     </section>
 
-    <!-- SLIDE 13: PREDICTION -->
+    <!-- SLIDE: PREDICTION -->
     <section class="slide" id="slidePred" data-stage="predict">
       <div class="left">
         <div class="panel">

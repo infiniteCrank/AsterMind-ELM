@@ -42,6 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const slides = slideNodes.map((node) => ({ id: node.id, node, stage: node.dataset.stage || 'misc' }));
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+    // --- Make mini-map stick directly below the sticky header ---
+    const headerEl = document.querySelector('header');
+    function setMinimapTop() {
+        const h = headerEl ? headerEl.offsetHeight : 0;
+        document.documentElement.style.setProperty('--minimap-top', h + 'px');
+    }
+    // Set once and on resize (covers responsive layout/font changes)
+    setMinimapTop();
+    window.addEventListener('resize', setMinimapTop);
+
     const slideLabel = document.getElementById('slideLabel');
     const footerBar = document.querySelector('.footerBar');
     const notesToggle = document.getElementById('notesToggle');
@@ -108,17 +118,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (id === 'slideHidden') ensureHidden();
         if (id === 'slide4') ensureELMTrain();
         if (id === 'slidePred') ensurePredict();
+        if (id === 'slideIntroNeuron') ensureIceCone();
     }
 
     prevBtn.onclick = () => show(idx - 1);
     nextBtn.onclick = () => show(idx + 1);
 
-    if (location.hash) {
-        const n = parseInt(location.hash.replace('#', ''), 10);
-        show(Number.isFinite(n) ? n - 1 : 0);
-    } else {
-        show(0);
-    }
+    // Delay initial slide navigation until after all declarations have run.
+    const navigateInitialSlide = () => {
+        if (location.hash) {
+            const n = parseInt(location.hash.replace('#', ''), 10);
+            show(Number.isFinite(n) ? n - 1 : 0);
+        } else {
+            show(0);
+        }
+    };
+    requestAnimationFrame(navigateInitialSlide);
+
 
     /* ---------------- Worker wiring ---------------- */
     const workerStatus = document.getElementById('workerStatus');
@@ -174,7 +190,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return v.toFixed(3);
     };
 
-    /* ---------------- Slide 3: Neuron demo ---------------- */
+    /* ---------------- Slide: Neuron demo ---------------- */
+    function updateAmplitude() {
+        const w = +wRange.value;
+        const b = +bRange.value;
+        // For z = w·x + b over x ∈ [-3, 3], the extrema are at the endpoints.
+        const amp = Math.max(Math.abs(w * 3 + b), Math.abs(w * -3 + b));
+        ampVal.textContent = amp.toFixed(2);
+        const maxAmp = 20;            // max possible amplitude for w,b ∈ [-5,5]
+        const pct = Math.min(100, (amp / maxAmp) * 100);
+        ampBar.style.width = pct + '%';
+    }
+
     const S1 = { act: 'relu', rafId: null, canvas: null };
     function ensureNeuron() {
         if (S1.inited) return;
@@ -185,6 +212,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const bRange = document.getElementById('bRange');
         const wVal = document.getElementById('wVal');
         const bVal = document.getElementById('bVal');
+        const ampVal = document.getElementById('ampVal');
+        const ampBar = document.getElementById('ampBar');
 
         const actFn = (z) => {
             switch (S1.act) {
@@ -239,10 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
             r.addEventListener('input', () => {
                 wVal.textContent = (+wRange.value).toFixed(2);
                 bVal.textContent = (+bRange.value).toFixed(2);
+                updateAmplitude();          // update amplitude gauge
             });
         });
         wVal.textContent = (+wRange.value).toFixed(2);
         bVal.textContent = (+bRange.value).toFixed(2);
+        updateAmplitude();
 
         // start animation
         if (S1.rafId) cancelAnimationFrame(S1.rafId);
