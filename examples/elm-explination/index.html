@@ -679,15 +679,10 @@ body.show-notes .notes{ display:block; }
     </section>
 
     <!-- SLIDE: WHY RANDOMNESS WORKS -->
-    <section class="slide" id="slideWhy" data-stage="why">
-      <figure class="hero"><div class="caption">Unfold the data</div></figure>
+    <section class="slide" id="slideWhy" data-stage="why" data-left-h="400" data-right-h="400">
       <div class="left">
         <div class="panel">
-          <h2>Why randomness helps</h2>
-          <p>Raw input space is often not linearly separable. Random projection to a higher-dimensional space can make separation easier—like unfolding a crumpled paper ball onto a plane.</p>
-          <div class="notes"><span class="label">Speaker notes</span>
-            “Higher dimension → simpler boundaries.” Mention regularization briefly.
-          </div>
+          <img src="images/crumpled-paper.png" alt="GPS metaphor" height="800">
         </div>
       </div>
       <div class="right">
@@ -698,6 +693,7 @@ body.show-notes .notes{ display:block; }
             <li>Solve a linear model once for <code>β</code> so <code>Hβ ≈ Y</code>.</li>
           </ol>
           <p class="note">Surprisingly strong with enough hidden units + sensible ridge.</p>
+          <canvas id="whyWorks"></canvas>
         </div>
       </div>
     </section>

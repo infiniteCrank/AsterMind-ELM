@@ -268,6 +268,7 @@ function show(i){
   if (id === 'slidePred')   ensurePredict();
   if (id === 'slideIntroNeuron') ensureIceCone?.();
   if (id === 'slideGPS')    ensurePseudoInverse(); 
+  if (id === 'slideWhy') ensureWhyWorks();   // ← add this
 
   applyPerSlideSizing(idx);
   updateMinimapHighlight(idx);
@@ -521,6 +522,122 @@ function ensurePseudoInverse(){
 
   let raf; (function loop(ts){ draw(ts); raf=requestAnimationFrame(loop); })(0);
   addEventListener('beforeunload', ()=>cancelAnimationFrame(raf));
+}
+
+/* ---------------- X) Slide: Why This Works (random projection) ---------------- */
+function ensureWhyWorks(){
+  if (ensureWhyWorks.inited) return;
+  ensureWhyWorks.inited = true;
+
+  const c = document.querySelector('#whyWorks');
+  if (!c) return;
+  const g = c.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+
+  function resize(){
+    const W = c.clientWidth, H = c.clientHeight || 260;
+    c.width = Math.max(1, W * DPR);
+    c.height = Math.max(1, H * DPR);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize, { passive:true });
+
+  // Build a "crumpled" blob of two interleaved classes
+  const N = 36;
+  const basePts = Array.from({length:N}, (_,i)=>{
+    const a = Math.random() * Math.PI * 2;
+    const r = 40 + Math.random() * 38;
+    return { x: Math.cos(a)*r, y: Math.sin(a)*r, cls: i % 2 };
+  });
+
+  // Helpers
+  function neonLine(x1,y1,x2,y2, color='rgba(110,231,162,.95)', width=2, glow=12){
+    g.save();
+    g.lineWidth = width;
+    g.shadowColor = color;
+    g.shadowBlur = glow;
+    g.strokeStyle = color;
+    g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+    g.restore();
+  }
+
+  function draw(ts){
+    const t = (ts||0)/1000;
+    const W = c.clientWidth, H = c.clientHeight || 260;
+    g.clearRect(0,0,W,H);
+
+    const cxL = Math.round(W*0.25), cxR = Math.round(W*0.75), cy = Math.round(H*0.5);
+
+    // Phase smoothly oscillates: crumpled ↔ projected
+    const phase = (Math.sin(t*0.6)+1)/2; // 0..1
+
+    // Titles
+    g.fillStyle = '#5ad1ff';
+    g.font = '600 13px ui-sans-serif,system-ui';
+    g.textAlign = 'center';
+    g.fillText('Crumpled data', cxL, 18);
+    g.fillText('Higher-dimensional projection', cxR, 18);
+
+    // --- Left: crumpled blob -------------------------------------------------
+    g.save();
+    g.translate(cxL, cy);
+    // wireframe-ish outline
+    g.strokeStyle = 'rgba(173,123,255,.35)';
+    g.lineWidth = 1.5;
+    g.beginPath();
+    for (let i=0;i<basePts.length;i++){
+      const p = basePts[i], q = basePts[(i+1)%basePts.length];
+      if (i===0) g.moveTo(p.x*0.8, p.y*0.8);
+      g.lineTo(q.x*0.8, q.y*0.8);
+    }
+    g.stroke();
+    // points
+    basePts.forEach(p=>{
+      g.fillStyle = p.cls ? 'rgba(255,149,255,.95)' : 'rgba(90,209,255,.95)';
+      g.beginPath(); g.arc(p.x*0.8, p.y*0.8, 4, 0, Math.PI*2); g.fill();
+    });
+    g.restore();
+
+    // --- Right: projected & separated ---------------------------------------
+    g.save();
+    g.translate(cxR, cy);
+
+    // Draw a soft grid pad
+    const grid = 88;
+    g.strokeStyle = 'rgba(255,255,255,0.06)';
+    for (let x=-grid; x<=grid; x+=22){ g.beginPath(); g.moveTo(x,-grid); g.lineTo(x,grid); g.stroke(); }
+    for (let y=-grid; y<=grid; y+=22){ g.beginPath(); g.moveTo(-grid,y); g.lineTo(grid,y); g.stroke(); }
+
+    // Separating line (neon)
+    neonLine(-96, 0, 96, 0, '#6ee7a2', 2.2, 14);
+
+    // Project each point from crumpled → spread clusters across the line
+    basePts.forEach((p,i)=>{
+      const tx = (p.cls ? 1 : -1) * 58;                 // target side
+      const ty = (i%6 - 3) * 10 + (p.cls?6:-6);         // small spread
+      const x = p.x*0.5*(1-phase) + tx*phase;
+      const y = p.y*0.5*(1-phase) + ty*phase;
+
+      // glow dot
+      const col = p.cls ? 'rgba(255,149,255,.95)' : 'rgba(90,209,255,.95)';
+      g.save();
+      g.shadowColor = col; g.shadowBlur = 12; g.fillStyle = col;
+      g.beginPath(); g.arc(x, y, 4, 0, Math.PI*2); g.fill();
+      g.restore();
+    });
+
+    g.restore();
+
+    // Footer
+    g.fillStyle = '#a7b8e8';
+    g.font = '600 12px ui-sans-serif,system-ui';
+    g.textAlign = 'center';
+    g.fillText('Random projection into a richer space → simple linear split', W/2, H-8);
+  }
+
+  let raf; (function loop(ts){ draw(ts); raf = requestAnimationFrame(loop); })(0);
+  addEventListener('beforeunload', ()=> cancelAnimationFrame(raf));
 }
 
 /* ---------------- 8) Slide 2a: overview animation ---------------- */
