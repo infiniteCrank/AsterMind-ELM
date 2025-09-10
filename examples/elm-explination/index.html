@@ -4,173 +4,285 @@
   <meta charset="utf-8"/>
   <title>Extreme Learning Machine — JS Engineer Primer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#050c1f; --panel:#0b1633; --ink:#e5efff; --muted:#a7b8e8; --accent:#5ad1ff; --good:#6ee7a2; --warn:#facc15; --bad:#fb7185;
-      --chip:#0c1a3d; --chip-border:#203a7c;
-      --minimap-top: 0px; /* set by JS based on header height */
-      --header-h: 64px 
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:radial-gradient(1200px 700px at 50% -200px,#0b1633 0%,#050c1f 55%,#020614 100%);
-      color:var(--ink); font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    }
-    .app{display:flex; flex-direction:column; min-height:100vh;}
-    header{
-      display:flex; align-items:center; justify-content:space-between; gap:5px;
-      padding:14px 16px; background:linear-gradient(180deg,rgb(0, 76, 191),rgb(1, 23, 32));
-      border-bottom:1px solid #13244f;
-      position:sticky; top:0; z-index:10;
-    }
-    header h1{font-size:1.05rem; margin:0; font-weight:600; letter-spacing:0.2px}
-    .nav{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    button{
-      background:#102043; color:var(--ink); border:1px solid #1f3570; border-radius:10px; padding:8px 12px; cursor:pointer;
-    }
-    button:hover{background:#12265a}
-    button[disabled]{opacity:.6; cursor:not-allowed}
+/* =========================================================
+   0) DESIGN TOKENS & GLOBAL RESETS
+   ========================================================= */
+:root{
+  /* Color system */
+  --bg:#050c1f; --panel:#0b1633; --ink:#e5efff; --muted:#a7b8e8; --accent:#5ad1ff;
+  --good:#6ee7a2; --warn:#facc15; --bad:#fb7185;
+  --chip:#0c1a3d; --chip-border:#203a7c;
 
-    /* Mini-map */
-    .minimap{
-      position: sticky;
-      top: var(--minimap-top);
-      z-index: 9; /* just under header (which has z-index:10) */
-      display:flex; gap:6px; align-items:center; flex-wrap:wrap;
-      padding:8px 16px; border-top:1px solid #13244f; border-bottom:1px solid #13244f;
-      background:linear-gradient(180deg,rgb(90, 208, 255),rgb(90, 208, 255));
-    }
-    .stage-chip{
-      padding:4px 10px; border:1px solid var(--chip-border); border-radius:999px;
-      background:var(--chip); font-size:.8rem; color:#bcd0ff; opacity:.75; white-space:nowrap;
-    }
-    .stage-chip.active{opacity:1; border-color:#3b66d1; color:#eaf2ff; box-shadow:0 0 0 1px rgba(90,209,255,.25) inset;}
-    .progress{
-      height:6px; flex:1; border-radius:999px; background:#0b1633; border:1px solid #1f3570; position:relative; min-width:140px;
-    }
-    .progress > .bar{
-      position:absolute; top:-1px; left:-1px; height:calc(100% + 2px); width:0%;
-      background:linear-gradient(90deg, #2a64ff, #5ad1ff);
-      border-radius:999px;
-    }
+  /* Layout metrics */
+  --header-h: 64px; /* fixed header height */
+  --minimap-top: 0px; /* set by JS based on header height (if needed) */
+}
 
 
-    main{ flex:1; display:flex; justify-content:center; padding:16px; align-items:stretch; }
-/* Default: slides WITHOUT a hero get a single row */
+.orbitron-header> {
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+*,
+*::before,
+*::after{ box-sizing: border-box; }
+
+html, body{ height:100%; }
+body{
+  margin:0;
+  color:var(--ink);
+  font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background: radial-gradient(1200px 700px at 50% -200px,#0b1633 0%,#050c1f 55%,#020614 100%);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Utility */
+[hidden]{ display:none !important; }
+
+/* =========================================================
+   1) APP SHELL
+   ========================================================= */
+.app{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+
+/* Header (cyberpunk, same height) */
+header{
+  height: var(--header-h);
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:0 16px;
+  background:
+    radial-gradient(900px 120px at 20% -60px, rgba(90,209,255,.20), transparent 60%),
+    linear-gradient(180deg,#071332 0%,#050c1f 100%);
+  border-bottom:1px solid #13244f;
+  position:sticky; top:0; z-index:20;
+}
+header h1{
+  font-size:1rem; margin:0; font-weight:700; letter-spacing:.5px;
+  text-shadow:0 0 12px rgba(90,209,255,.25);
+}
+.nav{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+/* Buttons (global) */
+button{
+  background:#102043; color:var(--ink);
+  border:1px solid #1f3570; border-radius:10px;
+  padding:8px 12px; cursor:pointer;
+}
+button:hover{ background:#12265a; }
+button[disabled]{ opacity:.6; cursor:not-allowed; }
+button:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  box-shadow: 0 0 0 4px rgba(90,209,255,.15);
+}
+
+/* =========================================================
+   2) MAIN LAYOUT GRID (WITH LEFT MINIMAP RAIL)
+   ========================================================= */
+main{
+  flex:1;
+  display:grid; gap:16px; padding:16px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items:stretch;
+}
+
+/* Left rail (minimap) */
+.minimap-rail{
+  position:sticky; top: calc(var(--header-h) + 0px);
+  align-self:start;
+  background: linear-gradient(180deg,rgba(15,30,68,.85),rgba(9,20,49,.85));
+  border:1px solid #1a2f63; border-radius:14px;
+  padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  max-height: calc(100vh - var(--header-h) - 32px);
+  overflow:auto;
+}
+.mm-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.mm-toggle{
+  background:#102043; border:1px solid #1f3570; border-radius:10px;
+  color:#e5efff; padding:6px 8px;
+}
+.minimap-svg svg{ width:100%; height:auto; display:block; }
+
+.mm-dots{
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+}
+.mm-dots button{
+  width:22px; height:22px; border-radius:50%;
+  background:#0c1a3d; border:1px solid #203a7c; color:#9fb8ff; font-size:.75rem;
+}
+.mm-dots button.active{
+  outline:2px solid var(--accent);
+  color:#eaf2ff;
+}
+
+/* Optional stage bar (if used anywhere else) */
+.stageMap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--panel);
+  padding: 4px;
+}
+
+/* =========================================================
+   3) SLIDE CANVAS & PANELS
+   ========================================================= */
+/* Slides occupy one screen (no scroll); hero (auto) + two columns (1fr) */
 .slide{
-  min-height: calc(100vh - var(--header-h) - 32px); 
-  width:min(1100px,100%);
-  display:grid;
+  min-height: calc(100vh - var(--header-h) - 32px);
+  display:grid; gap:16px;
   grid-template-columns: 1.1fr .9fr;
-  gap:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.30);
-  /* ✅ One row when there is no hero */
-  grid-template-rows: 1fr;
+  grid-template-rows: auto 1fr; /* hero (auto) + content (1fr) */
 }
 
-/* ✅ If a slide HAS a hero, use two rows: hero + content */
-.slide:has(> .hero){
-  grid-template-rows: auto 1fr;
+/* Hero area (unique, consolidated rule) */
+.slide > .hero{
+  grid-column: 1 / -1;
+  height: 200px; /* overridden per-slide by JS via inline style */
+  border-radius: 14px;
+  background: none;
+  display: grid; place-items: center;
+  position: relative; overflow: hidden; margin-bottom: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
 }
-    .left, .right{min-height:380px; background:rgba(8,19,44,0.72); border:1px solid #182d61; border-radius:14px; overflow:hidden; position:relative}
-    .panel{padding:14px 14px 10px 14px; height:100%; display:flex; flex-direction:column; gap:10px;}
-    h2{margin:0 0 6px 0; font-size:1.05rem}
-    p{margin:.25rem 0; color:var(--muted); line-height:1.35}
-    ul,ol{margin:.4rem 0 .6rem 1.1rem; color:var(--muted)}
-    label{font-size:.9rem; color:var(--muted)}
-    select,input[type=range]{width:100%}
-    .kv{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center}
-    .row{display:flex; gap:10px; flex-wrap:wrap}
-    .chip{padding:4px 8px; border:1px solid #203a7c; border-radius:999px; font-size:.8rem; color:#bcd0ff; background:#0c1a3d}
-    .canvasWrap{flex:1; border:1px dashed #253f85; border-radius:10px; overflow:hidden; background:#071332}
-    canvas{display:block; width:100%; height:100%}
-    .footerBar{display:flex; gap:10px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap}
-    .code{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; background:#0c1a3d; border:1px solid #203a7c; border-radius:8px; padding:8px; font-size:.88rem; color:#cfe1ff; overflow:auto}
-    .note{font-size:.85rem; color:#93a9e8}
-    .notes{
-      margin-top:auto; border-top:1px dashed #243f86; padding-top:8px; font-size:.88rem; color:#cfe1ff; display:none;
-      background:rgba(12,26,61,.35); border-radius:8px; padding:10px; line-height:1.35;
-    }
-    body.show-notes .notes{display:block}
-    .notes .label{font-weight:600; color:#eaf2ff; opacity:.9; display:block; margin-bottom:4px;}
+.slide > .hero img{
+  width: 100%; height: 100%; object-fit: contain;
+}
+.hero .caption{
+  position:absolute; left:12px; bottom:10px;
+  font-size:.9rem; color:#cfe1ff; opacity:.95;
+  background: rgba(12,26,61,.55);
+  border:1px solid #203a7c;
+  padding:4px 8px; border-radius:8px;
+}
 
-    @media (max-width: 980px){
-      .slide{grid-template-columns: 1fr; }
-      .left,.right{min-height:300px}
-      .minimap{gap:8px}
-    }
-    [hidden]{display:none !important;}
+/* Columns (left/right content blocks) */
+.slide .left,
+.slide .right{
+  background: rgba(8,19,44,0.72);
+  border:1px solid #182d61;
+  border-radius:14px;
+  overflow:hidden;
+}
 
-    /* Hero */
-    .slide > .hero{
-      grid-column: 1 / -1;
-      height: 200px;
-      border-radius: 14px;
-      /* border: 1px solid #182d61; */
-      background: none;
-      display: grid; place-items: center;
-      position: relative; overflow: hidden; margin-bottom: 10px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.28);
-    }
-    .slide > .hero img{
-      width: 100%; height: 100%; object-fit: contain;
-    }
-    .hero .caption{
-      position:absolute; left:12px; bottom:10px;
-      font-size:.9rem; color:#cfe1ff; opacity:.95;
-      background: rgba(12,26,61,.55);
-      border:1px solid #203a7c;
-      padding:4px 8px; border-radius:8px;
-    }
+/* Generic panel scaffolding */
+.panel{
+  padding:14px 14px 10px 14px;
+  height:100%;
+  display:flex; flex-direction:column; gap:10px;
+}
 
-    /* Tooltip positioning tweaks: rely on left/top from JS, no transform */
-    .encode-tip,.hidden-tip,.bp-tip{
-      position:absolute;
-      top:0;
-      left:0;
-      transform:none;
-      background:#0c1a3d;
-      border:1px solid #203a7c;
-      padding:4px 6px;
-      border-radius:6px;
-      font-size:.8rem;
-      color:#cfe1ff;
-      display:none;
-      pointer-events:none;
-      white-space:nowrap;
-      z-index:10; /* ensure above canvas */
-    }
+/* Typography */
+h2{ margin:0 0 6px 0; font-size:1.05rem; }
+p{ margin:.25rem 0; color:var(--muted); line-height:1.35; }
+ul,ol{ margin:.4rem 0 .6rem 1.1rem; color:var(--muted); }
+label{ font-size:.9rem; color:var(--muted); }
 
-    .stageMap {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: var(--panel);
-      padding: 4px;
-    }
+/* Form & layout utilities */
+select,
+input[type="range"]{ width:100%; }
+.kv{ display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; }
+.row{ display:flex; gap:10px; flex-wrap:wrap; }
 
-    /* Amplitude gauge for neuron slide */
-    .amp-gauge {
-      height: 6px;
-      border-radius: 999px;
-      background: #0b1633;
-      border: 1px solid #1f3570;
-      position: relative;
-      margin: 4px 0 10px 0;
-    }
-    .amp-gauge > .bar {
-      position: absolute;
-      top: -1px;
-      left: -1px;
-      height: calc(100% + 2px);
-      width: 0%;
-      /* color transitions from warn (yellow) to good (green) as amplitude grows */
-      background: linear-gradient(90deg, var(--warn), var(--good));
-      border-radius: 999px;
-    }
+/* Chips */
+.chip{
+  padding:4px 8px;
+  border:1px solid var(--chip-border);
+  border-radius:999px;
+  font-size:.8rem; color:#bcd0ff; background:var(--chip);
+}
 
-  </style>
+/* Canvas container */
+.canvasWrap{
+  flex:1;
+  border:1px dashed #253f85; border-radius:10px;
+  overflow:hidden; background:#071332;
+}
+canvas{ display:block; width:100%; height:100%; }
+
+/* Footer actions */
+.footerBar{
+  display:flex; gap:10px; justify-content:flex-end; margin-top:8px; flex-wrap:wrap;
+}
+
+/* Code blocks */
+.code{
+  font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  background:#0c1a3d; border:1px solid #203a7c; border-radius:8px;
+  padding:8px; font-size:.88rem; color:#cfe1ff; overflow:auto;
+}
+
+/* Slide notes (toggle via .show-notes on body) */
+.note{ font-size:.85rem; color:#93a9e8; }
+.notes{
+  margin-top:auto; border-top:1px dashed #243f86; padding-top:8px;
+  font-size:.88rem; color:#cfe1ff; display:none;
+  background:rgba(12,26,61,.35); border-radius:8px; padding:10px; line-height:1.35;
+}
+body.show-notes .notes{ display:block; }
+.notes .label{ font-weight:600; color:#eaf2ff; opacity:.9; display:block; margin-bottom:4px; }
+
+/* =========================================================
+   4) TOOLTIP SYSTEM (ENCODE/HIDDEN/BP)
+   - JS sets top/left; we keep layering consistent.
+   ========================================================= */
+.encode-tip,
+.hidden-tip,
+.bp-tip{
+  position:absolute; top:0; left:0; transform:none;
+  background:#0c1a3d;
+  border:1px solid #203a7c;
+  padding:4px 6px; border-radius:6px;
+  font-size:.8rem; color:#cfe1ff;
+  display:none; pointer-events:none; white-space:nowrap;
+  z-index: 40; /* above canvases and panels */
+}
+
+/* =========================================================
+   5) SPECIAL WIDGETS
+   ========================================================= */
+/* Amplitude gauge (neuron slide) */
+.amp-gauge{
+  height:6px; border-radius:999px;
+  background:#0b1633; border:1px solid #1f3570;
+  position:relative; margin:4px 0 10px 0;
+}
+.amp-gauge > .bar{
+  position:absolute; top:-1px; left:-1px;
+  height: calc(100% + 2px); width:0%;
+  background: linear-gradient(90deg, var(--warn), var(--good));
+  border-radius:999px;
+}
+
+/* =========================================================
+   6) RESPONSIVE BEHAVIOR
+   - Collapses left rail into dots; slides go single column.
+   ========================================================= */
+@media (max-width: 980px){
+  main{ grid-template-columns: 1fr; }
+  .minimap-rail{ position:static; max-height:none; order:-1; }
+  .minimap-svg{ display:none; } /* hide network diagram */
+  .mm-dots{ display:flex; }     /* show quick-jump dots */
+
+  .slide{ grid-template-columns: 1fr; }
+  .left, .right{ min-height:300px; }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -184,29 +296,40 @@
     </div>
   </header>
 
-  <!-- Mini-map -->
-  <!-- <div class="minimap">
-    <div class="stage-chip" data-stagechip="overview">Overview</div>
-    <div class="stage-chip" data-stagechip="neuron">Neuron</div>
-    <div class="stage-chip" data-stagechip="input">Vectorize</div>
-    <div class="stage-chip" data-stagechip="backprop">Backprop</div>
-    <div class="stage-chip" data-stagechip="huang">Huang</div>
-    <div class="stage-chip" data-stagechip="grid">Random Grid</div>
-    <div class="stage-chip" data-stagechip="gps">GPS/Pinv</div>
-    <div class="stage-chip" data-stagechip="why">Why Random</div>
-    <div class="stage-chip" data-stagechip="hidden">Hidden</div>
-    <div class="stage-chip" data-stagechip="output">One-shot</div>
-    <div class="stage-chip" data-stagechip="compare">Compare</div>
-    <div class="stage-chip" data-stagechip="predict">Predict</div>
-    <div class="progress"><div class="bar" id="progressBar"></div></div>
-  </div> -->
-
   <main>
 
+
+  <!-- LEFT CYBERPUNK MINI-MAP -->
+  <aside id="minimapRail" class="minimap-rail" aria-label="Slide minimap">
+    <div class="mm-header">
+      <svg viewBox="0 0 120 24" class="logo">
+        <defs>
+          <linearGradient id="mmg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5ad1ff"/><stop offset="1" stop-color="#2a64ff"/>
+          </linearGradient>
+        </defs>
+        <text x="0" y="18" fill="url(#mmg)" font-size="16" font-weight="700" letter-spacing="1">ELM NAV</text>
+      </svg>
+      <button id="mmToggle" class="mm-toggle" title="Collapse minimap">☰</button>
+    </div>
+
+    <!-- The network schematic is injected here by JS -->
+    <nav id="minimap" class="minimap-svg" role="navigation" aria-label="ELM stages"></nav>
+
+    <!-- slide dots (mobile quick jump) -->
+    <div class="mm-dots" id="mmDots"></div>
+  </aside>
+
+
+  <!-- this is an example of how to make a new slide section 
+   data-hero-h, data-left-h, data-right-h are optional per slide. If absent, sensible defaults apply.
+   <section class="slide" id="slide0" data-stage="overview"
+         data-hero-h="280" data-left-h="420" data-right-h="360"> -->
+
     <!-- SLIDE: OVERVIEW -->
-    <section class="slide" id="slide0" data-stage="overview">
+    <section class="slide" id="slide0" data-stage="overview" data-hero-h="550">
       <figure class="hero">
-        <img src="images/ELM3-scaled.png" alt="ELM intro artwork" />
+        <img src="images/intro.png" alt="ELM intro artwork" />
         <div class="caption">What we’ll cover</div>
       </figure>
       <div class="left">
@@ -250,6 +373,39 @@
       </div>
     </section>
 
+    <!-- SLIDE: layer overview -->
+    <section class="slide" id="slide2a" data-stage="overview" data-hero-h="220" data-left-h="200" data-right-h="360">
+      <figure class="hero">
+        <h1 class="orbitron-header">Neural Networks: Big Picture</h1>
+      </figure>
+      <div class="left">
+        <div class="panel">
+          <h2>From text to prediction</h2>
+          <ol>
+            <li><strong>Text → vectors:</strong> tokenize + encode into numbers</li>
+            <li><strong>Input layer:</strong> pass the vector in</li>
+            <li><strong>Hidden layer:</strong> mix & squish (activation)</li>
+            <li><strong>Output layer:</strong> transformed signal → classes/scores</li>
+          </ol>
+          <div class="row">
+            <input id="nnText" value="ELM trains fast with a random hidden layer." style="flex:1"/>
+            <button id="nnRun">Run</button>
+          </div>
+          <div class="canvasWrap" style="height:260px; position:relative">
+            <canvas id="nnCanvas"></canvas>
+          </div>
+          <div class="note">Tip: tap any neuron bubble to zoom to the Neuron slide.</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel">
+          <h2>Plain English</h2>
+          <p>Think of the hidden layer like a blender: it stirs the numbers with fixed recipes (weights), then a squish (activation) gives shape to the signal. The output just reads the mixture.</p>
+        </div>
+      </div>
+    </section>
+
+
     <!-- SLIDE: NEURON DEMO -->
     <section class="slide" id="slide1" data-stage="neuron">
       <div class="left">
@@ -261,7 +417,6 @@
               <label>Activation</label>
               <select id="actSelect">
                 <option value="relu">ReLU</option>
-                <option value="leakyRelu">LeakyReLU</option>
                 <option value="sigmoid">Sigmoid</option>
                 <option value="tanh">tanh</option>
               </select>
@@ -295,15 +450,24 @@
             <li>Set <strong>w = -2</strong>, <strong>b = 0.5</strong></li>
             <li>Toggle ReLU ↔︎ tanh and observe shape changes</li>
           </ul>
-          <div class="code"><pre>// y = g(w·x + b)
-const z = w * x + b;
-const y = activation(z);</pre></div>
+          <div class="code">
+            <pre>
+            // y = g(w·x + b)
+            const z = w * x + b;
+            const y = activation(z);
+            </pre>
+          </div>
 
-<ul>
-  <li>A neuron takes inputs, multiplies by weights, adds bias.</li>
-  <li>The sum passes through an activation function.</li>
-  <li>Weights and bias are the parameters that control output.</li>
-</ul>
+          <ul>
+            <li>A neuron takes inputs, multiplies by weights, adds bias.</li>
+            <li>The sum passes through an activation function.</li>
+            <li>Weights and bias are the parameters that control output.</li>
+          </ul>
+
+          <div class="canvasWrap" style="height:120px; position:relative">
+            <canvas id="neuronMicro"></canvas>
+          </div>
+
           <div class="notes"><span class="label">Speaker notes</span>
             
           </div>
@@ -369,6 +533,7 @@ const y = activation(z);</pre></div>
           <p>
             <strong>ELM flexibility:</strong> ELM only needs a numeric vector, so you can use any reasonable encoder (BoW, TF‑IDF or even embeddings).  The hidden layer’s random projection works the same no matter which features you choose.
           </p>
+          <img src="images/vectors.png" alt="ELM intro artwork" />
         </div>
       </div>
     </section>
@@ -382,6 +547,15 @@ const y = activation(z);</pre></div>
           <p><strong>Backpropagation</strong> automates tuning in loops: measure error → nudge weights → repeat.</p>
           <div class="kv"><label>Learning rate</label><span id="bpLRVal">0.20</span></div>
           <input id="bpLR" type="range" min="0.01" max="1" step="0.01" value="0.20">
+          <div class="row">
+            <button id="bpRestart">Restart training</button>
+            <select id="bpScenario" title="Training scenario">
+              <option value="converge">Converging (slow)</option>
+              <option value="vanish">Vanishing gradients</option>
+              <option value="explode">Exploding gradients</option>
+            </select>
+          </div>
+
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="bpCanvas"></canvas>
           </div>
@@ -398,6 +572,9 @@ const y = activation(z);</pre></div>
             <li>Left heatmap: hidden weights changing</li>
             <li>Right chart: loss trending down</li>
             <li>LR too high → noisy; too low → sluggish</li>
+            <li>Backprop = “guess → measure error → nudge weights → repeat.”</li>
+            <li>Learning rate: too low = slow; too high = overshoot/noisy.</li>
+            <li>Why it’s time-consuming: we do this across millions of weights and many epochs until the loss curve settles.</li>
           </ul>
         </div>
       </div>
