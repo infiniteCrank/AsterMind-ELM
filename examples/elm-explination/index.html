@@ -577,13 +577,14 @@ body.show-notes .notes{ display:block; }
             <li>Learning rate: too low = slow; too high = overshoot/noisy.</li>
             <li>Why it’s time-consuming: we do this across millions of weights and many epochs until the loss curve settles.</li>
           </ul>
+          <img src="images/backpropigation.png" alt="ELM intro artwork" />
         </div>
       </div>
     </section>
 
     <!-- SLIDE: HUANG'S QUESTION -->
-    <section class="slide" id="slideHuang" data-stage="huang">
-            <figure class="hero">
+    <section class="slide" id="slideHuang" data-stage="huang" data-hero-h="400">
+      <figure class="hero">
         <img src="images/bold-question-final.png" alt="ELM intro artwork" />
         <div class="caption">The Bold Question</div>
       </figure>
@@ -608,8 +609,11 @@ body.show-notes .notes{ display:block; }
     </section>
 
     <!-- SLIDE: RANDOM GRID ANALOGY -->
-    <section class="slide" id="slideGrid" data-stage="grid">
-      <figure class="hero"><div class="caption">Random coordinates, useful structure</div></figure>
+    <section class="slide" id="slideGrid" data-stage="grid" data-hero-h="650" data-left-h="200" data-right-h="200">
+      <figure class="hero">
+        <img src="images/grid.png" alt="ELM intro artwork" />
+        <div class="caption">The Bold Question</div>
+      </figure>
       <div class="left">
         <div class="panel">
           <h2>The city from above</h2>
@@ -632,22 +636,44 @@ body.show-notes .notes{ display:block; }
 
     <!-- SLIDE: GPS / PSEUDOINVERSE -->
     <section class="slide" id="slideGPS" data-stage="gps">
-      <figure class="hero"><div class="caption">One solve, like GPS routing</div></figure>
       <div class="left">
+        <div class="panel">
+          <h1>THE MOORE–PENROSE PSEUDOINVERSE</h1>
+          <div class="sub">Solve <strong>Hβ ≈ Y</strong> — No gradient descent loops. <strong>One solve.</strong></div>
+          <div class="canvasWrap" style="height:260px; position:relative">
+            <canvas id="mpPseudo"></canvas>
+          </div>
+          <ul>
+            <li><strong>What you’re seeing:</strong> Inputs <code>H</code> (magenta) and labels <code>Y</code> (cyan) flow into a central “Optimization Engine.”</li>
+            <li><strong>One-shot solve:</strong> Instead of gradient-descent loops, we compute the output weights in a single step:
+              <code>β = H⁺ Y</code> (Moore–Penrose pseudoinverse).</li>
+            <li><strong>Intuition:</strong> Treat the hidden layer’s outputs as coordinates; the engine finds the best linear mapping from those coordinates to the labels.</li>
+            <li><strong>Why it’s fast:</strong> No epochs, no learning rate tuning—just one linear-algebra solve.</li>
+            <li><strong>Dimensions:</strong> If <code>H</code> is <em>n × h</em> and <code>Y</code> is <em>n × k</em>, then <code>β</code> is <em>h × k</em>.</li>
+            <li><strong>Numerical note:</strong> With many or correlated features, use ridge:
+              <code>β = (HᵀH + λI)⁻¹ Hᵀ Y</code> (stable &amp; regularized).</li>
+            <li><strong>When to use:</strong> Great baseline for tabular/text features, quick prototypes, or when you want seconds-to-train models.</li>
+            <li><strong>Trade-offs:</strong> Needs enough hidden units; performance depends on the random projection and regularization strength.</li>
+          </ul>
+          <p class="note">Bottom bar labeled “ONE SOLVE” underscores that training is a single computation, not an iterative loop.</p>
+        </div>
+      </div>
+      <div class="right">
         <div class="panel">
           <h2>Output layer as GPS</h2>
           <p>With coordinates in hand, navigation is easy: straight lines in grid space. The output layer is the GPS: map random coordinates to labels in one exact step.</p>
           <div class="notes"><span class="label">Speaker notes</span>
             Promise: no epochs. We’ll compute β in a single calculation.
           </div>
-        </div>
-      </div>
-      <div class="right">
-        <div class="panel">
-          <h2>The math idea</h2>
-          <p>Use the <strong>Moore–Penrose pseudoinverse</strong> to solve <code>Hβ ≈ Y</code>.</p>
-          <p>Think of it like <code>Array.prototype.reduce()</code> for optimization: push inputs &amp; labels through, get the best output weights <code>β</code>.</p>
-          <p class="note">No gradient descent loops. One solve.</p>
+         <p class="note">No gradient descent loops. One solve.</p>
+
+          <p><strong>In everyday terms:</strong> 
+              Think of the hidden layer (<em>H</em>) as a big table where each row is a training example and each column is a hidden feature. 
+              The labels (<em>Y</em>) are another table where each row is the answer for that example. 
+              When we solve for the weights (<em>β</em>), we’re just building a “lookup guide” that tells us how to turn any set of hidden features into the right kind of output. 
+              So: hidden features in → correct answers out. 
+              The size of that guide simply depends on how many hidden features you made and how many kinds of answers you want.</p>
+          <img src="images/gps.png" alt="GPS metaphor" >
         </div>
       </div>
     </section>

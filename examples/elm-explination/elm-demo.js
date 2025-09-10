@@ -267,6 +267,7 @@ function show(i){
   if (id === 'slide4')      ensureELMTrain();
   if (id === 'slidePred')   ensurePredict();
   if (id === 'slideIntroNeuron') ensureIceCone?.();
+  if (id === 'slideGPS')    ensurePseudoInverse(); 
 
   applyPerSlideSizing(idx);
   updateMinimapHighlight(idx);
@@ -342,6 +343,185 @@ const fmtVal = (v) => {
   if (a >= 1e3 || a < 1e-3) return v.toExponential(2);
   return v.toFixed(3);
 };
+
+/* ---------------- 8) Moore–Penrose pseudoinverse (slide #slideGPS) ---------------- */
+function ensurePseudoInverse(){
+  if (ensurePseudoInverse.inited) return; 
+  ensurePseudoInverse.inited = true;
+
+  const c = document.querySelector('#mpPseudo'); 
+  if (!c) return;
+  const g = c.getContext('2d');
+
+  const CFG = {
+    cssH: 260,
+    colors:{
+      wire:"#0c1a3d", rim:"#203a7c",
+      cyan:"rgba(90,209,255,.9)", cyanSoft:"rgba(90,209,255,.45)",
+      magenta:"rgba(255,149,255,.95)", magentaSoft:"rgba(255,149,255,.45)",
+      ring:"#ad7bff", ringSoft:"rgba(173,123,255,.6)",
+      pulse:"#6ee7a2", out:"#6ee7a2", yellow:"#ffd166", ink:"#e5efff", muted:"#a7b8e8"
+    },
+    fonts:{
+      label:'700 13px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial',
+      tiny: '600 11px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial',
+      big:  '800 16px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial'
+    }
+  };
+
+  const DPR = devicePixelRatio||1;
+  function resize(){
+    const W = c.clientWidth, H = CFG.cssH;
+    c.width = Math.max(1, W*DPR); 
+    c.height = Math.max(1, H*DPR);
+    g.setTransform(DPR,0,0,DPR,0,0);
+  }
+  resize(); 
+  addEventListener('resize', resize, {passive:true});
+
+  function layout(){
+    const W = c.clientWidth, H = CFG.cssH, pad=36;
+    const left = pad+52, right=W-pad-40;
+    const cx = Math.round(W*0.50), cy = Math.round(H*0.52);
+    const rOuter = 58, rInner = 34;
+    return {
+      W,H,pad,left,right,cx,cy,rOuter,rInner,
+      Hbox:{x:pad-6,y:cy-70,w:120,h:42},
+      Ybox:{x:pad-6,y:cy+28,w:120,h:42},
+      OutBox:{x:right-20,y:cy-24,w:170,h:48},
+      bar:{x:W*0.36, w:W*0.28, y:H-26, h:8}
+    };
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+  function neonBox(x,y,w,h,stroke){
+    g.save();
+    g.fillStyle = "rgba(10,18,40,.85)";
+    g.shadowBlur = 14; g.shadowColor = stroke; g.lineWidth = 2;
+    roundRect(g,x,y,w,h,10); g.fill(); g.strokeStyle = stroke; g.stroke();
+    g.restore();
+  }
+  function cable(x1,y1,x2,y2,glow,color,body=true){
+    if(body){
+      g.save(); g.lineWidth=7; g.strokeStyle=CFG.colors.wire;
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+      g.lineWidth=1.5; g.strokeStyle=CFG.colors.rim; g.stroke(); g.restore();
+    }
+    g.save(); g.shadowColor=color; g.shadowBlur=glow; g.lineWidth=2.3; g.strokeStyle=color;
+    g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke(); g.restore();
+  }
+  function ring(cx,cy,rOuter,rInner,t){
+    g.save();
+    g.shadowColor=CFG.colors.ring; g.shadowBlur=22; g.lineWidth=2.5; g.strokeStyle=CFG.colors.ring;
+    g.beginPath(); g.arc(cx,cy,rOuter,0,Math.PI*2); g.stroke();
+    g.lineWidth=3; g.shadowBlur=10;
+    for(let i=0;i<10;i++){
+      const a = t*1.2 + i*(Math.PI*0.18);
+      g.beginPath(); g.arc(cx,cy,rInner, a, a+0.8, false); g.stroke();
+    }
+    for(let i=0;i<18;i++){
+      const a = t*1.5 + i*(Math.PI*2/18);
+      const rr = rOuter-6;
+      const x = cx + Math.cos(a)*rr, y = cy + Math.sin(a)*rr;
+      g.fillStyle = "rgba(255,255,255,.75)";
+      g.beginPath(); g.arc(x,y,1.6,0,Math.PI*2); g.fill();
+    }
+    g.restore();
+    g.save();
+    g.font = CFG.fonts.big; g.fillStyle = "white";
+    g.textAlign="center"; g.textBaseline="middle";
+    const flick = 0.8 + 0.2*Math.abs(Math.sin(t*6));
+    g.globalAlpha = flick; g.fillText("β = H⁺Y", cx, cy); g.globalAlpha = 1;
+    g.font = CFG.fonts.tiny; g.fillStyle = CFG.colors.muted;
+    g.fillText("OPTIMIZATION ENGINE", cx, cy - rOuter - 18);
+    g.fillStyle = CFG.colors.ink;
+    g.fillText("ONE SOLVE", cx, cy + rOuter + 16);
+    g.restore();
+  }
+  function pulse(tNorm, pts, color){
+    let L=0, segs=[];
+    for(let i=0;i<pts.length-1;i++){
+      const [x1,y1]=pts[i],[x2,y2]=pts[i+1];
+      const d=Math.hypot(x2-x1,y2-y1); segs.push({x1,y1,x2,y2,d}); L+=d;
+    }
+    let dWant = tNorm*L;
+    for(const s of segs){
+      if(dWant<=s.d){
+        const k=dWant/s.d, x=s.x1+(s.x2-s.x1)*k, y=s.y1+(s.y2-s.y1)*k;
+        g.save(); g.fillStyle=color; g.shadowColor=color; g.shadowBlur=16;
+        g.beginPath(); g.arc(x,y,4,0,Math.PI*2); g.fill(); g.restore(); return;
+      }
+      dWant-=s.d;
+    }
+  }
+
+  function draw(ts){
+    const t=(ts||0)/1000;
+    const L=layout();
+    g.clearRect(0,0,L.W,L.H);
+
+    // Left boxes
+    neonBox(L.Hbox.x,L.Hbox.y,L.Hbox.w,L.Hbox.h,CFG.colors.magenta);
+    neonBox(L.Ybox.x,L.Ybox.y,L.Ybox.w,L.Ybox.h,CFG.colors.cyan);
+    g.save();
+    g.font = CFG.fonts.label; g.textBaseline="middle"; g.textAlign="left";
+    g.shadowColor=CFG.colors.magenta; g.shadowBlur=10; g.fillStyle=CFG.colors.magenta;
+    g.fillText("INPUTS (H)", L.Hbox.x+12, L.Hbox.y+L.Hbox.h/2);
+    g.shadowColor=CFG.colors.cyan; g.fillStyle=CFG.colors.cyan;
+    g.fillText("LABELS (Y)", L.Ybox.x+12, L.Ybox.y+L.Ybox.h/2);
+    g.restore();
+
+    // Cables → engine
+    const HmidY = L.Hbox.y+L.Hbox.h/2, YmidY = L.Ybox.y+L.Ybox.h/2;
+    cable(L.Hbox.x+L.Hbox.w, HmidY, L.cx-L.rOuter-12, L.cy-26, 10, CFG.colors.magenta);
+    cable(L.Ybox.x+L.Ybox.w, YmidY, L.cx-L.rOuter-12, L.cy+26, 10, CFG.colors.cyan);
+
+    // Engine
+    ring(L.cx,L.cy,L.rOuter,L.rInner,t);
+
+    // Engine → Output box
+    cable(L.cx+L.rOuter+8, L.cy, L.OutBox.x-12, L.cy, 12, CFG.colors.out);
+    neonBox(L.OutBox.x,L.OutBox.y,L.OutBox.w,L.OutBox.h,CFG.colors.out);
+    g.save();
+    g.font = CFG.fonts.label; g.textBaseline="middle"; g.textAlign="left";
+    g.shadowColor=CFG.colors.out; g.shadowBlur=12; g.fillStyle=CFG.colors.out;
+    g.fillText("BEST OUTPUT", L.OutBox.x+12, L.OutBox.y+14);
+    g.fillText("WEIGHTS (β)", L.OutBox.x+12, L.OutBox.y+L.OutBox.h-14);
+    g.restore();
+
+    // Progress bar
+    g.save();
+    const bx=L.bar.x, by=L.bar.y, bw=L.bar.w, bh=L.bar.h;
+    g.strokeStyle=CFG.colors.ring; g.lineWidth=2; g.shadowColor=CFG.colors.ring; g.shadowBlur=10;
+    roundRect(g,bx,by,bw,bh,6); g.stroke();
+    const prog = (t%2)/2; const fillW = Math.max(18, bw*prog);
+    g.fillStyle="rgba(173,123,255,.35)"; roundRect(g,bx,by,bw,bh,6); g.fill();
+    g.fillStyle="rgba(110,231,162,.9)"; roundRect(g,bx,by,fillW,bh,6); g.fill();
+    g.font=CFG.fonts.tiny; g.fillStyle=CFG.colors.muted; g.textAlign="center"; g.textBaseline="bottom";
+    g.fillText("ONE SOLVE", bx+bw/2, by-4);
+    g.restore();
+
+    // Pulses
+    const pH = (t%3)/3, pY = ((t+1.2)%3)/3;
+    pulse(pH, [[L.Hbox.x+L.Hbox.w,HmidY],[L.cx-L.rOuter-12,L.cy-26],[L.cx-2,L.cy-2]], CFG.colors.magenta);
+    pulse(pY, [[L.Ybox.x+L.Ybox.w,YmidY],[L.cx-L.rOuter-12,L.cy+26],[L.cx-2,L.cy+2]], CFG.colors.cyan);
+
+    // Footer
+    g.save();
+    g.font=CFG.fonts.tiny; g.fillStyle=CFG.colors.ink; g.textAlign="center";
+    g.fillText("Solve Hβ ≈ Y  •  β via Moore–Penrose pseudoinverse  •  No gradient loops", L.W/2, L.H-8);
+    g.restore();
+  }
+
+  let raf; (function loop(ts){ draw(ts); raf=requestAnimationFrame(loop); })(0);
+  addEventListener('beforeunload', ()=>cancelAnimationFrame(raf));
+}
 
 /* ---------------- 8) Slide 2a: overview animation ---------------- */
 function ensureNNOverview(){
