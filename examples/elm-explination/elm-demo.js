@@ -420,26 +420,334 @@ function ensureNNOverview(){
 }
 
 /* ---------------- 9) Slide: small neuron micro-anim ---------------- */
-(function microNeuron(){
-  function init(){
-    const c = $('#neuronMicro'); if(!c) return;
-    const g = c.getContext('2d'); const DPR=devicePixelRatio||1;
-    function resize(){ const W=c.clientWidth,H=120; c.height=H*DPR; c.width=W*DPR; g.setTransform(DPR,0,0,DPR,0,0); }
-    resize(); window.addEventListener('resize',resize);
-    function draw(){
-      const W=c.clientWidth,H=c.clientHeight/DPR; g.clearRect(0,0,W,H);
-      const inX=20, hX=W/2, outX=W-20; const y=H/2;
-      g.strokeStyle='rgba(90,209,255,.5)'; g.beginPath(); g.moveTo(inX+12,y); g.lineTo(hX-12,y); g.stroke();
-      g.beginPath(); g.moveTo(hX+12,y); g.lineTo(outX-12,y); g.stroke();
-      const dot=(x,r,glow)=>{ g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fillStyle=glow?'#103a6b':'#0c1a3d'; g.fill(); g.lineWidth=1.5; g.strokeStyle='#203a7c'; g.stroke(); if(glow){g.strokeStyle='rgba(90,209,255,.9)'; g.stroke();}};
-      dot(inX,8,false); dot(hX,10,true); dot(outX,8,false);
-      const k=(performance.now()/1000)%2; const x = k<1 ? inX+12+(hX-24)*k : hX+12+(outX-hX-24)*(k-1);
-      g.beginPath(); g.arc(x,y,3,0,Math.PI*2); g.fillStyle='#6ee7a2'; g.fill();
+/**
+ * Cyberpunk micro-neuron animation — styled like the reference image.
+ * Draws 5 inputs -> weighted sum (Σ) -> + bias -> activation box (f) -> output (y)
+ * Includes glowing neon cables and a traveling pulse.
+ */
+(function microNeuron() {
+  // Tiny helper
+  const $ = (sel) => document.querySelector(sel);
+
+  // ---- Config (tweak freely) ----------------------------------------------
+  const CFG = {
+    heightCSS: 220,         // CSS pixel height for the canvas
+    inputs: 5,              // number of input lines
+    colors: {
+      cable: "rgba(90,209,255,0.75)",   // cyan
+      cableSoft: "rgba(90,209,255,0.35)",
+      output: "rgba(255,149,255,0.9)",  // pink/magenta
+      sumCore: "#fbd38d",               // warm glow
+      sumRim: "#ff9f6e",
+      bias: "#ffd166",                  // yellow
+      actBox: "rgba(173,123,255,0.85)", // purple
+      actCore: "rgba(255,255,255,0.8)",
+      bgWire: "#0c1a3d",
+      bgWireRim: "#203a7c",
+      pulse: "#6ee7a2",
+      ink: "#e5efff",
+      muted: "#a7b8e8"
+    },
+    fonts: {
+      label: '600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial',
+      tiny: '500 10px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial',
+      big:  '700 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial'
     }
-    (function loop(){ draw(); requestAnimationFrame(loop); })();
+  };
+
+  function init() {
+    const c = $('#neuronMicro');
+    if (!c) return;
+    const g = c.getContext('2d');
+
+    const DPR = window.devicePixelRatio || 1;
+    function resize() {
+      const W = c.clientWidth;
+      const H = CFG.heightCSS;
+      c.width  = Math.max(1, W * DPR);
+      c.height = Math.max(1, H * DPR);
+      g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    // Geometry layout (in CSS pixels)
+    function layout() {
+      const W = c.clientWidth, H = CFG.heightCSS;
+      const pad = 40;
+      const leftX = pad + 50;           // inputs end
+      const sumX  = Math.round(W * 0.38);
+      const actX  = Math.round(W * 0.60);
+      const outX  = W - pad - 30;
+
+      const centerY = Math.round(H * 0.55);
+      const spread = 58;                // vertical fan of inputs
+
+      const inStartX = pad;
+      const inYs = [];
+      for (let i = 0; i < CFG.inputs; i++) {
+        const t = (i - (CFG.inputs - 1) / 2);
+        inYs.push(centerY + t * (spread / ((CFG.inputs - 1) / 2 || 1)));
+      }
+
+      return {
+        W, H, pad,
+        inStartX, leftX,
+        sumX, actX, outX,
+        centerY, inYs,
+        sumR: 22,
+        actW: 86, actH: 54
+      };
+    }
+
+    // Draw glowing line
+    function neonLine(ctx, x1, y1, x2, y2, color, width = 2, glow = 8) {
+      ctx.save();
+      ctx.lineWidth = width;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glow;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Base cable (dark body with rim)
+    function cableBody(ctx, x1, y1, x2, y2) {
+      ctx.save();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = CFG.colors.bgWire;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = CFG.colors.bgWireRim;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Σ node
+    function drawSum(ctx, x, y, r) {
+      const g1 = ctx.createRadialGradient(x, y, 2, x, y, r + 3);
+      g1.addColorStop(0, CFG.colors.sumCore);
+      g1.addColorStop(1, CFG.colors.sumRim);
+      ctx.save();
+      ctx.shadowColor = CFG.colors.sumRim;
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = g1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+
+      // Rim
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.stroke();
+
+      // Σ label
+      ctx.font = CFG.fonts.big;
+      ctx.fillStyle = "#1b243b";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Σ", x, y + 1);
+      ctx.restore();
+    }
+
+    // Activation box with swirling core
+    function drawActivation(ctx, x, y, w, h, t) {
+      const r = 10;
+      ctx.save();
+      ctx.shadowColor = CFG.colors.actBox;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = "rgba(26, 18, 51, 0.9)";
+      // rounded rect
+      roundRect(ctx, x, y, w, h, r);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = CFG.colors.actBox;
+      ctx.stroke();
+
+      // Swirl
+      ctx.save();
+      ctx.translate(x + w/2, y + h/2);
+      ctx.rotate(0.2);
+      const loops = 24;
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < loops; i++) {
+        const p = (i + (t * 24 % 1)) / loops;
+        const rad = 2 + p * (Math.min(w, h) * 0.38);
+        ctx.strokeStyle = `rgba(255,255,255,${0.9 - p})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad, p * Math.PI * 2, p * Math.PI * 2 + 0.7);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // f label
+      ctx.font = CFG.fonts.tiny;
+      ctx.fillStyle = CFG.colors.ink;
+      ctx.textAlign = "center";
+      ctx.fillText("ACTIVATION  f", x + w/2, y + h + 14);
+      ctx.restore();
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.lineTo(x+w-r, y);
+      ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+      ctx.lineTo(x+w, y+h-r);
+      ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+      ctx.lineTo(x+r, y+h);
+      ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+      ctx.lineTo(x, y+r);
+      ctx.quadraticCurveTo(x, y, x+r, y);
+      ctx.closePath();
+    }
+
+    // Labels with subtle glow
+    function glowText(ctx, text, x, y, color, font) {
+      ctx.save();
+      ctx.font = font || CFG.fonts.label;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    // Traveling pulse along segmented path (input → sum → bias/act → out)
+    function drawPulse(ctx, tNorm, pts) {
+      // pts: array of [x,y] defining piecewise linear path
+      // Compute total length
+      let segs = [];
+      let total = 0;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [x1,y1] = pts[i], [x2,y2] = pts[i+1];
+        const d = Math.hypot(x2-x1, y2-y1);
+        segs.push({x1,y1,x2,y2,d});
+        total += d;
+      }
+      let dist = tNorm * total;
+      for (const s of segs) {
+        if (dist <= s.d) {
+          const k = dist / s.d;
+          const x = s.x1 + (s.x2 - s.x1) * k;
+          const y = s.y1 + (s.y2 - s.y1) * k;
+          // pulse
+          ctx.save();
+          ctx.fillStyle = CFG.colors.pulse;
+          ctx.shadowColor = CFG.colors.pulse;
+          ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+          return;
+        }
+        dist -= s.d;
+      }
+    }
+
+    function draw(ts) {
+      const L = layout();
+      const t = (ts || 0) / 1000;
+
+      // Clear
+      g.clearRect(0, 0, L.W, L.H);
+
+      // INPUT cables to sum
+      for (let i = 0; i < CFG.inputs; i++) {
+        const y = L.inYs[i];
+        cableBody(g, L.inStartX, y, L.leftX, y);
+        neonLine(g, L.inStartX, y, L.leftX, y, CFG.colors.cable, 2.2, 10);
+
+        // Input labels
+        g.font = CFG.fonts.tiny;
+        g.fillStyle = CFG.colors.muted;
+        g.textAlign = "left";
+        g.textBaseline = "middle";
+        g.fillText(`INPUT ${i+1}`, L.inStartX + 4, y - 12);
+      }
+
+      // Lines from input end to the Σ center (slanted fan)
+      for (let i = 0; i < CFG.inputs; i++) {
+        const y = L.inYs[i];
+        cableBody(g, L.leftX, y, L.sumX - L.sumR, L.centerY);
+        neonLine(g, L.leftX, y, L.sumX - L.sumR, L.centerY, CFG.colors.cableSoft, 1.8, 8);
+      }
+
+      // SUM node
+      drawSum(g, L.sumX, L.centerY, L.sumR);
+      glowText(g, "WEIGHTS (w)", L.leftX - 2, Math.min(...L.inYs) - 18, CFG.colors.muted, CFG.fonts.tiny);
+      glowText(g, "SUM (Σ)", L.sumX - 22, L.centerY + L.sumR + 16, CFG.colors.muted, CFG.fonts.tiny);
+
+      // Sum → Activation cable
+      cableBody(g, L.sumX + L.sumR, L.centerY, L.actX - 10, L.centerY);
+      neonLine(g, L.sumX + L.sumR, L.centerY, L.actX - 10, L.centerY, CFG.colors.cable, 2.2, 12);
+
+      // Bias branch
+      const biasY = L.centerY - 34;
+      neonLine(g, L.sumX + 8, biasY, L.sumX + L.sumR + 8, biasY, CFG.colors.bias, 1.6, 6);
+      neonLine(g, L.sumX + L.sumR + 8, biasY, L.sumX + L.sumR + 8, L.centerY, CFG.colors.bias, 1.6, 6);
+      glowText(g, "BIAS (b)", L.sumX + 12, biasY - 10, CFG.colors.bias, CFG.fonts.tiny);
+
+      // Activation box
+      drawActivation(g, L.actX, L.centerY - L.actH/2, L.actW, L.actH, t);
+
+      // Activation → Output cable
+      const ax = L.actX + L.actW;
+      cableBody(g, ax, L.centerY, L.outX, L.centerY);
+      neonLine(g, ax, L.centerY, L.outX, L.centerY, CFG.colors.output, 2.4, 14);
+
+      // Output label
+      g.font = CFG.fonts.big;
+      g.fillStyle = CFG.colors.output;
+      g.shadowColor = CFG.colors.output;
+      g.shadowBlur = 12;
+      g.textAlign = "left";
+      g.textBaseline = "middle";
+      g.fillText("OUTPUT (y)", L.outX , L.centerY);
+      g.shadowBlur = 0;
+
+      // Small “PARAMETERS” footer
+      g.font = CFG.fonts.tiny;
+      g.fillStyle = CFG.colors.ink;
+      g.textAlign = "center";
+      g.fillText("PARAMETERS:  Weights (w), Bias (b)", L.W * 0.5, L.H - 14);
+
+      // Traveling pulse: construct path (choose one input that cycles)
+      const iPick = Math.floor((t * 0.5) % CFG.inputs);
+      const yIn = L.inYs[iPick];
+      const path = [
+        [L.inStartX, yIn],
+        [L.leftX, yIn],
+        [L.sumX - L.sumR, L.centerY],
+        [L.sumX + L.sumR, L.centerY],
+        [L.actX - 10, L.centerY],
+        [L.actX + L.actW, L.centerY],
+        [L.outX, L.centerY]
+      ];
+      const tPulse = (t % 2.8) / 2.8;
+      drawPulse(g, tPulse, path);
+    }
+
+    // Animation loop
+    let raf;
+    function loop(ts) {
+      draw(ts);
+      raf = requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Clean up on unload (optional)
+    window.addEventListener('beforeunload', () => cancelAnimationFrame(raf));
   }
-  // run once the DOM is already ready (we are in DOMContentLoaded)
-  init();
+
+  // Kick off when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
 
 /* ---------------- 10) Slide: Neuron demo ---------------- */

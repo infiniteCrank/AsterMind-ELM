@@ -4,9 +4,7 @@
   <meta charset="utf-8"/>
   <title>Extreme Learning Machine — JS Engineer Primer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+
   <style>
 /* =========================================================
    0) DESIGN TOKENS & GLOBAL RESETS
@@ -20,14 +18,6 @@
   /* Layout metrics */
   --header-h: 64px; /* fixed header height */
   --minimap-top: 0px; /* set by JS based on header height (if needed) */
-}
-
-
-.orbitron-header> {
-  font-family: "Orbitron", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
 }
 
 *,
@@ -376,7 +366,8 @@ body.show-notes .notes{ display:block; }
     <!-- SLIDE: layer overview -->
     <section class="slide" id="slide2a" data-stage="overview" data-hero-h="220" data-left-h="200" data-right-h="360">
       <figure class="hero">
-        <h1 class="orbitron-header">Neural Networks: Big Picture</h1>
+        <img src="images/nn-overview.png" alt="ELM intro artwork" />
+        <div class="caption">Brief Overview of Neural Networks</div>
       </figure>
       <div class="left">
         <div class="panel">
@@ -400,7 +391,17 @@ body.show-notes .notes{ display:block; }
       <div class="right">
         <div class="panel">
           <h2>Plain English</h2>
-          <p>Think of the hidden layer like a blender: it stirs the numbers with fixed recipes (weights), then a squish (activation) gives shape to the signal. The output just reads the mixture.</p>
+          <p>Think of it like a pipeline: break text into numbers (tokens), feed them in, scramble and squash them in the middle, then spit out results as categories or scores.</p>
+          <section aria-labelledby="ffn-title">
+          <h2 id="ffn-title">Three-Layer Feed-Forward Network (1000-ft view)</h2>
+          <ul>
+            <li><strong>Inputs (Layer 1):</strong> Raw data (numbers, vectors, or encoded text) enter the network.</li>
+            <li><strong>Hidden magic (Layer 2):</strong> Inputs are combined with weights and passed through activation functions—“mix &amp; squash.”</li>
+            <li><strong>Outputs (Layer 3):</strong> Transformed signals become predictions (class labels, scores, or next values).</li>
+            <li><strong>Flow direction:</strong> Data only moves forward: input → hidden → output; no loops or feedback.</li>
+            <li><strong>Analogy:</strong> Like chaining <code>.map()</code> transforms—data goes through steps until you get the final result.</li>
+          </ul>
+        </section>
         </div>
       </div>
     </section>
