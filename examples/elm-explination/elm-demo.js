@@ -99,131 +99,126 @@ window.addEventListener('keydown', (e) => {
 /* Stage chips (if any in header) */
 const stageChips = $$('[data-stagechip]');
 
-/* ---------------- 4) Minimap (left SVG) ---------------- */
-/* We build once, keep refs to columns, and expose an update call */
+/* ---------------- 4) Slide Atlas (left rail / mobile drawer) ---------------- */
 const minimapState = {
-  svg: null, colIn: null, colH: null, colOut: null, dotsHost: null
+  host: null,              // <nav id="minimap">
+  items: [],               // [{btn, index}]
+  drawerBackdrop: null,    // #atlasBackdrop
+  burger: null,            // #atlasToggle (in header)
+  closeBtn: null,          // #mmClose
+  compactBtn: null         // #mmToggle
 };
 
-function buildRoadmapFromMeta() {
-  const roadmap = $('#slide0 .right ol');
-  if (!roadmap || !SLIDE_META) return;
-  roadmap.innerHTML = '';
-  SLIDE_META.forEach(s => {
-    const li = document.createElement('li');
-    li.textContent = s.title || s.id;
-    roadmap.appendChild(li);
+/* Build list items from slides (or SLIDE_META if present) */
+function buildMinimap(){
+  minimapState.host = $('#minimap');            // we reuse the same id
+  minimapState.drawerBackdrop = $('#atlasBackdrop');
+  minimapState.burger = $('#atlasToggle');
+  minimapState.closeBtn = $('#mmClose');
+  minimapState.compactBtn = $('#mmToggle');
+
+  if (!minimapState.host) return;
+
+  // Resolve titles from SLIDE_META or from the DOM
+  const meta = SLIDE_META || slides.map((s, i) => {
+    // Try slide caption, then first H2, then stage/id fallback
+    const cap = s.node.querySelector(':scope > .hero .caption')?.textContent?.trim();
+    const h2  = s.node.querySelector('h2')?.textContent?.trim();
+    const title = cap || h2 || s.id || `Slide ${i+1}`;
+    return { id: s.id, stage: s.stage, title };
   });
-}
 
-function buildMinimap() {
-  const host = $('#minimap');
-  minimapState.dotsHost = $('#mmDots');
-  if (!host) return;
-
-  const width = 220, height = 360, pad = 14;
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="mmWires" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#2a64ff"/><stop offset="1" stop-color="#5ad1ff"/>
-      </linearGradient>
-      <filter id="mmGlow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#5ad1ff" flood-opacity=".8"/>
-      </filter>
-    </defs>
-    <g id="col-input"></g>
-    <g id="col-hidden"></g>
-    <g id="col-output"></g>
-    <g id="wire-group"></g>
-  `;
-  host.innerHTML = '';
-  host.appendChild(svg);
-
-  const N_in=4,N_h=7,N_out=3;
-  const xIn = pad + 20, xH = width/2, xOut = width - pad - 20;
-  const yFor = (n,idx)=> pad + 24 + (idx * (height - 2*pad - 48)) / (n - 1);
-
-  const colIn  = svg.querySelector('#col-input');
-  const colH   = svg.querySelector('#col-hidden');
-  const colOut = svg.querySelector('#col-output');
-  const wiresG = svg.querySelector('#wire-group');
-
-  function makeNode(x,y, stageTag){
-    const g = document.createElementNS(svg.namespaceURI,'g');
-    g.classList.add('mm-node');
-    g.innerHTML = `
-      <circle cx="${x}" cy="${y}" r="9" fill="#0c1a3d" stroke="#203a7c" stroke-width="1.5"/>
-      <circle cx="${x}" cy="${y}" r="9" fill="transparent" stroke="url(#mmWires)" stroke-width="1.5" opacity=".75"/>
+  // Build the list
+  minimapState.host.innerHTML = '';
+  minimapState.items = meta.map((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'atlas-item';
+    btn.setAttribute('type','button');
+    btn.setAttribute('data-index', String(i));
+    btn.setAttribute('aria-label', `Slide ${i+1}: ${m.title}`);
+    btn.innerHTML = `
+      <span class="num">${String(i+1).padStart(2,'0')}</span>
+      <span class="ttl">${m.title}</span>
+      <span class="stage">${m.stage || '—'}</span>
     `;
-    g.style.cursor='pointer';
-    g.addEventListener('click', () => {
-      /* map stage to a slide index, if present in meta; fallback to first */
-      const data = (SLIDE_META || slides.map(s=>({id:s.id,title:s.id,stage:s.stage})));
-      const byStage = (name) => {
-        const k = data.findIndex(d => d.stage === name);
-        return (k >= 0) ? k : 0;
-      };
-      const target =
-        stageTag === 'input'  ? byStage('input')  :
-        stageTag === 'hidden' ? byStage('hidden') :
-        stageTag === 'output' ? byStage('output') :
-        byStage('overview');
-      show(target);
+    btn.addEventListener('click', () => {
+      show(i);
+      // If we’re in the mobile drawer, close it after navigating
+      if (document.body.classList.contains('atlas-open')) closeAtlasDrawer();
     });
-    return g;
+    minimapState.host.appendChild(btn);
+    return { btn, index: i };
+  });
+
+  // Wire compact toggle (desktop)
+  const COMPACT_KEY = 'elm_atlas_compact';
+  if (minimapState.compactBtn){
+    // initialize from storage
+    if (localStorage.getItem(COMPACT_KEY) === '1') document.body.classList.add('atlas-compact');
+    minimapState.compactBtn.title = 'Collapse / Expand';
+    minimapState.compactBtn.onclick = () => {
+      document.body.classList.toggle('atlas-compact');
+      localStorage.setItem(COMPACT_KEY, document.body.classList.contains('atlas-compact') ? '1' : '0');
+    };
   }
 
-  for (let i=0;i<N_in;i++)  colIn.appendChild(makeNode(xIn,  yFor(N_in,i),  'input'));
-  for (let i=0;i<N_h;i++)   colH.appendChild(makeNode(xH,   yFor(N_h,i),   'hidden'));
-  for (let i=0;i<N_out;i++) colOut.appendChild(makeNode(xOut, yFor(N_out,i), 'output'));
+  // Wire drawer open/close (mobile)
+  minimapState.burger?.addEventListener('click', openAtlasDrawer);
+  minimapState.closeBtn?.addEventListener('click', closeAtlasDrawer);
+  minimapState.drawerBackdrop?.addEventListener('click', closeAtlasDrawer);
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && document.body.classList.contains('atlas-open')) closeAtlasDrawer();
+  });
 
-  // wires: input→hidden
-  for (let i=0;i<N_in;i++) for (let j=0;j<N_h;j++){
-    const p = document.createElementNS(svg.namespaceURI,'path');
-    p.setAttribute('d', `M ${xIn+9} ${yFor(N_in,i)} C ${xIn+40} ${yFor(N_in,i)}, ${xH-40} ${yFor(N_h,j)}, ${xH-9} ${yFor(N_h,j)}`);
-    p.setAttribute('stroke','url(#mmWires)');
-    p.setAttribute('stroke-width','1'); p.setAttribute('fill','none'); p.setAttribute('opacity','.35');
-    wiresG.appendChild(p);
+  function openAtlasDrawer(){
+    document.body.classList.add('atlas-open');
+    minimapState.drawerBackdrop?.removeAttribute('hidden');
   }
-  // wires: hidden→output
-  for (let i=0;i<N_h;i++) for (let j=0;j<N_out;j++){
-    const p = document.createElementNS(svg.namespaceURI,'path');
-    p.setAttribute('d', `M ${xH+9} ${yFor(N_h,i)} C ${xH+40} ${yFor(N_h,i)}, ${xOut-40} ${yFor(N_out,j)}, ${xOut-9} ${yFor(N_out,j)}`);
-    p.setAttribute('stroke','url(#mmWires)');
-    p.setAttribute('stroke-width','1'); p.setAttribute('fill','none'); p.setAttribute('opacity','.35');
-    wiresG.appendChild(p);
+  function closeAtlasDrawer(){
+    document.body.classList.remove('atlas-open');
+    minimapState.drawerBackdrop?.setAttribute('hidden','');
   }
+  // Expose for use in click handler above
+  window.openAtlasDrawer = openAtlasDrawer;
+  window.closeAtlasDrawer = closeAtlasDrawer;
 
-  // mobile dots
-  if (minimapState.dotsHost) {
-    minimapState.dotsHost.innerHTML = '';
-    (SLIDE_META || slides).forEach((_,i)=>{
-      const b = document.createElement('button'); b.textContent = String(i+1);
-      b.onclick = ()=> show(i);
-      minimapState.dotsHost.appendChild(b);
-    });
-  }
-
-  // keep refs
-  minimapState.svg    = svg;
-  minimapState.colIn  = colIn;
-  minimapState.colH   = colH;
-  minimapState.colOut = colOut;
+  // If viewport becomes desktop, ensure drawer is closed
+  const mql = window.matchMedia('(min-width: 981px)');
+  mql.addEventListener?.('change', () => closeAtlasDrawer());
 }
 
-/* Called by show(i) to update glow + dot state */
-function updateMinimapHighlight(i) {
-  const stage = (slides[i]||{}).stage;
-  const svg = minimapState.svg;
-  if (!svg) return;
-  svg.querySelectorAll('circle').forEach(c => c.removeAttribute('filter'));
-  if (stage === 'input')  minimapState.colIn?.querySelectorAll('circle').forEach(c => c.setAttribute('filter','url(#mmGlow)'));
-  if (stage === 'hidden') minimapState.colH?.querySelectorAll('circle').forEach(c => c.setAttribute('filter','url(#mmGlow)'));
-  if (stage === 'output') minimapState.colOut?.querySelectorAll('circle').forEach(c => c.setAttribute('filter','url(#mmGlow)'));
-  // mobile dots active state
-  $$('#mmDots button').forEach((b,k)=> b.classList.toggle('active', k===i));
+// Keyboard nav within the atlas list (focus required)
+minimapState.host?.addEventListener('keydown', (e) => {
+  const current = minimapState.items.findIndex(({btn}) => btn.classList.contains('active'));
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    const next = Math.min(slides.length - 1, current + 1);
+    minimapState.items[next]?.btn.focus();
+    e.preventDefault();
+  }
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+    const prev = Math.max(0, current - 1);
+    minimapState.items[prev]?.btn.focus();
+    e.preventDefault();
+  }
+  if (e.key === 'Enter' || e.key === ' ') {
+    const idx = minimapState.items.findIndex(({btn}) => btn === document.activeElement);
+    if (idx >= 0) show(idx);
+  }
+});
+
+/* Called by show(i) to update highlight & auto-scroll selection into view */
+function updateMinimapHighlight(i){
+  if (!minimapState.items?.length) return;
+  minimapState.items.forEach(({btn}, k) => {
+    btn.classList.toggle('active', k === i);
+    if (k === i) {
+      btn.setAttribute('aria-current','page');
+      // gentle into view
+      btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } else {
+      btn.removeAttribute('aria-current');
+    }
+  });
 }
 
 /* ---------------- 5) Navigation core ---------------- */
@@ -294,7 +289,7 @@ function navigateInitialSlide(){
     const res = await fetch('slides.json', { cache: 'no-store' });
     if (res.ok) SLIDE_META = await res.json();
   } catch {}
-  buildRoadmapFromMeta();
+  //buildRoadmapFromMeta();
   buildMinimap();           // safe now — show() and slides exist
   requestAnimationFrame(navigateInitialSlide); // ensure first highlight syncs with minimap
 })();

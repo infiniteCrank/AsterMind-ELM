@@ -90,34 +90,126 @@ main{
   align-items:stretch;
 }
 
-/* Left rail (minimap) */
+/* ===================== NEW: Slide Atlas (left rail) ===================== */
+
+/* Rail container (desktop left) */
 .minimap-rail{
   position:sticky; top: calc(var(--header-h) + 0px);
   align-self:start;
-  background: linear-gradient(180deg,rgba(15,30,68,.85),rgba(9,20,49,.85));
+  background: linear-gradient(180deg,rgba(15,30,68,.92),rgba(9,20,49,.92));
   border:1px solid #1a2f63; border-radius:14px;
   padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.35);
   max-height: calc(100vh - var(--header-h) - 32px);
   overflow:auto;
+  width: 260px;
+  transition: width .22s ease, transform .28s ease;
 }
-.mm-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-.mm-toggle{
-  background:#102043; border:1px solid #1f3570; border-radius:10px;
-  color:#e5efff; padding:6px 8px;
-}
-.minimap-svg svg{ width:100%; height:auto; display:block; }
 
-.mm-dots{
-  display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+/* Head row */
+.mm-header{ 
+  display:flex; align-items:center; justify-content:space-between; 
+  margin-bottom:8px; gap:8px;
 }
-.mm-dots button{
-  width:22px; height:22px; border-radius:50%;
-  background:#0c1a3d; border:1px solid #203a7c; color:#9fb8ff; font-size:.75rem;
+.mm-actions{ display:flex; gap:6px; align-items:center; }
+.mm-toggle,.mm-close{
+  background:#102043; border:1px solid #1f3570; border-radius:10px;
+  color:#e5efff; padding:6px 8px; cursor:pointer;
 }
-.mm-dots button.active{
+.mm-close{ display:none; } /* only visible in mobile drawer */
+
+/* Atlas list (we reuse #minimap) */
+.atlas-list{
+  display:flex; flex-direction:column; gap:6px;
+}
+.atlas-item{
+  --glow: rgba(90,209,255,.35);
+  display:grid; grid-template-columns: 34px 1fr auto; align-items:center;
+  gap:10px; width:100%;
+  padding:8px 10px; border-radius:10px;
+  background: rgba(12,26,61,.35);
+  border:1px solid #203a7c;
+  color:#cfe1ff; text-align:left; cursor:pointer;
+  position:relative;
+}
+.atlas-item:hover{
+  background: rgba(12,26,61,.55);
+  box-shadow: 0 0 0 2px rgba(90,209,255,.10) inset, 0 0 18px var(--glow);
+}
+.atlas-item:focus-visible{
   outline:2px solid var(--accent);
-  color:#eaf2ff;
+  outline-offset:2px;
 }
+.atlas-item .num{
+  font-weight:800; font-size:.85rem; color:#9fb8ff;
+  width:34px; height:34px; border-radius:8px;
+  display:grid; place-items:center;
+  background:#0c1a3d; border:1px solid #203a7c;
+}
+.atlas-item .ttl{
+  font-size:.92rem; line-height:1.25; color:#e5efff;
+}
+.atlas-item .stage{
+  font-size:.70rem; opacity:.85; padding:3px 6px; border-radius:999px;
+  border:1px solid #2b4da1; background:#0c1a3d; color:#bcd0ff;
+}
+
+/* active slide styling */
+.atlas-item.active{
+  background: linear-gradient(180deg,rgba(27,49,110,.75),rgba(16,36,84,.75));
+  border-color:#2d50ad;
+  box-shadow: 0 0 0 2px rgba(90,209,255,.18) inset, 0 0 24px rgba(90,209,255,.25);
+}
+.atlas-item.active::before{
+  content:""; position:absolute; left:-10px; top:8px; bottom:8px; width:6px;
+  border-radius:6px;
+  background: linear-gradient(180deg,#2a64ff,#5ad1ff);
+  box-shadow: 0 0 14px rgba(90,209,255,.65);
+}
+
+/* Compact rail (desktop only): icons/numbers only */
+body.atlas-compact .minimap-rail{ width: 84px; }
+body.atlas-compact .atlas-item{ grid-template-columns: 1fr; justify-items:center; }
+body.atlas-compact .atlas-item .ttl,
+body.atlas-compact .atlas-item .stage{ display:none; }
+body.atlas-compact .atlas-item .num{ width:48px; height:48px; font-size:.95rem; }
+
+/* -------------------- Mobile drawer -------------------- */
+.hamburger{
+  display:none;  /* hidden on desktop */
+  background:#102043; color:#e5efff; border:1px solid #1f3570; border-radius:10px;
+  padding:8px 10px;
+}
+
+/* Drawer + backdrop only below 980px */
+@media (max-width: 980px){
+  .hamburger{ display:inline-block; }
+  main{ grid-template-columns: 1fr; }
+
+  /* Turn the left rail into a slide-in drawer */
+  .minimap-rail{
+    position:fixed; top: var(--header-h); left:0; right:auto;
+    height: calc(100vh - var(--header-h)); max-height:none;
+    width: min(86vw, 360px);
+    transform: translateX(-105%);
+    z-index: 50;
+  }
+  body.atlas-open .minimap-rail{ transform: translateX(0%); }
+
+  /* Show the Close button in the drawer header */
+  .mm-close{ display:inline-block; }
+
+  /* Backdrop */
+  #atlasBackdrop[hidden]{ display:none; }
+  #atlasBackdrop{
+    position:fixed; inset:0; top: var(--header-h);
+    background: rgba(0,0,0,.45); backdrop-filter: blur(2px);
+    z-index: 40;
+  }
+}
+
+/* Hide the old dot UI entirely (replaced by drawer) */
+.mm-dots{ display:none !important; }
+.minimap-svg svg{ display:none !important; }  /* old SVG minimap off */
 
 /* Optional stage bar (if used anywhere else) */
 .stageMap {
@@ -283,6 +375,7 @@ body.show-notes .notes{ display:block; }
       <div class="chip" id="slideLabel">Slide 1 / 12</div>
       <button id="nextBtn">Next ▶</button>
       <button id="notesToggle" title="Show/Hide speaker notes">Notes</button>
+      <button id="atlasToggle" class="hamburger" aria-label="Open slide map" title="Slides">☰</button>
     </div>
   </header>
 
@@ -290,26 +383,30 @@ body.show-notes .notes{ display:block; }
 
 
   <!-- LEFT CYBERPUNK MINI-MAP -->
-  <aside id="minimapRail" class="minimap-rail" aria-label="Slide minimap">
-    <div class="mm-header">
-      <svg viewBox="0 0 120 24" class="logo">
-        <defs>
-          <linearGradient id="mmg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#5ad1ff"/><stop offset="1" stop-color="#2a64ff"/>
-          </linearGradient>
-        </defs>
-        <text x="0" y="18" fill="url(#mmg)" font-size="16" font-weight="700" letter-spacing="1">ELM NAV</text>
-      </svg>
-      <button id="mmToggle" class="mm-toggle" title="Collapse minimap">☰</button>
+<aside id="minimapRail" class="minimap-rail" aria-label="Slide minimap">
+  <div class="mm-header">
+    <svg viewBox="0 0 120 24" class="logo" aria-hidden="true">
+      <defs>
+        <linearGradient id="mmg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5ad1ff"/><stop offset="1" stop-color="#2a64ff"/>
+        </linearGradient>
+      </defs>
+      <text x="0" y="18" fill="url(#mmg)" font-size="16" font-weight="700" letter-spacing="1">SLIDE ATLAS</text>
+    </svg>
+
+    <!-- desktop: compact/expand; mobile: close drawer -->
+    <div class="mm-actions">
+      <button id="mmToggle" class="mm-toggle" title="Collapse / Expand">⇔</button>
+      <button id="mmClose"  class="mm-close"  title="Close" aria-label="Close slide map">✕</button>
     </div>
+  </div>
 
-    <!-- The network schematic is injected here by JS -->
-    <nav id="minimap" class="minimap-svg" role="navigation" aria-label="ELM stages"></nav>
+  <!-- We reuse the same #minimap node, but now it's a list, not an SVG -->
+  <nav id="minimap" class="atlas-list" role="navigation" aria-label="Slides"></nav>
+</aside>
 
-    <!-- slide dots (mobile quick jump) -->
-    <div class="mm-dots" id="mmDots"></div>
-  </aside>
-
+<!-- Backdrop for the mobile drawer -->
+<div id="atlasBackdrop" hidden></div>
 
   <!-- this is an example of how to make a new slide section 
    data-hero-h, data-left-h, data-right-h are optional per slide. If absent, sensible defaults apply.
