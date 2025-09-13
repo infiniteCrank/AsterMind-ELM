@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Enhanced ELM Music Generator</title>
+<style>
+  :root{
+    --bg:#050c1f;
+    --panel:#0b1633;
+    --ink:#e5efff;
+    --accent:#5ad1ff;
+    --accent-light:#85e2ff;
+    --muted:#9bb3ff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 700px at 50% -200px,#0b1633 0%,#050c1f 55%,#020614 100%);
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
+  }
+  header{
+    position:sticky;
+    top:0;
+    z-index:2;
+    backdrop-filter:saturate(1.1) blur(6px);
+    background:rgba(5,12,31,.8);
+    border-bottom:1px solid rgba(90,209,255,.2);
+  }
+  .bar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:12px 16px;
+    max-width:1100px;
+    margin:0 auto;
+    flex-wrap:wrap;
+  }
+  .chip{
+    background:rgba(12, 26, 61, 0.8);
+    border:1px solid #203a7c;
+    color:#dfe9ff;
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:14px;
+  }
+  .grow{flex:1}
+  button{
+    border:1px solid var(--accent);
+    background:rgba(12, 26, 61, 0.7);
+    color:var(--accent);
+    border-radius:10px;
+    padding:8px 14px;
+    cursor:pointer;
+    transition:background .2s,color .2s,opacity .2s;
+  }
+  button:hover:not(:disabled){
+    background:var(--accent);
+    color:#0b1633;
+  }
+  button:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+    border-color:#203a7c;
+    color:#6c7a9d;
+  }
+  input.slider{
+    appearance:none;
+    height:6px;
+    border-radius:3px;
+    background:rgba(32,58,124,0.6);
+    outline:none;
+    margin-left:8px;
+    width:120px;
+  }
+  input.slider::-webkit-slider-thumb{
+    appearance:none;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--accent);
+    cursor:pointer;
+  }
+  input.slider::-moz-range-thumb{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--accent);
+    cursor:pointer;
+  }
+  .panel{
+    max-width:1100px;
+    margin:12px auto;
+    padding:10px;
+  }
+  #c{
+    width:100%;
+    height:380px;
+    display:block;
+    border:1px solid rgba(90,209,255,.2);
+    border-radius:16px;
+    background:linear-gradient(180deg,rgba(10,22,55,.6),rgba(8,15,38,.6));
+  }
+  .small{font-size:12px;color:var(--muted)}
+  .legend{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .dot{width:10px;height:10px;border-radius:50%}
+  .kick{background:var(--accent)}
+  .snare{background:#6ee7a2}
+  .hat{background:#facc15}
+  .val{
+    margin-left:6px;
+    font-weight:bold;
+    color:var(--accent-light);
+    font-size:12px;
+  }
+  #status{
+    margin-top:6px;
+    min-height:1em;
+    color:var(--accent-light);
+    font-style:italic;
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="chip">ELM Drum Generator • PoC</div>
+    <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="trainBtn">Train Model</button>
+      <button id="genBtn" disabled>Generate 8 Bars</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+    <div class="grow"></div>
+    <div class="row" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+      <label class="chip" style="display:flex;align-items:center;">Temp
+        <input id="temp" class="slider" type="range" min="0.6" max="1.4" step="0.05" value="1.0" />
+        <span id="tempVal" class="val">1.0</span>
+      </label>
+      <label class="chip" style="display:flex;align-items:center;">top-K
+        <input id="topk" class="slider" type="range" min="5" max="40" step="1" value="24" />
+        <span id="topkVal" class="val">24</span>
+      </label>
+    </div>
+  </div>
+</header>
+<div class="panel">
+  <canvas id="c"></canvas>
+  <div class="legend">
+    <div class="dot kick"></div><span class="small">KICK</span>
+    <div class="dot snare"></div><span class="small">SNARE</span>
+    <div class="dot hat"></div><span class="small">HAT</span>
+    <span class="small">• 16 steps/bar • Tokens: WAIT_1, ON_K, ON_S, ON_H (predicts next token from last N)</span>
+  </div>
+  <div id="status"></div>
+</div>
+<div class="panel small">
+  <strong>How it works</strong> — We encode the last <code>N</code> tokens (one‑hot) → random hidden (tanh) → solve output weights β with ridge regression (closed‑form). During generation we feed back sampled tokens and schedule sounds via WebAudio.
+</div>
+<script>
+/* === Utilities === */
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function softmax(logits, temp=1){
+  let m=-Infinity;
+  for(const v of logits) if(v>m) m=v;
+  const ex=logits.map(v=>Math.exp((v-m)/temp));
+  const s=ex.reduce((a,b)=>a+b,0)||1;
+  return ex.map(v=>v/s);
+}
+function sampleTopK(probs,k){
+  const arr=probs.map((p,i)=>[p,i]).sort((a,b)=>b[0]-a[0]).slice(0,k);
+  const sum=arr.reduce((s,[p])=>s+p,0)||1;
+  let r=Math.random()*sum;
+  for(const [p,i] of arr){ r-=p; if(r<=0) return i; }
+  return arr[arr.length-1][1];
+}
+/* === Drum vocab + data === */
+const TOK={ WAIT_1:0, ON_K:1, ON_S:2, ON_H:3 };
+const ID2STR=['WAIT_1','ON_K','ON_S','ON_H'];
+const V=ID2STR.length;
+function grooveFourOnTheFloor(){
+  const seq=[];
+  for(let bar=0; bar<4; bar++){
+    for(let step=0; step<16; step++){
+      const pos=step%16;
+      if(pos===0||pos===4||pos===8||pos===12) seq.push(TOK.ON_K);
+      else if(pos===4||pos===12) seq.push(TOK.ON_S);
+      else if(pos%2===0) seq.push(TOK.ON_H);
+      else seq.push(TOK.WAIT_1);
+    }
+  }
+  return seq;
+}
+function grooveBackbeat(){
+  const seq=[];
+  for(let bar=0; bar<4; bar++){
+    for(let step=0; step<16; step++){
+      const pos=step%16;
+      if(pos===0||pos===7) seq.push(TOK.ON_K);
+      else if(pos===4||pos===12) seq.push(TOK.ON_S);
+      else seq.push(TOK.ON_H);
+    }
+  }
+  return seq;
+}
+const TRAIN_SEQS=[grooveFourOnTheFloor(),grooveBackbeat()];
+/* === Feature builder === */
+function oneHot(idx,size){ const v=new Float32Array(size); v[idx]=1; return v; }
+function buildInputWindow(tokens,pos,N){
+  const out=new Float32Array(N*V);
+  let o=0;
+  for(let i=pos-N; i<pos; i++){
+    const t=i>=0 ? tokens[i] : TOK.WAIT_1;
+    out.set(oneHot(t,V), o);
+    o+=V;
+  }
+  return out;
+}
+/* === ELM implementation === */
+class ELM{
+  constructor(inDim,hidden,outDim,lambda=1e-2){
+    this.inDim=inDim; this.hidden=hidden; this.outDim=outDim; this.lambda=lambda;
+    this.W=new Float32Array(inDim*hidden);
+    this.b=new Float32Array(hidden);
+    const scale=1/Math.sqrt(inDim);
+    for(let i=0;i<this.W.length;i++) this.W[i]=(Math.random()*2-1)*scale;
+    for(let j=0;j<hidden;j++) this.b[j]=(Math.random()*2-1)*0.1;
+    this.B=new Float32Array(hidden*outDim);
+  }
+  hiddenAct(x){
+    const h=new Float32Array(this.hidden);
+    for(let j=0;j<this.hidden;j++){
+      let sum=this.b[j];
+      const off=j*this.inDim;
+      for(let i=0;i<this.inDim;i++) sum+=this.W[off+i]*x[i];
+      h[j]=Math.tanh(sum);
+    }
+    return h;
+  }
+  train(X,yIdx){
+    const n=X.length, hdim=this.hidden, k=this.outDim;
+    const H=new Float32Array(n*hdim);
+    const Y=new Float32Array(n*k);
+    for(let r=0;r<n;r++){
+      const h=this.hiddenAct(X[r]);
+      H.set(h, r*hdim);
+      Y[r*k + yIdx[r]] = 1;
+    }
+    const A=new Float32Array(hdim*hdim);
+    for(let i=0;i<hdim;i++){
+      for(let j=0;j<hdim;j++){
+        let s=0;
+        for(let r=0;r<n;r++) s += H[r*hdim+i] * H[r*hdim+j];
+        A[i*hdim+j] = s + (i===j?this.lambda:0);
+      }
+    }
+    const M=new Float32Array(hdim*k);
+    for(let i=0;i<hdim;i++){
+      for(let j=0;j<k;j++){
+        let s=0;
+        for(let r=0;r<n;r++) s += H[r*hdim+i] * Y[r*k+j];
+        M[i*k+j] = s;
+      }
+    }
+    const size=hdim, cols=hdim+k;
+    const aug=new Float32Array(size*cols);
+    for(let r=0;r<size;r++){
+      for(let c=0;c<hdim;c++) aug[r*cols+c] = A[r*hdim+c];
+      for(let c=0;c<k;c++)    aug[r*cols+hdim+c] = M[r*k+c];
+    }
+    for(let p=0;p<size;p++){
+      let piv=aug[p*cols+p];
+      if(Math.abs(piv)<1e-9){
+      for(let r=p+1;r<size;r++){
+        if(Math.abs(aug[r*cols+p])>1e-9){
+          for(let c=0;c<cols;c++){
+            const tmp=aug[p*cols+c]; aug[p*cols+c]=aug[r*cols+c]; aug[r*cols+c]=tmp;
+          }
+          piv=aug[p*cols+p]; break;
+        }
+      }
+      }
+      const invPiv=1/(piv||1e-9);
+      for(let c=0;c<cols;c++) aug[p*cols+c]*=invPiv;
+      for(let r=0;r<size;r++){
+        if(r===p) continue;
+        const f=aug[r*cols+p];
+        if(Math.abs(f)<1e-12) continue;
+        for(let c=0;c<cols;c++) aug[r*cols+c] -= f*aug[p*cols+c];
+      }
+    }
+    for(let r=0;r<size;r++){
+      for(let c=0;c<k;c++){
+        this.B[r*k + c] = aug[r*cols + hdim + c];
+      }
+    }
+  }
+  predictLogits(x){
+    const h=this.hiddenAct(x);
+    const k=this.outDim;
+    const y=new Float32Array(k);
+    for(let c=0;c<k;c++){
+      let s=0;
+      for(let j=0;j<this.hidden;j++) s += h[j] * this.B[j*k+c];
+      y[c] = s;
+    }
+    return y;
+  }
+}
+/* === Training data builder === */
+function makeXY(seqs,N=16){
+  const X=[], y=[];
+  for(const seq of seqs){
+    for(let t=1;t<seq.length;t++){
+      X.push(buildInputWindow(seq, t, N));
+      y.push(seq[t]);
+    }
+  }
+  return { X, y: new Int32Array(y) };
+}
+/* === Generation === */
+function generateTokens(model, seed, steps, N, temp, topK){
+  const out=seed.slice();
+  for(let i=0;i<steps;i++){
+    const x=buildInputWindow(out, out.length, N);
+    const logits=model.predictLogits(x);
+    const probs=softmax(Array.from(logits), temp);
+    const id=sampleTopK(probs, topK|0);
+    out.push(id);
+  }
+  return out.slice(seed.length);
+}
+/* === Drum synth === */
+class DrumSynth{
+  constructor(){
+    this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+    this.master=this.ctx.createGain();
+    this.master.gain.value=0.25;
+    this.master.connect(this.ctx.destination);
+    this.running=false;
+  }
+  kick(t){
+    const c=this.ctx;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(120,t);
+    o.frequency.exponentialRampToValueAtTime(40,t+0.15);
+    g.gain.setValueAtTime(1,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+    o.connect(g).connect(this.master);
+    o.start(t); o.stop(t+0.16);
+  }
+  snare(t){
+    const c=this.ctx;
+    const buffer=c.createBuffer(1,c.sampleRate*0.2,c.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+    const s=c.createBufferSource(); s.buffer=buffer;
+    const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800;
+    const g=c.createGain(); g.gain.setValueAtTime(0.5,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+    s.connect(bp).connect(g).connect(this.master);
+    s.start(t); s.stop(t+0.2);
+  }
+  hat(t){
+    const c=this.ctx;
+    const buffer=c.createBuffer(1,c.sampleRate*0.05,c.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+    const s=c.createBufferSource(); s.buffer=buffer;
+    const hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7000;
+    const g=c.createGain(); g.gain.setValueAtTime(0.25,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+    s.connect(hp).connect(g).connect(this.master);
+    s.start(t); s.stop(t+0.06);
+  }
+  playToken(tok,when){
+    if(tok===TOK.ON_K) this.kick(when);
+    else if(tok===TOK.ON_S) this.snare(when);
+    else if(tok===TOK.ON_H) this.hat(when);
+  }
+}
+/* === Canvas drawing === */
+const canvas=document.getElementById('c');
+const g=canvas.getContext('2d');
+function resizeCanvas(){
+  const DPR=window.devicePixelRatio||1;
+  const W=canvas.clientWidth, H=canvas.clientHeight;
+  canvas.width=Math.floor(W*DPR);
+  canvas.height=Math.floor(H*DPR);
+  g.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resizeCanvas); resizeCanvas();
+const colors={ kick:'var(--accent)', snare:'#6ee7a2', hat:'#facc15' };
+function drawTimeline(tokens,cursor,stepsPerBar=16){
+  const W=canvas.clientWidth, H=canvas.clientHeight;
+  g.clearRect(0,0,W,H);
+  const pad=20, usableW=W-2*pad, laneH=(H-2*pad)/3;
+  const totalSteps=stepsPerBar*4;
+  const barWidth=usableW/4;
+  for(let b=0;b<4;b++){
+    const xs=pad+b*barWidth;
+    g.fillStyle='rgba(90,209,255,0.04)';
+    g.fillRect(xs,pad,barWidth,H-2*pad);
+  }
+  g.strokeStyle='rgba(90,209,255,0.25)';
+  for(let i=0;i<=totalSteps;i++){
+    const x=pad + (i/totalSteps)*usableW;
+    g.beginPath(); g.moveTo(x,pad); g.lineTo(x,H-pad); g.stroke();
+  }
+  g.fillStyle='var(--muted)';
+  g.font='12px system-ui';
+  const lanes=['KICK','SNARE','HAT'];
+  lanes.forEach((L,i)=>{ g.fillText(L,6,pad + i*laneH + 14); });
+  const windowTokens=tokens.slice(-totalSteps);
+  for(let i=0;i<windowTokens.length;i++){
+    const t=windowTokens[i];
+    const x=pad + (i/totalSteps)*usableW;
+    const yKick=pad + laneH*0.5;
+    const ySnare=pad + laneH*1.5;
+    const yHat=pad + laneH*2.5;
+    if(t===TOK.ON_K){ g.fillStyle=colors.kick; g.beginPath(); g.arc(x,yKick,6,0,Math.PI*2); g.fill(); }
+    if(t===TOK.ON_S){ g.fillStyle=colors.snare; g.beginPath(); g.arc(x,ySnare,6,0,Math.PI*2); g.fill(); }
+    if(t===TOK.ON_H){ g.fillStyle=colors.hat; g.beginPath(); g.arc(x,yHat,4,0,Math.PI*2); g.fill(); }
+  }
+  const idx=(cursor%totalSteps);
+  const playX=pad + (idx/totalSteps)*usableW;
+  g.strokeStyle='rgba(250,250,255,0.85)';
+  g.beginPath(); g.moveTo(playX,pad); g.lineTo(playX,H-pad); g.stroke();
+}
+/* === UI logic === */
+const trainBtn=document.getElementById('trainBtn');
+const genBtn=document.getElementById('genBtn');
+const stopBtn=document.getElementById('stopBtn');
+const tempSlider=document.getElementById('temp');
+const topkSlider=document.getElementById('topk');
+const tempVal=document.getElementById('tempVal');
+const topkVal=document.getElementById('topkVal');
+const statusDiv=document.getElementById('status');
+let MODEL=null, N=16, HSIZE=64;
+let currentTokens=[];
+let scheduler=null;
+function setStatus(msg){ statusDiv.textContent=msg; }
+function updateSliders(){
+  tempVal.textContent=tempSlider.value;
+  topkVal.textContent=topkSlider.value;
+}
+updateSliders();
+tempSlider.addEventListener('input',updateSliders);
+topkSlider.addEventListener('input',updateSliders);
+trainBtn.addEventListener('click',()=>{
+  trainBtn.disabled=true;
+  genBtn.disabled=true;
+  stopBtn.disabled=true;
+  setStatus('Training model...');
+  const {X,y}=makeXY(TRAIN_SEQS,N);
+  MODEL = new ELM(N*V, HSIZE, V, 1e-2);
+  setTimeout(()=>{
+    MODEL.train(X,y);
+    currentTokens = TRAIN_SEQS[0].slice(0, 64);
+    drawTimeline(currentTokens,0);
+    trainBtn.disabled=false;
+    genBtn.disabled=false;
+    setStatus('Model trained. Ready to generate.');
+  },10);
+});
+function playSequence(seq){
+  const drums=new DrumSynth();
+  const bpm=120;
+  const spb=60/bpm;
+  const stepDur=spb/4;
+  const ctx=drums.ctx;
+  const start=ctx.currentTime+0.2;
+  let step=0;
+  currentTokens=[];
+  stopBtn.disabled=false;
+  scheduler = setInterval(()=>{
+    const now=ctx.currentTime;
+    while(step < seq.length && (start + step*stepDur) < now + 0.15){
+      const t=seq[step];
+      const when=start + step*stepDur;
+      drums.playToken(t, when);
+      currentTokens.push(t);
+      drawTimeline(currentTokens, step % (16*4));
+      step++;
+    }
+    if(step>=seq.length){
+      clearInterval(scheduler);
+      stopBtn.disabled=true;
+      setStatus('Playback finished.');
+    }
+  },20);
+}
+genBtn.addEventListener('click',()=>{
+  if(!MODEL) return;
+  genBtn.disabled=true;
+  trainBtn.disabled=true;
+  setStatus('Generating and playing...');
+  const seed=grooveBackbeat().slice(0,16);
+  const temp=parseFloat(tempSlider.value);
+  const topk=parseInt(topkSlider.value);
+  const generated=generateTokens(MODEL,seed,16*8,N,temp,topk);
+  const seq=seed.concat(generated);
+  playSequence(seq);
+  genBtn.disabled=false;
+  trainBtn.disabled=false;
+});
+stopBtn.addEventListener('click',()=>{
+  if(scheduler){
+    clearInterval(scheduler);
+    scheduler=null;
+    stopBtn.disabled=true;
+    setStatus('Playback stopped.');
+  }
+});
+currentTokens=TRAIN_SEQS[0].slice(0,32);
+drawTimeline(currentTokens,0);
+setStatus('Click “Train Model” to begin.');
+</script>
+</body>
+</html>
