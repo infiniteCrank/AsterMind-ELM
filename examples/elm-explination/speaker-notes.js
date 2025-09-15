@@ -10,20 +10,25 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slide0: {
       left: `
-        <p>Hi everyone! This session is for JavaScript developers with <em>zero</em> machine-learning background. By the end, you’ll understand a lightweight technique called an <strong>Extreme Learning Machine</strong> — or ELM — and you’ll see it running live in this deck.</p>
-        <p>Here’s our promise up front: traditional neural nets learn by tweaking lots of knobs over and over — that’s backpropagation. ELM takes a shortcut: we <em>randomize</em> the hidden layer once and then compute the output layer in <strong>one math step</strong>. That turns minutes or hours into seconds.</p>
-        <p>How to follow along: use the <strong>Next</strong> and <strong>Back</strong> buttons or your arrow keys. If you like extra detail, tap <strong>Notes</strong> in the header to show or hide what I’m saying now. The minimap on the left is our “subway map”: <em>input → hidden → output</em>.</p>
-        <p>We’ll speak in JavaScript terms — arrays, maps, sliders — and avoid heavy math symbols. When we do show an equation, I’ll translate it to plain English immediately.</p>
-        <p>Outcome for you: you’ll know how to (1) turn text into numbers, (2) project through a randomized hidden layer, (3) solve the output weights in one shot, and (4) run a prediction — all with the mental model of everyday JS.</p>
-      `,
+      <p>Think about the last time you asked Copilot to finish a function, or used ChatGPT to help debug some code. It feels like magic, right? That magic comes from neural networks—the engines behind today’s AI.</p>
+
+      <p>Now, most of those networks run in massive data centers filled with GPUs. That’s why tools like ChatGPT or Copilot don’t actually run on your laptop—they run in the cloud. But here’s the twist: what if you could bring some of that predictive power <em>into the browser</em> with nothing more than JavaScript?</p>
+
+      <p>And here’s the kicker: while traditional neural networks can take hours—or even days—to train, there’s a special type of neural network that can be trained in seconds. Literally seconds. No GPUs, no server farms—just you, your code, and instant results.</p>
+
+      <p>Hello everyone, my name is Julian Duran. I’ve been a software engineer for many years, and over the past few years I’ve become fascinated with machine learning and AI. Along that journey, I stumbled onto this almost-forgotten technology called <strong>Extreme Learning Machines</strong>, or ELMs.</p>
+
+      <p>In this session, I’m going to show you what they are, how they differ from traditional neural networks, and why they’re such a powerful fit for us as JavaScript engineers. We’ll walk through the pieces of an ELM step by step with interactive slides, and by the end, you’ll see how you can start using them yourself—right inside your own projects.</p>
+ `,
       right: `
-        <ul>
-          <li>Audience: JS devs, no ML assumed.</li>
-          <li>ELM idea: random hidden once → one-shot output solve.</li>
-          <li>Why care: seconds to train, great for baselines/prototypes.</li>
-          <li>Controls: arrows for nav, “Notes” toggle, minimap shows stages.</li>
-          <li>Goal: vectorize → random project → one solve → predict.</li>
-        </ul>
+ <h3>SMART Goals for This Presentation</h3>
+  <ul>
+    <li><strong>Specific:</strong> Introduce Extreme Learning Machines (ELMs) in a way that JavaScript engineers with little ML background can understand.</li>
+    <li><strong>Measurable:</strong> By the end, attendees should be able to explain what an ELM is, how it differs from a traditional neural network, and imagine one use case in their own projects.</li>
+    <li><strong>Achievable:</strong> Use plain-language explanations, interactive slides, and live demos to make the concepts approachable without heavy math.</li>
+    <li><strong>Relevant:</strong> Connect ELMs to tools the audience already knows—like Copilot or ChatGPT—so they see the value for their everyday coding work.</li>
+    <li><strong>Time-bound:</strong> Deliver all of this within the session time, keeping the introduction under 2 minutes and dedicating the majority of time to hands-on exploration and practical examples.</li>
+  </ul>
       `
     },
 
@@ -279,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function apply(slideId, spec) {
     const slide = document.getElementById(slideId);
     if (!slide) return;
-    const leftPanel  = slide.querySelector('.left .panel');
+    const leftPanel = slide.querySelector('.left .panel');
     const rightPanel = slide.querySelector('.right .panel');
-    if (spec.left)  setNotes(leftPanel,  spec.left);
+    if (spec.left) setNotes(leftPanel, spec.left);
     if (spec.right) setNotes(rightPanel, spec.right);
   }
 
