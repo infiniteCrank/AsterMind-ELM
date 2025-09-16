@@ -637,6 +637,258 @@
         min-height: 300px;
       }
     }
+
+    /* =========================================================
+   MOBILE FIX PACK — ELM deck (put me at the very end)
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Keep the rail as an overlay drawer, not in-flow */
+      .minimap-rail {
+        position: fixed !important;
+        top: var(--header-h) !important;
+        left: 0 !important;
+        right: auto !important;
+        height: calc(100vh - var(--header-h)) !important;
+        max-height: none !important;
+        width: min(86vw, 360px) !important;
+        transform: translateX(-105%) !important;
+        z-index: 50 !important;
+        /* undo earlier mobile rules that put it back in-flow */
+        order: initial !important;
+      }
+
+      body.atlas-open .minimap-rail {
+        transform: translateX(0%) !important;
+      }
+
+      /* Backdrop for the drawer */
+      #atlasBackdrop {
+        position: fixed;
+        inset: 0;
+        top: var(--header-h);
+        background: rgba(0, 0, 0, .45);
+        backdrop-filter: blur(2px);
+        z-index: 40;
+      }
+
+      #atlasBackdrop[hidden] {
+        display: none;
+      }
+
+      /* Show the drawer close button and burger on mobile */
+      .mm-close {
+        display: inline-block !important;
+      }
+
+      .hamburger {
+        display: inline-block !important;
+      }
+
+      /* Prevent body scroll when the drawer is open */
+      body.atlas-open {
+        overflow: hidden;
+      }
+
+      /* Slides still one column on mobile */
+      main {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Ensure the dotted old UI stays hidden if any rule flips it */
+      .mm-dots {
+        display: none !important;
+      }
+
+      /* Tighten hero placement a bit (optional) */
+      .slide>.hero {
+        margin-top: 0;
+      }
+    }
+
+    /* Bigger, more tappable buttons on small screens */
+    @media (max-width: 480px) {
+      header .nav {
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+
+      header .nav button {
+        padding: 12px 14px;
+        font-size: 1rem;
+        border-radius: 14px;
+        min-height: 42px;
+        /* ~44px hit target */
+      }
+
+      #notesToggle,
+      #atlasToggle {
+        min-width: 44px;
+      }
+
+      /* keep target size */
+    }
+
+    /* Hide the "Slide 1 / 12" pill on mobile */
+    @media (max-width: 980px) {
+      #slideLabel {
+        display: none !important;
+      }
+    }
+
+    /* =========================================================
+   MOBILE TWEAK PACK — hero spacing, captions, one-row nav
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Tighter slide spacing */
+      .slide {
+        gap: 12px;
+      }
+
+      /* Hero: smaller, tighter, and image fills the box */
+      .slide>.hero {
+        height: clamp(160px, 36vh, 320px) !important;
+        /* override inline heights */
+        margin-top: 0;
+        margin-bottom: 6px;
+      }
+
+      .slide>.hero img {
+        object-fit: cover;
+      }
+
+      /* fill; no letterboxing */
+      .hero .caption {
+        display: none !important;
+      }
+
+      /* hide captions on mobile */
+
+      /* Keep nav on a single row */
+      header .nav {
+        flex-wrap: nowrap !important;
+        /* one line */
+        gap: 8px;
+        overflow-x: auto;
+        /* allow horizontal scroll if needed */
+        -webkit-overflow-scrolling: touch;
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+      }
+
+      /* no shrinking/wrapping of items */
+
+      /* (You already hid this earlier, but keeping it here for completeness) */
+      #slideLabel {
+        display: none !important;
+      }
+    }
+
+    /* Optional: slightly larger tap targets on very small phones */
+    @media (max-width: 480px) {
+      header .nav button {
+        padding: 12px 14px;
+        font-size: 1rem;
+        border-radius: 14px;
+        min-height: 42px;
+        /* ~44px target */
+      }
+    }
+
+    /* =========================================================
+   MOBILE UTILITY ICONS FIX — keep Notes & Burger visible
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Reserve space on the right for the two utility buttons */
+      header {
+        --util-w: 104px;
+      }
+
+      /* space for Notes + ☰ with gaps */
+
+      /* Truncate long title so it can't push nav off-screen */
+      header h1 {
+        max-width: calc(100% - var(--util-w) - 16px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Keep nav on one row, allow horizontal scroll for the rest,
+     and add right padding so content doesn't sit under the icons */
+      header .nav {
+        flex-wrap: nowrap !important;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        min-width: 0;
+        /* allow flex shrinking */
+        padding-right: var(--util-w);
+        /* room for absolute icons */
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+      }
+
+      /* Pin Notes + Hamburger inside the header (always visible) */
+      #notesToggle,
+      #atlasToggle {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-block !important;
+        /* ensure visible on mobile */
+        z-index: 25;
+      }
+
+      /* Place them on the far right, side by side */
+      #atlasToggle {
+        right: 12px;
+      }
+
+      /* ☰ */
+      #notesToggle {
+        right: 56px;
+      }
+
+      /* Notes button */
+
+      /* Make sure the burger shows on mobile */
+      .hamburger {
+        display: inline-block !important;
+      }
+    }
+
+    /* Slightly tighter on very small phones */
+    @media (max-width: 480px) {
+      header {
+        --util-w: 96px;
+      }
+
+      header .nav button {
+        padding: 12px 14px;
+        font-size: 1rem;
+        border-radius: 14px;
+        min-height: 42px;
+        /* ~44px target */
+      }
+    }
+
+    /* =========================================================
+   MOBILE HOTFIX — keep Next clear of Notes/☰ overlay
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Reserve extra space *before* the pinned icons */
+      #nextBtn {
+        margin-right: calc(var(--util-w) + 140px) !important;
+      }
+    }
   </style>
 
 </head>
