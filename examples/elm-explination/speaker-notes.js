@@ -37,17 +37,23 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slide2a: {
       left: `
-        <p>Quick mental model of a simple neural network. First, we turn text into numbers — think an array of features. That array flows into an <strong>input layer</strong>. Next is a <strong>hidden layer</strong> that mixes numbers and applies a squish function called an <em>activation</em>. Finally, an <strong>output layer</strong> turns the signal into scores or classes.</p>
-        <p>Let’s click <strong>Run</strong>. You’ll see particles flow left→right. There’s no feedback here — it’s a straight pipeline, like chaining array operations in JS.</p>
-        <p>Keep this picture in mind because ELM will keep the same outer shape — inputs, a hidden layer, an output layer — but we’ll skip the slow, iterative training of the hidden layer.</p>
-      `,
+        <p>So, without further ado, let’s take a 1,000-foot view of a neural network. On the screen, you can see a big web of circles connected by lines—that’s the classic picture of a neural network.</p>
+
+  <p>Those circles are called nodes, or neurons. The first set of neurons is the <strong>input layer</strong>. In the middle, we have the <strong>hidden layer</strong>, and at the end, the <strong>output layer</strong>. The lines connecting them are called <strong>synapses</strong>, and each connection has a number attached to it, called a <strong>weight</strong>, which tells the network how strong that connection is. We’ll dig into weights more later.</p>
+
+  <p>For now, what’s important is how data moves through this system. Raw data—like text in a textbox—gets encoded and passed into the input layer. From there, it flows through the hidden layer, which transforms and maps the data. Finally, the output layer produces a result—usually probabilities—that represent the network’s prediction.</p>
+
+  <p>Don’t worry if this feels abstract—we’re going to break it all down step by step. But for now, go ahead and click ‘Run’ to watch a quick simulation of how data flows through the network. Now that we’ve seen the big picture, let’s zoom in on a single neuron.</p>
+`,
       right: `
-        <ul>
-          <li>Pipeline: text → numbers → hidden “mix & squish” → output scores.</li>
-          <li>Analogy: like <code>array.map()</code> steps — one direction only.</li>
-          <li>Watch the canvas: particles = data flowing through layers.</li>
-          <li>Foreshadow: ELM keeps the pipeline but avoids hidden-layer training.</li>
-        </ul>
+<h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Introduce the structure of a neural network by naming its key components—input layer, hidden layer, output layer, synapses, and weights.</li>
+    <li><strong>Measurable:</strong> Attendees should be able to recall and describe these components in their own words after the explanation.</li>
+    <li><strong>Achievable:</strong> Use the visual diagram and simulation to reinforce the explanation without requiring prior ML knowledge.</li>
+    <li><strong>Relevant:</strong> Builds the foundation needed to understand how Extreme Learning Machines differ from traditional neural networks.</li>
+    <li><strong>Time-bound:</strong> Deliver this overview in under 3 minutes before zooming in on a single neuron.</li>
+  </ul>
       `
     },
 
@@ -56,20 +62,34 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slide1: {
       left: `
-        <p>This is a single neuron. It takes an input <em>x</em>, multiplies by a <strong>weight</strong> <em>w</em>, adds a <strong>bias</strong> <em>b</em>, then applies an <strong>activation</strong> function. In JS terms: compute <code>z = w*x + b</code>, then run <code>y = activation(z)</code>.</p>
-        <p>Let’s try a setting. I’ll set <strong>w = -2</strong>, <strong>b = 0.5</strong>. Now I’ll toggle the activation between <strong>ReLU</strong> and <strong>tanh</strong>.</p>
-        <p>Notice the shape: ReLU clips everything below zero — it’s piecewise straight. <em>tanh</em> is smooth, squashing outputs into −1..1. <em>sigmoid</em> is similar but squashes into 0..1.</p>
-        <p>The gauges below show amplitude before and after activation. The post-activation gauge tells you how much the squish function is limiting the output range.</p>
-        <p>Key takeaway: a neuron is just “multiply, add, squish.” Networks are stacks of these.</p>
-      `,
+      <p>This is a single neuron. Here’s how it works: it takes an input value, multiplies it by a weight, adds a bias, and then runs the result through an activation function.</p>
+
+  <p>In JavaScript terms: <code>z = w * x + b</code>, and then <code>y = activation(z)</code>.</p>
+
+  <p>Let’s try an example. Set the weight <code>w</code> to -2 and the bias <code>b</code> to 0.5. Now toggle the activation function between ReLU and tanh.</p>
+
+  <p>Notice the difference:
+    <ul>
+      <li><strong>ReLU:</strong> Clips everything below zero — piecewise straight.</li>
+      <li><strong>tanh:</strong> Smooth curve, squashes outputs into the range -1 to 1.</li>
+      <li><strong>sigmoid:</strong> Similar to tanh, but squashes into the range 0 to 1.</li>
+    </ul>
+  </p>
+
+  <p>The gauges on screen show amplitude before and after activation. The post-activation gauge tells you how much the “squish function” is limiting the output range.</p>
+
+  <p><strong>Key takeaway:</strong> A neuron is basically “multiply, add, squish.” Networks are just stacks of these neurons.</p>
+
+       `,
       right: `
-        <ul>
-          <li>Formula: <code>z = w*x + b</code> → <code>y = g(z)</code>.</li>
-          <li>Try: <strong>w = -2</strong>, <strong>b = 0.5</strong>; compare ReLU vs tanh vs sigmoid.</li>
-          <li>ReLU: zeroes negatives; tanh/sigmoid: smooth squash.</li>
-          <li>Watch the two amplitude bars (pre vs post activation).</li>
-          <li>Takeaway: building block for all slides ahead.</li>
-        </ul>
+ <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Teach how a single neuron processes input using weights, bias, and an activation function.</li>
+    <li><strong>Measurable:</strong> Attendees can describe a neuron in plain terms as “multiply, add, squish” and identify the effect of ReLU, tanh, and sigmoid.</li>
+    <li><strong>Achievable:</strong> Use the interactive demo and gauges to make the abstract math visual and intuitive.</li>
+    <li><strong>Relevant:</strong> Builds a clear mental model for understanding how networks are stacks of these simple units.</li>
+    <li><strong>Time-bound:</strong> Deliver the concept and run the demo in under 3 minutes before moving on to networks of neurons.</li>
+  </ul>
       `
     },
 
@@ -78,21 +98,23 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slide2: {
       left: `
-        <p>Neural nets need numbers, so we turn text into a numeric vector — this is <strong>vectorization</strong>.</p>
-        <p><strong>Bag-of-Words</strong>: each unique word becomes a feature; the value is the count. Simple and fast; it ignores order and context.</p>
-        <p><strong>TF-IDF</strong>: like counts, but common words (like “the”) are down-weighted and rare, informative words are up-weighted. Often a stronger default for small text datasets.</p>
-        <p><strong>Isolated</strong>: here that just means “local counts” without IDF — useful to show the mechanics.</p>
-        <p>Workflow: pick a row, choose an encoding, click <strong>Encode text</strong>. The heatmap shows the first N features (use the slider). Hover to see the feature index and value. The token list below prints top tokens.</p>
-        <p>ELM tip: it doesn’t care which reasonable encoder you use — it just needs a numeric vector. We’ll reuse this vector on the hidden-layer slide.</p>
-      `,
+       <p>Now that we understand how a single neuron works, let’s talk about the data we feed into it. Data usually starts out raw—like a piece of text, an image, or really anything. But here’s the catch: we can’t just feed raw data into a neuron. It needs to be converted into numbers.</p>
+
+  <p>For text, this process is called <strong>vectorization</strong>. First, we break the text into tokens—these can be words, punctuation, or even characters. Each token is then mapped into a numerical value inside a two-dimensional matrix.</p>
+
+  <p>On this slide, you can experiment with different ways to encode text. When you click the <em>Encode Text</em> button, you’ll see a visualization of that 2D matrix, showing how the tokens were encoded and their weights. If you hover over a box, you can see which word that box represents.</p>
+
+  <p>This is just one way of doing text encoding—there are many others. The good news is, Extreme Learning Machines aren’t picky about which encoding you use. And the library I’ve built comes with an ELM encoder, as well as <strong>TF-IDF</strong>, a popular text encoder, to handle that step for you.</p>
+`,
       right: `
-        <ul>
-          <li>BoW = counts; TF-IDF = counts × informativeness.</li>
-          <li>Click <strong>Encode text</strong> → heatmap + tokens below.</li>
-          <li>Adjust “Max features” to see truncation effects.</li>
-          <li>Any numeric vector works for ELM.</li>
-          <li>We’ll project this vector through a random hidden layer next.</li>
-        </ul>
+      <h3>SMART Goal for This Slide</h3>
+<ul>
+    <li><strong>Specific:</strong> Explain why raw data cannot go directly into a neural network and introduce vectorization as the solution.</li>
+    <li><strong>Measurable:</strong> Attendees can describe vectorization as “breaking text into tokens and mapping them into numbers.”</li>
+    <li><strong>Achievable:</strong> Use the interactive visualization to make the concept tangible without requiring math-heavy explanations.</li>
+    <li><strong>Relevant:</strong> Builds the foundation for how data is prepared before being processed by Extreme Learning Machines.</li>
+    <li><strong>Time-bound:</strong> Deliver this explanation and run the demo in under 3 minutes before moving on to ELM’s flexibility with encoders.</li>
+  </ul>
       `
     },
 
@@ -101,18 +123,32 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideBP: {
       left: `
-        <p>Training a regular neural net means running a loop called <strong>backpropagation</strong>. The network predicts, we measure the <strong>loss</strong> (error), and we nudge weights to reduce that loss. Repeat for many <strong>epochs</strong>.</p>
-        <p>The tricky knob is the <strong>learning rate</strong>. Too low: training crawls; too high: the loss bounces or even diverges. Two classic failure modes: <em>vanishing gradients</em> (updates get tiny) and <em>exploding gradients</em> (updates blow up).</p>
-        <p>Let’s scrub the slider and switch scenarios. Watch the left heatmap (weights changing) and the right chart (loss over time). This is the effort ELM avoids.</p>
-      `,
+      <p>Alright, so we’ve seen how raw data like text gets vectorized—turned into numbers—so it can flow into a neural network. But encoding the data is just the start. The real challenge comes next: training the network.</p>
+
+  <p>Training a traditional neural network means running a process called <strong>backpropagation</strong>. Here’s how it works: the network makes a prediction, we measure the error—called the loss—and then we adjust the weights to reduce that loss. And we don’t just do this once. We repeat it over and over, often thousands of times, across what are called epochs.</p>
+
+  <p>This is where things get expensive. Backpropagation is computationally heavy and time-consuming, especially for large networks. And it comes with its own set of headaches. The most important setting to tune is the <strong>learning rate</strong>. If it’s too low, training crawls. If it’s too high, the loss bounces around or even diverges completely.</p>
+
+  <p>Two classic problems can also crop up:</p>
+  <ul>
+    <li><strong>Vanishing gradients</strong> — updates become so tiny the network stops learning.</li>
+    <li><strong>Exploding gradients</strong> — updates get too large and the network blows up.</li>
+  </ul>
+
+  <p>On this slide, you can scrub the slider to switch scenarios. Watch the heatmap on the left—those are the weights changing—and the chart on the right, which shows the loss over time.</p>
+
+  <p>This long, costly loop is the effort that <strong>Extreme Learning Machines</strong> avoid. And that’s why ELMs can train in seconds instead of hours or days.</p>
+ `,
       right: `
-        <ul>
-          <li>Loop: predict → compute loss → nudge weights → repeat.</li>
-          <li>Learning rate: low = slow, high = noisy/unstable.</li>
-          <li>Failure modes: vanishing vs exploding gradients.</li>
-          <li>Watch: left = weight heatmap; right = loss curve.</li>
-          <li>Contrast setup: ELM skips these loops entirely.</li>
-        </ul>
+    <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Explain what backpropagation is and why it makes training traditional neural networks slow and resource-intensive.</li>
+    <li><strong>Measurable:</strong> Attendees can describe the backprop loop as “predict → measure loss → adjust weights → repeat.”</li>
+    <li><strong>Achievable:</strong> Use the slider demo with heatmaps and charts to visually reinforce the concepts of weight updates and loss curves.</li>
+    <li><strong>Relevant:</strong> Sets up the contrast for why Extreme Learning Machines are different and valuable.</li>
+    <li><strong>Time-bound:</strong> Deliver this explanation and demo in under 4 minutes before introducing how ELMs skip this process.</li>
+  </ul>
+
       `
     },
 
@@ -121,17 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideHuang: {
       left: `
-        <p>Here’s the bold idea by <strong>Guang-Bin Huang</strong>: <em>what if we didn’t train the hidden layer at all?</em></p>
-        <p>At first that sounds wrong — isn’t the hidden layer where the magic happens? The insight is that a <em>random</em> hidden layer can be <strong>good enough</strong> to create a useful coordinate system for the data. Then we only solve the output layer <em>once</em>.</p>
-        <p>So ELM = randomize hidden weights and biases a single time, freeze them, and do a one-shot solve for the output weights.</p>
-      `,
+       <p>Here’s the bold idea from Guang-Bin Huang, the creator of Extreme Learning Machines: what if we didn’t train the hidden layer at all?</p>
+
+  <p>At first, that sounds backwards. Isn’t the hidden layer where all the magic happens? But here’s the key insight: if you randomize the hidden layer just once, it can still provide a rich enough coordinate system for the data.</p>
+
+  <p>That means instead of spending hours adjusting hidden weights with backpropagation, ELMs simply freeze the hidden layer and solve the output layer in a single step.</p>
+
+  <p>One pass, one calculation — and you’re done.</p>`,
       right: `
-        <ul>
-          <li>Provocation: skip training the hidden layer.</li>
-          <li>Use randomness to create a rich coordinate system.</li>
-          <li>Train only the output layer (one solve).</li>
-          <li>Outcome: seconds instead of minutes/hours.</li>
-        </ul>
+  <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Introduce Guang-Bin Huang’s insight that the hidden layer does not need to be trained.</li>
+    <li><strong>Measurable:</strong> Attendees can restate ELM’s approach as “randomize the hidden layer once, freeze it, and solve only the output layer.”</li>
+    <li><strong>Achievable:</strong> Use a simple explanation and visual to demystify how this shortcut still works.</li>
+    <li><strong>Relevant:</strong> Highlights the core difference between ELMs and traditional neural networks, connecting back to the pain of backpropagation.</li>
+    <li><strong>Time-bound:</strong> Deliver this key insight in under 3 minutes to keep momentum moving into practical demos.</li>
+  </ul>
       `
     },
 
@@ -140,16 +181,21 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideGrid: {
       left: `
-        <p>Imagine looking down on a messy city. It’s hard to describe locations. If we drop a <strong>random grid</strong> on top, it won’t line up with streets, but it gives us coordinates — “row 3, col 5.” It’s not perfect; it’s <em>useful</em>.</p>
-        <p>ELM uses a random hidden layer the same way: it projects each example into random coordinates. With coordinates, it’s easier to separate classes using a simple output mapping.</p>
-      `,
+      <p>On the last slide, we saw Huang’s bold idea: don’t train the hidden layer—just randomize it once and freeze it. That might still feel a little abstract, so let’s make it more concrete with a visual analogy.</p>
+
+  <p>Imagine looking down on a messy city. Without a system, it’s hard to describe where anything is. Now, if we drop a random grid on top, the grid won’t line up with the streets, but it gives us coordinates: “row 3, column 5.” It’s not perfect—but it’s useful.</p>
+
+  <p>Extreme Learning Machines use a random hidden layer in the same way. That random layer projects each example into a set of coordinates. And once you’ve got coordinates, it becomes much easier to separate classes using a simple output mapping.</p>
+`,
       right: `
-        <ul>
-          <li>Analogy: random grid → usable coordinates.</li>
-          <li>ELM mapping: <code>H = g(X·W + b)</code>.</li>
-          <li>Once in H-space, separation becomes simpler.</li>
-          <li>We’ll solve the output mapping next.</li>
-        </ul>
+  <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Use a city-grid analogy to explain how a randomized hidden layer can still provide useful structure for data.</li>
+    <li><strong>Measurable:</strong> Attendees can describe the hidden layer as a way of giving “coordinates” that make data easier to separate.</li>
+    <li><strong>Achievable:</strong> Leverage a simple visual analogy (city + grid) to make the abstract math idea intuitive.</li>
+    <li><strong>Relevant:</strong> Builds on Huang’s insight from the previous slide and reinforces why ELMs don’t need to train hidden layers.</li>
+    <li><strong>Time-bound:</strong> Deliver the analogy in under 3 minutes, keeping the audience engaged before diving into demos.</li>
+  </ul>
       `
     },
 
@@ -158,19 +204,27 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideGPS: {
       left: `
-        <p>Now the one-shot solve. Let <code>H</code> be the matrix of hidden-layer outputs for all training rows, and <code>Y</code> be the matrix of labels (e.g., one-hot classes). We want weights <code>β</code> that make <code>Hβ ≈ Y</code>.</p>
-        <p>The fast way is the <strong>Moore–Penrose pseudoinverse</strong>. In practice you can think: “find the best linear mapping from hidden features to labels in one calculation.”</p>
-        <p>In plain terms: the hidden layer gave us coordinates; now we draw straight lines in that space to hit the targets. If features are noisy or correlated, we add a small <strong>ridge</strong> term for stability.</p>
-        <p>Dimensions check: if H is <em>n × h</em> and Y is <em>n × k</em>, then β is <em>h × k</em>. That’s the piece we’ll visualize on the next slide.</p>
-      `,
+       <p>Here’s the one-shot solve. Remember, the hidden layer gave us a set of coordinates for each training example. Now our job is to map those coordinates to the right answers.</p>
+
+  <p>Instead of running loops and nudging weights over and over, we can just draw the best straight lines through those coordinates in a single calculation. That’s it—one step.</p>
+
+  <p>If the data is messy or the features overlap too much, we add a small <strong>stability boost</strong> (called regularization) to keep things well-behaved.</p>
+
+  <p><strong>Key takeaway:</strong> Hidden features in → one calculation → output weights out.</p>
+
+  <p style="font-size: 0.9em; color: #aaa;">
+    (Math shorthand for reference: <code>Hβ ≈ Y</code>.
+    If <code>H</code> is <code>n × h</code> and <code>Y</code> is <code>n × k</code>, then <code>β</code> is <code>h × k</code>.)
+  </p> `,
       right: `
-        <ul>
-          <li>Goal: solve <code>Hβ ≈ Y</code> in one step.</li>
-          <li>Tool: pseudoinverse (or ridge): <code>β = (HᵀH + λI)⁻¹HᵀY</code>.</li>
-          <li>Intuition: “find best straight mapping in H-space.”</li>
-          <li>Dims: H(n×h), Y(n×k) ⇒ β(h×k).</li>
-          <li>Why fast: no epochs, no LR tuning.</li>
-        </ul>
+  <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Show how Extreme Learning Machines replace slow, iterative backpropagation with a single one-shot solve for output weights.</li>
+    <li><strong>Measurable:</strong> Attendees can restate the ELM process as “random hidden layer → one-step solve for outputs.”</li>
+    <li><strong>Achievable:</strong> Use the optimization engine diagram and live demo to make the concept clear without requiring deep math.</li>
+    <li><strong>Relevant:</strong> Highlights the core advantage of ELMs: fast training without gradient descent loops.</li>
+    <li><strong>Time-bound:</strong> Deliver this insight in under 4 minutes before moving into applied examples and demos.</li>
+  </ul>
       `
     },
 
@@ -270,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  function setNotes(panelEl, html) {
+  function setNotes(panelEl, html, position) {
     if (!panelEl) return;
     let notes = panelEl.querySelector('.notes');
     if (!notes) {
@@ -278,7 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
       notes.className = 'notes';
       panelEl.appendChild(notes);
     }
-    notes.innerHTML = '<span class="label">Speaker notes</span>' + html;
+    console.log(notes)
+    if (position === "right") {
+      notes.innerHTML = '<span class="label">Bullet Points:</span>' + html;
+    } else {
+      notes.innerHTML = '<span class="label">Speaker Notes:</span>' + html;
+    }
+
   }
 
   function apply(slideId, spec) {
@@ -286,8 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!slide) return;
     const leftPanel = slide.querySelector('.left .panel');
     const rightPanel = slide.querySelector('.right .panel');
-    if (spec.left) setNotes(leftPanel, spec.left);
-    if (spec.right) setNotes(rightPanel, spec.right);
+    if (spec.left) setNotes(leftPanel, spec.left, "left");
+    if (spec.right) setNotes(rightPanel, spec.right, "right");
   }
 
   Object.entries(NOTES).forEach(([id, spec]) => apply(id, spec));

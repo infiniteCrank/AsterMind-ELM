@@ -740,17 +740,14 @@ body.show-notes .notes{ display:block; }
           <div class="canvasWrap" style="height:260px; position:relative">
             <canvas id="mpPseudo"></canvas>
           </div>
-          <ul>
-            <li><strong>What you’re seeing:</strong> Inputs <code>H</code> (magenta) and labels <code>Y</code> (cyan) flow into a central “Optimization Engine.”</li>
-            <li><strong>One-shot solve:</strong> Instead of gradient-descent loops, we compute the output weights in a single step:
-              <code>β = H⁺ Y</code> (Moore–Penrose pseudoinverse).</li>
-            <li><strong>Intuition:</strong> Treat the hidden layer’s outputs as coordinates; the engine finds the best linear mapping from those coordinates to the labels.</li>
-            <li><strong>Why it’s fast:</strong> No epochs, no learning rate tuning—just one linear-algebra solve.</li>
-            <li><strong>Dimensions:</strong> If <code>H</code> is <em>n × h</em> and <code>Y</code> is <em>n × k</em>, then <code>β</code> is <em>h × k</em>.</li>
-            <li><strong>Numerical note:</strong> With many or correlated features, use ridge:
-              <code>β = (HᵀH + λI)⁻¹ Hᵀ Y</code> (stable &amp; regularized).</li>
-            <li><strong>When to use:</strong> Great baseline for tabular/text features, quick prototypes, or when you want seconds-to-train models.</li>
-            <li><strong>Trade-offs:</strong> Needs enough hidden units; performance depends on the random projection and regularization strength.</li>
+           <ul>
+            <li><strong>What’s happening here:</strong> Inputs <em>(magenta)</em> and labels <em>(cyan)</em> flow into the “Optimization Engine.”</li>
+            <li><strong>One-shot solve:</strong> Instead of looping with gradient descent, we calculate the output weights in a single step.</li>
+            <li><strong>Why it works:</strong> The random hidden layer creates coordinates, and the engine finds the best linear mapping to the labels.</li>
+            <li><strong>Why it’s fast:</strong> No epochs, no learning rate tuning—just one linear algebra solve.</li>
+            <li><strong>Regularization note:</strong> With lots of features or correlations, we add a ridge term to keep things stable.</li>
+            <li><strong>When to use:</strong> Great for quick prototypes, tabular or text data, and cases where you want models trained in seconds.</li>
+            <li><strong>Trade-offs:</strong> You need enough hidden units, and performance depends on the random projection and regularization.</li>
           </ul>
           <p class="note">Bottom bar labeled “ONE SOLVE” underscores that training is a single computation, not an iterative loop.</p>
         </div>
@@ -759,11 +756,7 @@ body.show-notes .notes{ display:block; }
         <div class="panel">
           <h2>Output layer as GPS</h2>
           <p>With coordinates in hand, navigation is easy: straight lines in grid space. The output layer is the GPS: map random coordinates to labels in one exact step.</p>
-          <div class="notes"><span class="label">Speaker notes</span>
-            Promise: no epochs. We’ll compute β in a single calculation.
-          </div>
-         <p class="note">No gradient descent loops. One solve.</p>
-
+          <p class="note">No gradient descent loops. One solve.</p>
           <p><strong>In everyday terms:</strong> 
               Think of the hidden layer (<em>H</em>) as a big table where each row is a training example and each column is a hidden feature. 
               The labels (<em>Y</em>) are another table where each row is the answer for that example. 
@@ -771,6 +764,11 @@ body.show-notes .notes{ display:block; }
               So: hidden features in → correct answers out. 
               The size of that guide simply depends on how many hidden features you made and how many kinds of answers you want.</p>
           <img src="images/gps.png" alt="GPS metaphor" >
+          
+
+          <div class="notes"><span class="label">Speaker notes</span>
+            Promise: no epochs. We’ll compute β in a single calculation.
+          </div>
         </div>
       </div>
     </section>
