@@ -1879,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ---------------- 14) Slide 11: ELM train (one-shot β) ---------------- */
-  const S4 = { canvas: null, betaVis: null, labels: [], dims: null };
+  const S4 = { canvas: null, betaVis: null, labels: [], dims: null, classIds: null };
   function ensureELMTrain() {
     if (S4.inited) return; S4.inited = true;
 
@@ -1915,20 +1915,103 @@ document.addEventListener('DOMContentLoaded', () => {
       const Wc = c.clientWidth, Hc = c.clientHeight;
       c.width = Math.max(1, Wc * dpr); c.height = Math.max(1, Hc * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, Wc, Hc);
-      if (!S4.betaVis) { g.fillStyle = '#93a9e8'; g.fillText('Train first to visualize β.', 12, 22); return; }
+
+      g.font = '600 11px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      const INK = '#e5efff', MUTED = '#a7b8e8';
+
+      if (!S4.betaVis) { g.fillStyle = MUTED; g.fillText('Train first to visualize β.', 12, 22); return; }
+
       const B = S4.betaVis, R = B.length, C = B[0].length;
-      const m = 10, cw = Math.floor((Wc - 2 * m) / C), ch = Math.floor((Hc - 2 * m) / R);
+
+      // Build labels
+      const colLabels = (
+        S4.labels && Array.isArray(S4.labels.cols) && S4.labels.cols.length === C
+      ) ? S4.labels.cols
+        : Array.from({ length: C }, (_, j) => `class ${j}`);
+
+      const rowLabels = (
+        S4.labels && Array.isArray(S4.labels.rows) && S4.labels.rows.length === R
+      ) ? S4.labels.rows
+        : Array.from({ length: R }, (_, i) => `h${i}`);
+
+      // Layout with margins
+      const mL = 68, mR = 16, mT = 42, mB = 42;
+      const innerW = Math.max(40, Wc - mL - mR);
+      const innerH = Math.max(40, Hc - mT - mB);
+      const cw = Math.max(6, Math.floor(innerW / C));
+      const ch = Math.max(6, Math.floor(innerH / R));
+      const gridW = cw * C, gridH = ch * R;
+      const x0 = mL + Math.floor((innerW - gridW) / 2);
+      const y0 = mT + Math.floor((innerH - gridH) / 2);
+
+      // Color scale
       let vmax = 1e-6;
       for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) vmax = Math.max(vmax, Math.abs(B[i][j]));
       for (let i = 0; i < R; i++) {
         for (let j = 0; j < C; j++) {
-          const v = B[i][j], a = Math.min(1, Math.abs(v) / vmax), hue = v >= 0 ? 200 : 0;
+          const v = B[i][j];
+          const a = Math.min(1, Math.abs(v) / vmax);
+          const hue = v >= 0 ? 200 : 0; // blue for +, red for -
           g.fillStyle = `hsla(${hue},90%,60%,${0.15 + 0.85 * a})`;
-          g.fillRect(m + j * cw, m + i * ch, cw - 1, ch - 1);
+          g.fillRect(x0 + j * cw, y0 + i * ch, cw - 1, ch - 1);
         }
       }
+
+      // Row labels
+      g.fillStyle = MUTED;
+      g.textAlign = 'right';
+      g.textBaseline = 'middle';
+      for (let i = 0; i < R; i++) {
+        const ty = y0 + i * ch + ch / 2;
+        g.fillText(rowLabels[i], x0 - 10, ty);
+      }
+
+      // Column labels (rotated to fit)
+      g.textAlign = 'right';
+      g.textBaseline = 'middle';
+      for (let j = 0; j < C; j++) {
+        const tx = x0 + j * cw + cw / 2;
+        const ty = y0 - 8;
+        g.save();
+        g.translate(tx, ty);
+        g.rotate(-Math.PI / 4);
+        g.fillText(colLabels[j], 0, 0);
+        g.restore();
+      }
+
+      // Titles
+      g.fillStyle = INK;
+      g.textAlign = 'center';
+      g.textBaseline = 'alphabetic';
+      g.font = '700 13px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      g.fillText('β heatmap', x0 + gridW / 2, y0 - 24);
+      g.font = '600 11px ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      g.fillStyle = MUTED;
+      g.fillText('classes (columns)', x0 + gridW / 2, y0 + gridH + 20);
+
+      // Left vertical title
+      g.save();
+      g.translate(x0 - 52, y0 + gridH / 2);
+      g.rotate(-Math.PI / 2);
+      g.fillText('hidden features (rows)', 0, 0);
+      g.restore();
+
+      // Legend
+      const lgW = 120, lgH = 10, lgX = x0 + gridW - lgW, lgY = y0 + gridH + 26;
+      const grad = g.createLinearGradient(lgX, 0, lgX + lgW, 0);
+      grad.addColorStop(0, 'hsl(0,90%,60%)');
+      grad.addColorStop(0.5, 'hsl(0,0%,40%)');
+      grad.addColorStop(1, 'hsl(200,90%,60%)');
+      g.fillStyle = grad; g.fillRect(lgX, lgY, lgW, lgH);
+      g.fillStyle = MUTED; g.textAlign = 'center'; g.textBaseline = 'top';
+      g.fillText('neg', lgX, lgY + lgH + 2);
+      g.fillText('0', lgX + lgW / 2, lgY + lgH + 2);
+      g.fillText('pos', lgX + lgW, lgY + lgH + 2);
     }
+
     S4.drawBeta = drawBeta;
+    window.addEventListener('resize', () => S4.drawBeta && S4.drawBeta(), { passive: true });
+
   }
 
   /* ---------------- 15) Slide 12: Prediction ---------------- */
@@ -1974,9 +2057,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (payload.betaSample) lines.push('\nβ (8×8 sample):\n' + payload.betaSample);
       solveOut && (solveOut.textContent = lines.join('\n'));
 
+      // --- set visualization + labels ---
       S4.betaVis = payload.betaVis || null;
-      S4.labels = payload.labels || [];
       S4.dims = payload.dims || null;
+
+      // Column ID order: prefer worker-provided payload.labels; fallback to dataset
+      const C = S4.betaVis?.[0]?.length || 0;
+      const fromWorker = Array.isArray(payload.labels) && payload.labels.length === C ? payload.labels : null;
+      const fromData = [...new Set(dataRows.map(r => r.cls))].sort((a, b) => a - b).slice(0, C);
+      S4.classIds = fromWorker || fromData;
+
+      // Map IDs to display names using AG_LABELS, fallback to raw id
+      const colNames = (S4.classIds || []).map(id => AG_LABELS[id] || String(id));
+
+      // Row labels from β rows (hidden features)
+      const R = S4.betaVis ? S4.betaVis.length : 0;
+      S4.labels = {
+        rows: Array.from({ length: R }, (_, i) => `h${i}`),
+        cols: colNames
+      };
+
       S4.drawBeta && S4.drawBeta();
       return;
     }

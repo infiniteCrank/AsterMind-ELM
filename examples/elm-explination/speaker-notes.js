@@ -233,10 +233,19 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideWhy: {
       left: `
-        <p>Why does this work at all? Picture a crumpled sheet of paper with two colors mixed together. In the original space they overlap. If we project into a richer, randomly mixed space, the colors often spread so a simple straight line can separate them.</p>
-        <p>On the right animation you’ll see points move from “crumpled” to “spread out.” The line that separates them is just a straight cut in the projected space.</p>
-        <p>Two practical notes: you usually need a <strong>large enough hidden size</strong> to get a rich projection, and a small <strong>ridge</strong> helps keep the solve stable.</p>
-      `,
+       <p>Transition: We just saw the one-solve compute β in one step. Why does a random hidden layer make that possible?</p>
+
+  <p><strong>Crumpled paper analogy:</strong> Picture two colors on a crumpled sheet. In the original space, the colors overlap. A random projection (the hidden layer) stretches that space so points often spread apart. Once spread, a <em>straight line</em> can separate them.</p>
+
+  <p><strong>What the animation shows:</strong> Points move from “crumpled” → “spread out.” The separator is just a straight cut in the projected space.</p>
+
+  <ul>
+    <li><strong>Hidden size (h):</strong> More hidden units = richer projection = easier separation.</li>
+    <li><strong>Ridge (λ):</strong> Small λ stabilizes the solve when features are noisy or correlated.</li>
+  </ul>
+
+  <p><strong>Takeaway:</strong> Random projection gives us better coordinates; then a simple linear mapping does the rest.</p>
+`,
       right: `
         <ul>
           <li>Random projection can “untangle” classes.</li>
@@ -244,6 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
           <li>Hidden size ↑ → richer features (to a point).</li>
           <li>Add ridge (λ) to stabilize the solve.</li>
         </ul>
+
+        <div class="speaker-notes">
+  <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Build intuition that a randomized hidden layer spreads overlapping data so a straight line can separate it.</li>
+    <li><strong>Measurable:</strong> Attendees can explain the “crumpled paper → spread out → straight line” idea in their own words.</li>
+    <li><strong>Achievable:</strong> Use the short animation and analogy—no equations required.</li>
+    <li><strong>Relevant:</strong> Connects directly to why the one-shot solve works after the random projection.</li>
+    <li><strong>Time-bound:</strong> Deliver in under 90 seconds before moving to the next demo.</li>
+  </ul>
+</div>
+
       `
     },
 
@@ -252,17 +273,30 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slideHidden: {
       left: `
-        <p>Let’s build the random hidden layer. Click <strong>Reseed hidden</strong> to sample new random weights <code>W</code> and biases <code>b</code>. The heatmap shows rows = hidden neurons and columns = input features; color encodes sign and magnitude.</p>
-        <p>Now click <strong>Project H</strong>. We take the encoded text from the previous slide, compute <code>z = W·x + b</code>, apply the activation <code>g</code>, and display the resulting hidden vector <code>H</code> as bars.</p>
-        <p>Key idea: once we like the hidden size, we can freeze this basis and use it for the one-shot training on the next slide.</p>
-      `,
+       <p><strong>Transition:</strong> Random projection spreads overlapping data. Now we’ll build that projector—the hidden layer.</p>
+
+  <p><strong>Step 1 — Reseed hidden:</strong> Click <em>Reseed hidden</em> to shuffle the layer’s random wiring.
+    The heatmap shows <em>rows = hidden neurons</em> and <em>columns = input features</em>; color indicates connection direction and strength.</p>
+
+  <p><strong>Step 2 — Project:</strong> Click <em>Project H</em>. We pass the encoded text through this wiring and display a <em>bar chart</em> of neuron responses (how much each neuron “lights up”).</p>
+
+  <ul>
+    <li><strong>Tuning tip:</strong> Change the number of hidden neurons and reseed until responses look varied (not all flat or all saturated).</li>
+    <li><strong>Next:</strong> When it looks good, <em>freeze</em> this hidden layer and use it as the fixed coordinate system for the one-shot solve.</li>
+  </ul>
+
+  <p style="font-size:0.9em;color:#a7b8e8;">
+    (For reference only: this is the step where we combine inputs with random weights and a squish function to get hidden activations.)
+  </p>`,
       right: `
-        <ul>
-          <li>Controls: set <em>Hidden size</em>, then <strong>Reseed hidden</strong>.</li>
-          <li>Heatmap = W (hidden × input) values.</li>
-          <li>Click <strong>Project H</strong> to see <code>H = g(Wx + b)</code>.</li>
-          <li>These H coordinates feed the one-shot solve.</li>
-        </ul>
+ <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Teach how to build and evaluate a random hidden layer: reseed the wiring, project the input, check for varied neuron responses, then freeze the layer when it looks good.</li>
+    <li><strong>Measurable:</strong> By the end, attendees can (1) read the heatmap (rows = neurons, cols = input features, color = strength/direction), (2) explain what the bar chart shows, and (3) restate the workflow: “reseed → project → assess variety → freeze.”</li>
+    <li><strong>Achievable:</strong> Use the demo controls (hidden size, reseed, project) and the visual cues (non-flat, non-saturated bars) to make selection intuitive—no equations needed.</li>
+    <li><strong>Relevant:</strong> Freezing a good random layer sets the fixed coordinate system used in the next slide’s one-shot solve.</li>
+    <li><strong>Time-bound:</strong> Complete the build-and-freeze walkthrough in under 3 minutes before moving to the one-shot solve.</li>
+  </ul>
       `
     },
 
@@ -271,36 +305,37 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slide4: {
       left: `
-        <p>Time to train. When I click <strong>Train (one shot)</strong>, we freeze the current hidden basis, build H for all rows, and compute β in one step using the pseudoinverse (with optional ridge).</p>
-        <p>The box will print dimensions for H, Y, and β, plus a small sample of β values. The heatmap below visualizes β: rows = hidden features, columns = classes.</p>
-        <p>Try changing <em>Hidden size</em> and retraining to see how capacity affects the solution. If things look noisy, a small ridge usually helps.</p>
-      `,
-      right: `
-        <ul>
-          <li>Click <strong>Train</strong> → freeze basis → compute β once.</li>
-          <li>Outputs: dims, β sample, β heatmap.</li>
-          <li>Hidden size is a key capacity knob.</li>
-          <li>Use ridge if unstable (regularization).</li>
-          <li>Export/reset buttons for iteration.</li>
-        </ul>
-      `
-    },
+      <p><strong>Transition:</strong> We just froze a good hidden layer (our coordinate system). Now we’ll train in a single step.</p>
 
-    /* =========================
-       SLIDE COMPARE — Backprop vs ELM
-       ========================= */
-    slideCompare: {
-      left: `
-        <p>Think of backprop as sculpting a custom key: you chip, test, chip, test — many iterations until it fits perfectly. That’s great when you need maximum accuracy and you have time and data.</p>
-        <p>ELM is like trying a keyring of random keys: we generate many random hidden features, and one linear solve picks the combination that unlocks the task. It’s fast and strong as a baseline or for small/medium problems.</p>
-        <p>Rule of thumb: start with ELM to get a baseline in seconds. If you need more accuracy, move to a trained hidden layer or embeddings and compare.</p>
+  <p><strong>Train (one shot):</strong> Click <em>Train (one shot)</em>. We pass all rows through the fixed wiring and compute one set of <em>output weights</em> in a single calculation — no training loops, no learning-rate tuning.</p>
+
+  <p><strong>What you’ll see:</strong></p>
+  <ul>
+    <li><em>Sizes:</em> A quick readout showing how big each piece is.</li>
+    <li><em>8×8 sample:</em> A tiny slice of the output weights so you can spot patterns.</li>
+    <li><em>Heatmap:</em> How strongly each hidden feature contributes to each class.</li>
+  </ul>
+
+  <p><strong>Capacity tip (dead neurons):</strong></p>
+  <ul>
+    <li>If the hidden layer is <em>too large</em> for your data, many neurons won’t respond much (“dead neurons”). The 8×8 sample looks mostly zeros and the heatmap goes flat.</li>
+    <li><strong>Fix:</strong> Reduce the hidden size and retrain. You should see more varied values in the sample and clearer structure in the heatmap.</li>
+  </ul>
+
+  <p><strong>Stability tip:</strong> If the heatmap looks noisy or brittle, add a small <em>stability boost</em> using the ridge slider.</p>
+
+  <p><strong>Takeaway:</strong> Freeze the hidden layer → one-step training → tune hidden size for variety; add a stability boost if things look noisy.</p>
+
       `,
       right: `
-        <ul>
-          <li>Backprop: control/fidelity, higher cost/tuning.</li>
-          <li>ELM: speed/simplicity, great baseline/prototyping.</li>
-          <li>Workflow: start with ELM → escalate if needed.</li>
-        </ul>
+       <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Show that training happens in <em>one step</em> using the frozen hidden layer, and teach how to read the size readout, 8×8 sample, and β heatmap to judge solution quality.</li>
+    <li><strong>Measurable:</strong> Attendees can (1) restate the workflow “freeze → one-step train → adjust hidden size & stability,” (2) identify <em>dead neurons</em> (flat heatmap / mostly-zero 8×8 sample), and (3) fix it by reducing hidden size and/or adding a small stability boost.</li>
+    <li><strong>Achievable:</strong> Use the live controls (hidden size, Train, ridge slider) and visual cues—no equations required.</li>
+    <li><strong>Relevant:</strong> Connects ELM’s speed and simplicity to practical tuning for browser-side ML demos and prototypes.</li>
+    <li><strong>Time-bound:</strong> Complete the demo and tuning loop in under 3 minutes before moving to applied examples.</li>
+  </ul>
       `
     },
 
@@ -309,17 +344,34 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================= */
     slidePred: {
       left: `
-        <p>Let’s run the trained model. I’ll choose a row and click <strong>Predict</strong>. We encode the text, project through the frozen hidden layer, apply β, and compute class probabilities with a softmax.</p>
-        <p>The output shows the predicted class, the ground truth from the sample, and probabilities for each class. If the label is known, we mark ✓/✗.</p>
-        <p>In practice you’d use this exactly like any other JS function: encode → project → multiply by β → read off the scores.</p>
-      `,
+       <p><strong>Transition:</strong> The one-shot training is done. Let’s use the model.</p>
+
+  <p><strong>Demo flow:</strong> Choose a row → click <em>Predict</em>.</p>
+  <ul>
+    <li><strong>Encode:</strong> Convert text to a numeric vector (same method as earlier).</li>
+    <li><strong>Project:</strong> Pass that vector through the frozen hidden layer (fixed wiring).</li>
+    <li><strong>Apply weights:</strong> Multiply by the learned output weights to get raw scores.</li>
+    <li><strong>Probabilities:</strong> Convert scores to probabilities for each class.</li>
+  </ul>
+
+  <p><strong>What the UI shows:</strong></p>
+  <ul>
+    <li><em>Predicted class</em> and <em>per-class probabilities</em>.</li>
+    <li><em>Ground truth</em> (if available) and a <strong>✓/✗</strong> correctness marker.</li>
+  </ul>
+
+  <p><strong>Dev takeaway:</strong> Use like any JS pipeline — <em>encode → project → apply weights → softmax</em>.
+  Same settings you tuned for training are used here; no extra knobs.</p>
+   `,
       right: `
-        <ul>
-          <li>Select a row → <strong>Predict</strong>.</li>
-          <li>Pipeline: encode → H = g(Wx + b) → scores = H·β → softmax.</li>
-          <li>Read: predicted vs truth + per-class probabilities.</li>
-          <li>✓/✗ shows correctness on this tiny dataset.</li>
-        </ul>
+     <h3>SMART Goal for This Slide</h3>
+  <ul>
+    <li><strong>Specific:</strong> Show how to run a prediction and interpret the output: encode → project (frozen hidden layer) → apply weights → probabilities.</li>
+    <li><strong>Measurable:</strong> By the end, attendees can (1) run <em>Predict</em> on any row, (2) identify the predicted class vs. ground truth, and (3) read per-class probabilities to judge confidence.</li>
+    <li><strong>Achievable:</strong> No math; use the live UI and a single example to demonstrate the full pipeline and the ✓/✗ correctness marker.</li>
+    <li><strong>Relevant:</strong> Connects one-shot training to real usage—exactly how this ELM model plugs into a JS app.</li>
+    <li><strong>Time-bound:</strong> Complete the demo and explanation in under 2 minutes before moving to Q&A/examples.</li>
+  </ul>
       `
     }
   };

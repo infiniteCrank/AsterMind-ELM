@@ -1189,34 +1189,16 @@
         <div class="right">
           <div class="panel">
             <h2>Plain English</h2>
-            <p>Random hidden features give coordinates. We draw a straight separator there. Done.</p>
+            <p>Here when we click the Train (one shot) button. We create the road map of the city in this step so we can
+              give directions when someone asks.</p>
             <p class="note">The shortcut: one solve vs many backprop loops.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE: BACKPROP VS ELM -->
-      <section class="slide" id="slideCompare" data-stage="compare">
-        <figure class="hero">
-          <div class="caption">Two different mindsets</div>
-        </figure>
-        <div class="left">
-          <div class="panel">
-            <h2>Backprop</h2>
-            <p>Like sculpting a custom key for a lock: chip, test, adjust—many iterations until it fits.</p>
-            <div class="notes"><span class="label">Speaker notes</span>
-              Emphasize control/fidelity, but cost is time and tuning.
-            </div>
-          </div>
-        </div>
-        <div class="right">
-          <div class="panel">
-            <h2>ELM</h2>
-            <p>Like trying a keyring of random keys (random hidden features). One fits; keep it by solving the output
-              weights once.</p>
-            <div class="notes"><span class="label">Speaker notes</span>
-              Great default for fast baselines, prototyping, or small/medium tasks.
-            </div>
+            <ul>
+              <li>Freeze hidden → one-shot train</li>
+              <li>Watch 8×8 sample + heatmap</li>
+              <li>Flat = dead neurons → lower <em>h</em></li>
+              <li>Noisy → add ridge (λ)</li>
+              <li>Iterate: tune <em>h</em>, λ, retrain</li>
+            </ul>
           </div>
         </div>
       </section>
@@ -1239,9 +1221,23 @@
         </div>
         <div class="right">
           <div class="panel">
+            <h2>What we have now:</h2>
+            <p>We have trained our ELM model to be able to classify text into four different categories</p>
+            <ul>
+              <li>World</li>
+              <li>Sports</li>
+              <li>Business</li>
+              <li>Sci/Tech</li>
+            </ul>
+            <p> What we can do now is vectorize the text in the dropdown and classify the text into a category.</p>
             <h2>Reading the result</h2>
             <p><strong>Predicted label</strong>, ground truth, and per-class probabilities.</p>
             <p class="note">If the truth exists in the sample, we’ll mark ✓ or ✗.</p>
+            <ul>
+              <li><strong>Predict:</strong> encode text → frozen hidden layer → output weights → probabilities</li>
+              <li><strong>Output:</strong> predicted class, ground truth, per-class probs, ✓/✗ if labeled</li>
+              <li><strong>Use in code:</strong> treat as a single JS function call</li>
+            </ul>
           </div>
         </div>
       </section>
