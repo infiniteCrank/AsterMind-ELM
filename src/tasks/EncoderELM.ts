@@ -2,6 +2,7 @@ import { ELM } from '../core/ELM';
 import { ELMConfig } from '../core/ELMConfig';
 import { Matrix } from '../core/Matrix';
 import { Activations } from '../core/Activations';
+import { OnlineELM, Activation as OnlineAct } from '../core/OnlineELM';
 
 /**
  * EncoderELM: Uses an ELM to convert strings into dense feature vectors.
@@ -9,6 +10,10 @@ import { Activations } from '../core/Activations';
 export class EncoderELM {
     public elm: ELM;
     private config: ELMConfig;
+    // ===== NEW: online run state (purely additive) =====
+    private onlineMdl?: OnlineELM;
+    private onlineInputDim?: number;
+    private onlineOutputDim?: number;
 
     constructor(config: ELMConfig) {
         if (typeof config.hiddenUnits !== 'number') {
@@ -87,5 +92,149 @@ export class EncoderELM {
 
     public saveModelAsJSONFile(filename?: string): void {
         this.elm.saveModelAsJSONFile(filename);
+    }
+
+    // ===================== NEW: Online / Incremental encoding API =====================
+
+    /**
+     * Initialize an online (OS-ELM/RLS) run for string→vector encoding.
+     *
+     * Provide outputDim, and EITHER inputDim OR a sampleText we can encode to infer inputDim.
+     * hiddenUnits defaults to config.hiddenUnits; activation defaults to config.activation; lambda defaults to 1e-2.
+     */
+    public beginOnline(opts: {
+        outputDim: number;
+        inputDim?: number;
+        sampleText?: string;
+        hiddenUnits?: number;
+        lambda?: number;
+        activation?: NonNullable<ELMConfig['activation']>;
+    }): void {
+        const outputDim = opts.outputDim;
+        if (!Number.isFinite(outputDim) || outputDim <= 0) {
+            throw new Error('beginOnline: outputDim must be a positive integer.');
+        }
+
+        let inputDim = opts.inputDim;
+        if (inputDim == null) {
+            if (!opts.sampleText) {
+                throw new Error('beginOnline: provide either inputDim or sampleText to infer dimension.');
+            }
+            const probe = this.elm.encoder.normalize(this.elm.encoder.encode(opts.sampleText));
+            inputDim = probe.length;
+        }
+
+        const hiddenUnits = opts.hiddenUnits ?? (this.config.hiddenUnits as number);
+        const lambda = opts.lambda ?? 1e-2;
+        const actName = opts.activation ?? (this.config.activation as NonNullable<ELMConfig['activation']>);
+
+        const act: OnlineAct =
+            actName === 'tanh' ? Math.tanh
+                : actName === 'sigmoid' ? (x: number) => 1 / (1 + Math.exp(-x))
+                    : (x: number) => (x > 0 ? x : 0); // relu default
+
+        // Spin up the typed-array OnlineELM
+        this.onlineMdl = new OnlineELM(inputDim, hiddenUnits, outputDim, act, lambda);
+        this.onlineInputDim = inputDim;
+        this.onlineOutputDim = outputDim;
+    }
+
+    /**
+     * Online partial fit with pre-encoded vectors.
+     * Each batch element supplies x (length = inputDim) and y (length = outputDim).
+     * Memory-friendly: pack into typed arrays, update, discard.
+     */
+    public partialTrainOnlineVectors(batch: { x: number[]; y: number[] }[]): void {
+        if (!this.onlineMdl || this.onlineInputDim == null || this.onlineOutputDim == null) {
+            throw new Error('partialTrainOnlineVectors: call beginOnline() first.');
+        }
+        if (!batch.length) return;
+
+        const B = batch.length;
+        const D = this.onlineInputDim;
+        const O = this.onlineOutputDim;
+
+        const X = new Float64Array(B * D);
+        const T = new Float64Array(B * O);
+
+        for (let i = 0; i < B; i++) {
+            const { x, y } = batch[i];
+            if (x.length !== D) throw new Error(`x length ${x.length} != inputDim ${D}`);
+            if (y.length !== O) throw new Error(`y length ${y.length} != outputDim ${O}`);
+            X.set(x, i * D);
+            T.set(y, i * O);
+        }
+
+        this.onlineMdl.partialFit(X, T, B);
+    }
+
+    /**
+     * Online partial fit with raw texts.
+     * We encode+normalize each text internally to build X, and use the given dense target vector y.
+     */
+    public partialTrainOnlineTexts(batch: { text: string; target: number[] }[]): void {
+        if (!this.onlineMdl || this.onlineInputDim == null || this.onlineOutputDim == null) {
+            throw new Error('partialTrainOnlineTexts: call beginOnline() first.');
+        }
+        if (!batch.length) return;
+
+        const B = batch.length;
+        const D = this.onlineInputDim;
+        const O = this.onlineOutputDim;
+
+        const X = new Float64Array(B * D);
+        const T = new Float64Array(B * O);
+
+        for (let i = 0; i < B; i++) {
+            const { text, target } = batch[i];
+            const vec = this.elm.encoder.normalize(this.elm.encoder.encode(text));
+            if (vec.length !== D) throw new Error(`encoded text dim ${vec.length} != inputDim ${D}`);
+            if (target.length !== O) throw new Error(`target length ${target.length} != outputDim ${O}`);
+            X.set(vec, i * D);
+            T.set(target, i * O);
+        }
+
+        this.onlineMdl.partialFit(X, T, B);
+    }
+
+    /**
+     * Finalize the online run by publishing learned weights into the standard model shape.
+     * After this, the normal encode() path works unchanged.
+     */
+    public endOnline(): void {
+        if (!this.onlineMdl) return;
+
+        const H = this.onlineMdl.hiddenUnits;
+        const D = this.onlineMdl.inputDim;
+        const O = this.onlineMdl.outputDim;
+
+        const W = this.reshapeTo2D(this.onlineMdl.W, H, D);       // [H x D]
+        const b = this.reshapeCol(this.onlineMdl.b, H);           // [H x 1]
+        const beta = this.reshapeTo2D(this.onlineMdl.beta, H, O); // [H x O]
+
+        this.elm['model'] = { W, b, beta };
+
+        // clear online state
+        this.onlineMdl = undefined;
+        this.onlineInputDim = undefined;
+        this.onlineOutputDim = undefined;
+    }
+
+    // ===================== small helpers =====================
+
+    private reshapeTo2D(buf: Float64Array, rows: number, cols: number): number[][] {
+        const out: number[][] = new Array(rows);
+        for (let r = 0; r < rows; r++) {
+            const row: number[] = new Array(cols);
+            for (let c = 0; c < cols; c++) row[c] = buf[r * cols + c];
+            out[r] = row;
+        }
+        return out;
+    }
+
+    private reshapeCol(buf: Float64Array, rows: number): number[][] {
+        const out: number[][] = new Array(rows);
+        for (let r = 0; r < rows; r++) out[r] = [buf[r]];
+        return out;
     }
 }

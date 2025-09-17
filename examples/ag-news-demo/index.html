@@ -4,37 +4,11 @@
   <meta charset="UTF-8" />
   <title>AG News ELM Classifier Demo</title>
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      padding: 2rem;
-      max-width: 800px;
-      margin: auto;
-      line-height: 1.6;
-    }
-    input[type="text"] {
-      padding: 0.5rem;
-      width: 100%;
-      font-size: 1.1rem;
-      margin-bottom: 1rem;
-    }
-    .prediction-output {
-      font-size: 1.2rem;
-      color: #333;
-      margin-bottom: 1rem;
-    }
-    .confidence-bar {
-      height: 24px;
-      border-radius: 12px;
-      background: #ddd;
-      overflow: hidden;
-    }
-    .confidence-fill {
-      height: 100%;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-      line-height: 24px;
-    }
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 800px; margin: auto; line-height: 1.6; }
+    input[type="text"] { padding: 0.5rem; width: 100%; font-size: 1.1rem; margin-bottom: 1rem; }
+    .prediction-output { font-size: 1.2rem; color: #333; margin-bottom: 1rem; }
+    .confidence-bar { height: 24px; border-radius: 12px; background: #ddd; overflow: hidden; }
+    .confidence-fill { height: 100%; text-align: center; color: white; font-weight: bold; line-height: 24px; }
   </style>
 </head>
 <body>
@@ -47,7 +21,7 @@
     <div id="confidenceFill" class="confidence-fill" style="width:0%"></div>
   </div>
 
-  <script src="/astermind.umd.js"></script>
-  <script src="/agnews-demo.js"></script>
+  <!-- Main thread controller; worker is spawned from inside this file -->
+  <script src="/agnews-demo.js" defer></script>
 </body>
 </html>

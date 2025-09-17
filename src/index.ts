@@ -6,6 +6,7 @@ export * from './core/EmbeddingStore';
 export * from './core/evaluateEnsembleRetrieval';
 export * from './core/Evaluation';
 export * from './core/Matrix';
+export * from './core/OnlineELM';
 
 export * from './ml/TFIDF';
 export * from './ml/KNN';

@@ -1,0 +1,1561 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Extreme Learning Machine — JS Engineer Primer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    /* ========================================================================
+   ELM PRIMER — CLEANED & LABELED STYLESHEET
+   ======================================================================== */
+
+    /* === 0) DESIGN TOKENS & GLOBAL RESETS ================================== */
+    :root {
+      /* Color system */
+      --bg: #050c1f;
+      --panel: #0b1633;
+      --ink: #e5efff;
+      --muted: #a7b8e8;
+      --accent: #5ad1ff;
+      --good: #6ee7a2;
+      --warn: #facc15;
+      --bad: #fb7185;
+      --chip: #0c1a3d;
+      --chip-border: #203a7c;
+
+      /* Layout metrics */
+      --header-h: 64px;
+      /* fixed header height */
+      --minimap-top: 0px;
+      /* set by JS if needed */
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 700px at 50% -200px, #0b1633 0%, #050c1f 55%, #020614 100%);
+    }
+
+    /* Reduced motion respect */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Utilities */
+    [hidden] {
+      display: none !important;
+    }
+
+    /* === 1) APP SHELL & HEADER ============================================ */
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Cyberpunk header */
+    header {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 16px;
+      background:
+        radial-gradient(900px 120px at 20% -60px, rgba(90, 209, 255, .20), transparent 60%),
+        linear-gradient(180deg, #071332 0%, #050c1f 100%);
+      border-bottom: 1px solid #13244f;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-shadow: 0 0 12px rgba(90, 209, 255, .25);
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      /* desktop: allow wrapping */
+    }
+
+    /* === 2) BUTTONS (GLOBAL) ============================================== */
+    button {
+      background: #102043;
+      color: var(--ink);
+      border: 1px solid #1f3570;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #12265a;
+    }
+
+    button[disabled] {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(90, 209, 255, .15);
+    }
+
+    /* === 3) MAIN LAYOUT GRID ============================================== */
+    main {
+      flex: 1;
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    /* === 4) SLIDE ATLAS (MINIMAP RAIL) — DESKTOP ========================== */
+    .minimap-rail {
+      position: sticky;
+      top: calc(var(--header-h) + 0px);
+      align-self: start;
+      background: linear-gradient(180deg, rgba(15, 30, 68, .92), rgba(9, 20, 49, .92));
+      border: 1px solid #1a2f63;
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+      max-height: calc(100vh - var(--header-h) - 32px);
+      overflow: auto;
+      width: 260px;
+      transition: width .22s ease, transform .28s ease;
+    }
+
+    /* Atlas header + actions */
+    .mm-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .mm-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .mm-toggle,
+    .mm-close {
+      background: #102043;
+      border: 1px solid #1f3570;
+      border-radius: 10px;
+      color: #e5efff;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .mm-close {
+      display: none;
+    }
+
+    /* shows in mobile drawer */
+
+    /* Atlas list */
+    .atlas-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .atlas-item {
+      --glow: rgba(90, 209, 255, .35);
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(12, 26, 61, .35);
+      border: 1px solid #203a7c;
+      color: #cfe1ff;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .atlas-item:hover {
+      background: rgba(12, 26, 61, .55);
+      box-shadow: 0 0 0 2px rgba(90, 209, 255, .10) inset, 0 0 18px var(--glow);
+    }
+
+    .atlas-item:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .atlas-item .num {
+      font-weight: 800;
+      font-size: .85rem;
+      color: #9fb8ff;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #0c1a3d;
+      border: 1px solid #203a7c;
+    }
+
+    .atlas-item .ttl {
+      font-size: .92rem;
+      line-height: 1.25;
+      color: #e5efff;
+    }
+
+    .atlas-item .stage {
+      font-size: .70rem;
+      opacity: .85;
+      padding: 3px 6px;
+      border-radius: 999px;
+      border: 1px solid #2b4da1;
+      background: #0c1a3d;
+      color: #bcd0ff;
+    }
+
+    /* Active state */
+    .atlas-item.active {
+      background: linear-gradient(180deg, rgba(27, 49, 110, .75), rgba(16, 36, 84, .75));
+      border-color: #2d50ad;
+      box-shadow: 0 0 0 2px rgba(90, 209, 255, .18) inset, 0 0 24px rgba(90, 209, 255, .25);
+    }
+
+    .atlas-item.active::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 8px;
+      bottom: 8px;
+      width: 6px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #2a64ff, #5ad1ff);
+      box-shadow: 0 0 14px rgba(90, 209, 255, .65);
+    }
+
+    /* Compact rail (desktop only) */
+    body.atlas-compact .minimap-rail {
+      width: 84px;
+    }
+
+    body.atlas-compact .atlas-item {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    body.atlas-compact .atlas-item .ttl,
+    body.atlas-compact .atlas-item .stage {
+      display: none;
+    }
+
+    body.atlas-compact .atlas-item .num {
+      width: 48px;
+      height: 48px;
+      font-size: .95rem;
+    }
+
+    /* Old minimap/dots off */
+    .mm-dots {
+      display: none !important;
+    }
+
+    .minimap-svg svg {
+      display: none !important;
+    }
+
+    /* Hamburger (mobile trigger, hidden on desktop) */
+    .hamburger {
+      display: none;
+      background: #102043;
+      color: #e5efff;
+      border: 1px solid #1f3570;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    /* Optional stage bar */
+    .stageMap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--panel);
+      padding: 4px;
+    }
+
+    /* === 5) SLIDE CANVAS & PANELS ======================================== */
+    /* Slides: hero row (auto) + two columns */
+    .slide {
+      min-height: calc(100vh - var(--header-h) - 32px);
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.1fr .9fr;
+      grid-template-rows: auto 1fr;
+      /* hero (auto) + content (1fr) */
+    }
+
+    /* Hero */
+    .slide>.hero {
+      grid-column: 1 / -1;
+      height: 200px;
+      /* overridden per-slide by JS via inline style */
+      border-radius: 14px;
+      background: none;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+    }
+
+    .slide>.hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .hero .caption {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      font-size: .9rem;
+      color: #cfe1ff;
+      opacity: .95;
+      background: rgba(12, 26, 61, .55);
+      border: 1px solid #203a7c;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    /* Panels */
+    .slide .left,
+    .slide .right {
+      background: rgba(8, 19, 44, 0.72);
+      border: 1px solid #182d61;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 14px 14px 10px 14px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* === 6) TYPOGRAPHY & MISC ============================================ */
+    h2 {
+      margin: 0 0 6px 0;
+      font-size: 1.05rem;
+    }
+
+    p {
+      margin: .25rem 0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    ul,
+    ol {
+      margin: .4rem 0 .6rem 1.1rem;
+      color: var(--muted);
+    }
+
+    label {
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border: 1px solid var(--chip-border);
+      border-radius: 999px;
+      font-size: .8rem;
+      color: #bcd0ff;
+      background: var(--chip);
+    }
+
+    .canvasWrap {
+      flex: 1;
+      border: 1px dashed #253f85;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #071332;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .footerBar {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Notes */
+    .note {
+      font-size: .85rem;
+      color: #93a9e8;
+    }
+
+    .notes {
+      margin-top: auto;
+      border-top: 1px dashed #243f86;
+      padding-top: 8px;
+      font-size: .88rem;
+      color: #cfe1ff;
+      display: none;
+      background: rgba(12, 26, 61, .35);
+      border-radius: 8px;
+      padding: 10px;
+      line-height: 1.35;
+    }
+
+    body.show-notes .notes {
+      display: block;
+    }
+
+    .notes .label {
+      font-weight: 600;
+      color: #eaf2ff;
+      opacity: .9;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* === 7) TOOLTIP SYSTEM (ENCODE/HIDDEN/BP) ============================= */
+    .encode-tip,
+    .hidden-tip,
+    .bp-tip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: none;
+      background: #0c1a3d;
+      border: 1px solid #203a7c;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-size: .8rem;
+      color: #cfe1ff;
+      display: none;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 40;
+      /* above canvases and panels */
+    }
+
+    /* === 8) SPECIAL WIDGETS =============================================== */
+    .amp-gauge {
+      height: 6px;
+      border-radius: 999px;
+      background: #0b1633;
+      border: 1px solid #1f3570;
+      position: relative;
+      margin: 4px 0 10px 0;
+    }
+
+    .amp-gauge>.bar {
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      height: calc(100% + 2px);
+      width: 0%;
+      background: linear-gradient(90deg, var(--warn), var(--good));
+      border-radius: 999px;
+    }
+
+    /* =======================================================================
+   9) RESPONSIVE — MOBILE (<= 980px)
+   - Drawer atlas, tighter heroes, one-row nav, pinned Notes/☰, etc.
+   ======================================================================= */
+    @media (max-width: 980px) {
+
+      /* Layout: single column slides */
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      /* Slide grid & hero spacing */
+      .slide {
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+
+      .left,
+      .right {
+        min-height: 300px;
+      }
+
+      .slide>.hero {
+        /* override any per-slide inline height from JS */
+        height: clamp(160px, 36vh, 320px) !important;
+        margin-top: 0;
+        margin-bottom: 6px;
+      }
+
+      .slide>.hero img {
+        object-fit: cover;
+      }
+
+      /* fill hero */
+      .hero .caption {
+        display: none !important;
+      }
+
+      /* hide on mobile */
+
+      /* Hide the "Slide X / N" pill */
+      #slideLabel {
+        display: none !important;
+      }
+
+      /* --- Header: keep nav on one row and pin Notes/☰ ------------------- */
+      header {
+        --util-w: 104px;
+      }
+
+      /* reserved space for Notes + ☰ */
+      header h1 {
+        max-width: calc(100% - var(--util-w) - 16px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      header .nav {
+        flex-wrap: nowrap !important;
+        /* one line */
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        min-width: 0;
+        padding-right: var(--util-w);
+        /* avoid sitting under pinned icons */
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+      }
+
+      /* Pin Notes + Hamburger within header (always visible) */
+      #notesToggle,
+      #atlasToggle {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-block !important;
+        z-index: 25;
+      }
+
+      #atlasToggle {
+        right: 12px;
+      }
+
+      /* ☰ */
+      #notesToggle {
+        right: 56px;
+      }
+
+      /* Notes */
+
+      /* Make sure hamburger is visible on mobile */
+      .hamburger {
+        display: inline-block !important;
+      }
+
+      /* Ensure Next is never covered by the pinned icons */
+      #nextBtn {
+        margin-right: calc(var(--util-w) + 8px) !important;
+      }
+
+      /* --- Slide Atlas becomes a drawer ---------------------------------- */
+      .minimap-rail {
+        position: fixed !important;
+        top: var(--header-h) !important;
+        left: 0 !important;
+        right: auto !important;
+        height: calc(100vh - var(--header-h)) !important;
+        max-height: none !important;
+        width: min(86vw, 360px) !important;
+        transform: translateX(-105%) !important;
+        z-index: 50 !important;
+        order: initial !important;
+        /* ensure it's not reflowed above content */
+      }
+
+      body.atlas-open .minimap-rail {
+        transform: translateX(0%) !important;
+      }
+
+      /* Drawer backdrop */
+      #atlasBackdrop {
+        position: fixed;
+        inset: 0;
+        top: var(--header-h);
+        background: rgba(0, 0, 0, .45);
+        backdrop-filter: blur(2px);
+        z-index: 40;
+      }
+
+      #atlasBackdrop[hidden] {
+        display: none;
+      }
+
+      /* Show "Close" inside drawer */
+      .mm-close {
+        display: inline-block !important;
+      }
+
+      /* Keep legacy dots hidden if anything tries to flip them */
+      .mm-dots {
+        display: none !important;
+      }
+    }
+
+    /* =======================================================================
+   10) RESPONSIVE — SMALL PHONES (<= 480px)
+   - Bigger tap targets, slightly narrower utility zone.
+   ======================================================================= */
+    @media (max-width: 480px) {
+      header {
+        --util-w: 96px;
+      }
+
+      header .nav {
+        gap: 6px;
+      }
+
+      header .nav button {
+        padding: 12px 14px;
+        font-size: 1rem;
+        border-radius: 14px;
+        min-height: 42px;
+        /* ~44px hit target */
+      }
+
+      #notesToggle,
+      #atlasToggle {
+        min-width: 44px;
+      }
+
+      /* target size */
+    }
+
+    /* =========================================================
+   MOBILE NO-OVERLAP FIX — use a flex spacer instead of margins
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Reserve space for Notes + ☰ (include iOS safe area) */
+      header {
+        --util-w: calc(120px + env(safe-area-inset-right, 0px));
+      }
+
+      /* Keep nav on one row, but don't pad-right; we'll inject a spacer */
+      header .nav {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 0 !important;
+        max-width: calc(100% - var(--util-w));
+        min-width: 0;
+      }
+
+      /* Invisible flex item at the end of the row = guaranteed clearance */
+      header .nav::after {
+        content: "";
+        flex: 0 0 var(--util-w);
+      }
+
+      /* Cancel any previous margin hacks on Next */
+      #nextBtn {
+        margin-right: 0 !important;
+      }
+
+      /* Ensure the pinned buttons are truly pinned above the row */
+      #notesToggle,
+      #atlasToggle {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 25;
+        display: inline-block !important;
+      }
+
+      #atlasToggle {
+        right: calc(12px + env(safe-area-inset-right, 0px));
+      }
+
+      #notesToggle {
+        right: calc(56px + env(safe-area-inset-right, 0px));
+      }
+    }
+
+    /* Slightly tighter on very small phones */
+    @media (max-width: 480px) {
+      header {
+        --util-w: calc(108px + env(safe-area-inset-right, 0px));
+      }
+    }
+
+    /* =========================================================
+   MOBILE HEADER RE-BASE — single row, scrollable, no overlap
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* 0) Simplify: hide Notes on mobile */
+      #notesToggle {
+        display: none !important;
+      }
+
+      /* 1) Let the title + nav share the row predictably */
+      header {
+        justify-content: flex-start;
+        /* nav can take remaining width */
+        gap: 10px;
+      }
+
+      header h1 {
+        flex: 0 1 44%;
+        max-width: 44vw;
+        /* truncate long titles */
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* 2) Nav takes the rest and scrolls horizontally if needed */
+      header .nav {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        /* override any earlier calc(...) */
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 0 !important;
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+        /* no shrink; allow horizontal scroll */
+        white-space: nowrap;
+      }
+
+      header .nav::after {
+        content: none !important;
+      }
+
+      /* kill any old spacer */
+
+      /* 3) Keep the hamburger in-flow at the far right (no absolute) */
+      #atlasToggle,
+      #notesToggle {
+        position: static !important;
+        right: auto !important;
+        top: auto !important;
+        transform: none !important;
+        z-index: auto !important;
+      }
+
+      #atlasToggle {
+        margin-left: auto !important;
+      }
+
+      /* push to the edge */
+
+      /* 4) Comfortable, not huge, tap targets */
+      header .nav button {
+        padding: 10px 12px;
+        font-size: .95rem;
+        min-height: 40px;
+        border-radius: 12px;
+      }
+    }
+
+    /* =========================================================
+   MOBILE HERO FIX — no cropping, auto height
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Let the hero grow to its image's height */
+      .slide>.hero {
+        height: auto !important;
+        /* override JS inline heights */
+        margin: 8px 0 6px;
+        /* tighten spacing */
+        padding: 0;
+        /* no extra frame space */
+      }
+
+      /* Show the full image without crop; cap its height */
+      .slide>.hero img {
+        width: 100%;
+        height: auto;
+        /* keep aspect ratio */
+        object-fit: contain !important;
+        /* don't crop */
+        max-height: clamp(220px, 70vh, 560px);
+        display: block;
+      }
+
+      /* Keep captions hidden on mobile (from earlier) */
+      .hero .caption {
+        display: none !important;
+      }
+    }
+
+    /* =========================================================
+   MOBILE: hide speaker notes completely
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Hide the notes blocks even if body.show-notes is set */
+      .notes,
+      body.show-notes .notes {
+        display: none !important;
+      }
+
+      /* (Optional) also hide the Notes toggle on mobile */
+      #notesToggle {
+        display: none !important;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <h1>Extreme Learning Machines — A Visual Primer for JS Engineers</h1>
+      <div class="nav">
+        <button id="prevBtn">◀ Back</button>
+        <div class="chip" id="slideLabel">Slide 1 / 12</div>
+        <button id="nextBtn">Next ▶</button>
+        <button id="notesToggle" title="Show/Hide speaker notes">Notes</button>
+        <button id="atlasToggle" class="hamburger" aria-label="Open slide map" title="Slides">☰</button>
+      </div>
+    </header>
+
+    <main>
+
+
+      <!-- LEFT CYBERPUNK MINI-MAP -->
+      <aside id="minimapRail" class="minimap-rail" aria-label="Slide minimap">
+        <div class="mm-header">
+          <svg viewBox="0 0 120 24" class="logo" aria-hidden="true">
+            <defs>
+              <linearGradient id="mmg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#5ad1ff" />
+                <stop offset="1" stop-color="#2a64ff" />
+              </linearGradient>
+            </defs>
+            <text x="0" y="18" fill="url(#mmg)" font-size="16" font-weight="700" letter-spacing="1">SLIDE ATLAS</text>
+          </svg>
+
+          <!-- desktop: compact/expand; mobile: close drawer -->
+          <div class="mm-actions">
+            <button id="mmToggle" class="mm-toggle" title="Collapse / Expand">⇔</button>
+            <button id="mmClose" class="mm-close" title="Close" aria-label="Close slide map">✕</button>
+          </div>
+        </div>
+
+        <!-- We reuse the same #minimap node, but now it's a list, not an SVG -->
+        <nav id="minimap" class="atlas-list" role="navigation" aria-label="Slides"></nav>
+      </aside>
+
+      <!-- Backdrop for the mobile drawer -->
+      <div id="atlasBackdrop" hidden></div>
+
+      <!-- this is an example of how to make a new slide section 
+   data-hero-h, data-left-h, data-right-h are optional per slide. If absent, sensible defaults apply.
+   <section class="slide" id="slide0" data-stage="overview"
+         data-hero-h="280" data-left-h="420" data-right-h="360"> -->
+
+      <!-- SLIDE: OVERVIEW -->
+      <section class="slide" id="slide0" data-stage="overview" data-hero-h="550">
+        <figure class="hero">
+          <img src="images/intro.png" alt="ELM intro artwork" />
+          <div class="caption">What we’ll cover</div>
+        </figure>
+        <div class="left">
+          <div class="panel">
+            <h2>What we’ll learn</h2>
+            <ul>
+              <li><strong>Neurons:</strong> weight, bias, activation function.</li>
+              <li><strong>Vectorization:</strong> turning text into numeric features.</li>
+              <li><strong>Why training is hard:</strong> too many parameters to tune.</li>
+              <li><strong>Backprop (classic):</strong> iterative updates in loops.</li>
+              <li><strong>ELM (shortcut):</strong> random hidden layer + one-shot solve.</li>
+              <li><strong>Prediction:</strong> run the trained model on a sample.</li>
+            </ul>
+            <p class="note">We’ll keep it JavaScript-friendly: sliders, canvases, and small code snippets.</p>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Open with the promise: ELMs let us train in seconds. Point at the minimap and set expectations for the
+              flow.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>Roadmap</h2>
+            <ol>
+              <li>Intro</li>
+              <li>Neuron demo</li>
+              <li>Text → vector</li>
+              <li>Backprop loops</li>
+              <li>Huang’s question</li>
+              <li>Random grid intuition</li>
+              <li>GPS/pseudoinverse</li>
+              <li>Why randomness helps</li>
+              <li>Random hidden &amp; project</li>
+              <li>ELM one-shot training</li>
+              <li>Backprop vs ELM</li>
+              <li>Prediction</li>
+            </ol>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Mention we’ll avoid heavy math; we’ll visualize the ideas and keep code minimal.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: layer overview -->
+      <section class="slide" id="slide2a" data-stage="overview" data-hero-h="220" data-left-h="200" data-right-h="360">
+        <figure class="hero">
+          <img src="images/nn-overview.png" alt="ELM intro artwork" />
+          <div class="caption">Brief Overview of Neural Networks</div>
+        </figure>
+        <div class="left">
+          <div class="panel">
+            <h2>From text to prediction</h2>
+            <ol>
+              <li><strong>Text → vectors:</strong> tokenize + encode into numbers</li>
+              <li><strong>Input layer:</strong> pass the vector in</li>
+              <li><strong>Hidden layer:</strong> mix & squish (activation)</li>
+              <li><strong>Output layer:</strong> transformed signal → classes/scores</li>
+            </ol>
+            <div class="row">
+              <input id="nnText" value="ELM trains fast with a random hidden layer." style="flex:1" />
+              <button id="nnRun">Run</button>
+            </div>
+            <div class="canvasWrap" style="height:260px; position:relative">
+              <canvas id="nnCanvas"></canvas>
+            </div>
+            <div class="note">Tip: tap any neuron bubble to zoom to the Neuron slide.</div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>Plain English</h2>
+            <p>Think of it like a pipeline: break text into numbers (tokens), feed them in, scramble and squash them in
+              the middle, then spit out results as categories or scores.</p>
+            <section aria-labelledby="ffn-title">
+              <h2 id="ffn-title">Three-Layer Feed-Forward Network (1000-ft view)</h2>
+              <ul>
+                <li><strong>Inputs (Layer 1):</strong> Raw data (numbers, vectors, or encoded text) enter the network.
+                </li>
+                <li><strong>Hidden magic (Layer 2):</strong> Inputs are combined with weights and passed through
+                  activation functions—“mix &amp; squash.”</li>
+                <li><strong>Outputs (Layer 3):</strong> Transformed signals become predictions (class labels, scores, or
+                  next values).</li>
+                <li><strong>Flow direction:</strong> Data only moves forward: input → hidden → output; no loops or
+                  feedback.</li>
+                <li><strong>Analogy:</strong> Like chaining <code>.map()</code> transforms—data goes through steps until
+                  you get the final result.</li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- SLIDE: NEURON DEMO -->
+      <section class="slide" id="slide1" data-stage="neuron">
+        <div class="left">
+          <div class="panel">
+            <h2>Neuron demo</h2>
+            <p>Adjust <em>w</em> and <em>b</em>, choose an activation, and watch <code>y = g(w·x + b)</code>.</p>
+            <div class="row">
+              <div style="flex:1">
+                <label>Activation</label>
+                <select id="actSelect">
+                  <option value="relu">ReLU</option>
+                  <option value="sigmoid">Sigmoid</option>
+                  <option value="tanh">tanh</option>
+                </select>
+              </div>
+              <div class="chip">Live chart</div>
+            </div>
+            <div class="kv"><label>Weight (w)</label><span id="wVal">1.00</span></div>
+            <input id="wRange" type="range" min="-5" max="5" step="0.05" value="1">
+            <div class="kv"><label>Bias (b)</label><span id="bVal">0.00</span></div>
+            <input id="bRange" type="range" min="-5" max="5" step="0.05" value="0">
+
+            <!-- Pre‑activation amplitude elements (already in place) -->
+            <div class="kv"><label>Pre‑activation amplitude</label><span id="ampVal">0.00</span></div>
+            <div class="amp-gauge">
+              <div class="bar" id="ampBar"></div>
+            </div>
+
+            <!-- NEW: Post‑activation amplitude elements -->
+            <div class="kv"><label>Post‑activation amplitude</label><span id="postAmpVal">0.00</span></div>
+            <div class="amp-gauge">
+              <div class="bar" id="postAmpBar"></div>
+            </div>
+
+            <div class="canvasWrap" style="height:260px"><canvas id="neuronCanvas"></canvas></div>
+            <div class="note">“Affine” = compute <code>z = w·x + b</code>, then apply <code>g(z)</code>.</div>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Try negative w; compare ReLU vs tanh; highlight clipping vs smoothness.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>Try</h2>
+            <ul>
+              <li>Set <strong>w = -2</strong>, <strong>b = 0.5</strong></li>
+              <li>Toggle ReLU ↔︎ tanh and observe shape changes</li>
+            </ul>
+            <div class="code">
+              <pre>
+            // y = g(w·x + b)
+            const z = w * x + b;
+            const y = activation(z);
+            </pre>
+            </div>
+
+            <ul>
+              <li>A neuron takes inputs, multiplies by weights, adds bias.</li>
+              <li>The sum passes through an activation function.</li>
+              <li>Weights and bias are the parameters that control output.</li>
+            </ul>
+
+            <div class="canvasWrap" style="height:120px; position:relative">
+              <canvas id="neuronMicro"></canvas>
+            </div>
+
+            <div class="notes"><span class="label">Speaker notes</span>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- SLIDE: VECTORIZATION -->
+      <section class="slide" id="slide2" data-stage="input">
+        <div class="left">
+          <div class="panel">
+            <h2>Vectorization (text → numbers)</h2>
+            <p>
+              Select a row and choose how you want to encode it. We’ll convert the text
+              into a numeric feature vector and draw a mini heatmap of those features.
+            </p>
+
+            <!-- NEW: Encoding method and feature-limit controls -->
+            <div class="row">
+              <span class="chip">Encoding</span>
+              <select id="encodingSelect" style="flex:1">
+                <option value="tfidf">TF‑IDF</option>
+                <option value="bow">Bag‑of‑Words</option>
+                <option value="isolated">Isolated</option>
+              </select>
+            </div>
+            <div class="row">
+              <span class="chip">Max features</span>
+              <input id="featureLimit" type="range" min="16" max="256" step="16" value="128" style="flex:1">
+              <span class="note" id="featureLimitVal">128</span>
+            </div>
+
+            <div class="row">
+              <select id="rowSelect" style="flex:1"></select>
+              <button id="encodeBtn">Encode text</button>
+            </div>
+
+            <div class="canvasWrap" style="height:260px; position:relative">
+              <canvas id="encodeCanvas"></canvas>
+            </div>
+            <div id="tokensOut" class="code" style="min-height:80px"></div>
+
+            <div class="notes">
+              <span class="label">Speaker notes</span>
+              Explain that different encodings (Bag‑of‑Words vs TF‑IDF vs isolated counts) can change how much weight
+              each token gets. Encourage the audience to try each method and adjust the feature‑limit slider to see how
+              the heatmap changes. Remind them that any numeric encoding works for ELMs.
+            </div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="panel">
+            <h2>Plain English</h2>
+            <p>
+              Vectorization turns unstructured text into a fixed‑length numeric vector so a neural net can process it.
+            </p>
+            <p>
+              <strong>Bag‑of‑Words:</strong> each word becomes a feature and the value is its count; this simple tally
+              ignores word order and context:contentReference[oaicite:0]{index=0}.
+            </p>
+            <p>
+              <strong>TF‑IDF:</strong> weighs word frequency by inverse document frequency so common words are
+              down‑weighted; it emphasises rare yet distinctive words:contentReference[oaicite:1]{index=1}.
+            </p>
+            <p>
+              <strong>ELM flexibility:</strong> ELM only needs a numeric vector, so you can use any reasonable encoder
+              (BoW, TF‑IDF or even embeddings). The hidden layer’s random projection works the same no matter which
+              features you choose.
+            </p>
+            <img src="images/vectors.png" alt="ELM intro artwork" />
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: WHY HAND TUNING IS HARD → BACKPROP -->
+      <section class="slide" id="slideBP" data-stage="backprop">
+        <div class="left">
+          <div class="panel">
+            <h2>Why manual tuning doesn’t scale</h2>
+            <p>Real networks have many parameters—impossible to tweak by hand.</p>
+            <p><strong>Backpropagation</strong> automates tuning in loops: measure error → nudge weights → repeat.</p>
+            <div class="kv"><label>Learning rate</label><span id="bpLRVal">0.20</span></div>
+            <input id="bpLR" type="range" min="0.01" max="1" step="0.01" value="0.20">
+            <div class="row">
+              <button id="bpRestart">Restart training</button>
+              <select id="bpScenario" title="Training scenario">
+                <option value="converge">Converging (slow)</option>
+                <option value="vanish">Vanishing gradients</option>
+                <option value="explode">Exploding gradients</option>
+              </select>
+            </div>
+
+            <div class="canvasWrap" style="height:260px; position:relative">
+              <canvas id="bpCanvas"></canvas>
+            </div>
+            <div class="note">Visual mock: weights wiggle; loss trends down.</div>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Call out “too high LR = noisy; too low = slow.” Set up the contrast with ELM.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>What to look for</h2>
+            <ul>
+              <li>Left heatmap: hidden weights changing</li>
+              <li>Right chart: loss trending down</li>
+              <li>LR too high → noisy; too low → sluggish</li>
+              <li>Backprop = “guess → measure error → nudge weights → repeat.”</li>
+              <li>Learning rate: too low = slow; too high = overshoot/noisy.</li>
+              <li>Why it’s time-consuming: we do this across millions of weights and many epochs until the loss curve
+                settles.</li>
+            </ul>
+            <img src="images/backpropigation.png" alt="ELM intro artwork" />
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: HUANG'S QUESTION -->
+      <section class="slide" id="slideHuang" data-stage="huang" data-hero-h="400">
+        <figure class="hero">
+          <img src="images/bold-question-final.png" alt="ELM intro artwork" />
+          <div class="caption">The Bold Question</div>
+        </figure>
+        <div class="left">
+          <div class="panel">
+            <h2>Then along comes Guang-Bin Huang</h2>
+            <p><em>What if we didn’t train the hidden layers at all?</em></p>
+            <p>To many engineers, that sounds like shipping production code without unit tests. Hidden layers are where
+              the magic happens—so why skip training them?</p>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Pause, look around. Let the “no hidden training” line sit. Invite skepticism.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>The insight</h2>
+            <p>Randomize the hidden layer once (weights &amp; biases), then never touch it.</p>
+            <p>Focus all effort on solving the output layer in one step with the Moore–Penrose pseudoinverse.</p>
+            <p class="note">Minutes or hours of loops → seconds.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: RANDOM GRID ANALOGY -->
+      <section class="slide" id="slideGrid" data-stage="grid" data-hero-h="650" data-left-h="200" data-right-h="200">
+        <figure class="hero">
+          <img src="images/grid.png" alt="ELM intro artwork" />
+          <div class="caption">The Bold Question</div>
+        </figure>
+        <div class="left">
+          <div class="panel">
+            <h2>The city from above</h2>
+            <p>From a skyscraper, the city looks messy—twisting streets, odd angles. Hard to give directions.</p>
+            <p>Drop a <strong>random grid</strong> on top. It won’t match perfectly, but now you can say: “Café at row
+              3, col 5.” The grid isn’t smart—but it’s a reference system.</p>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Gesture with hands as a grid overlay; “it’s not perfect, it’s useful”.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>ELM mapping</h2>
+            <p>The hidden layer is that grid: it projects messy, high-dimensional data into random coordinates.</p>
+            <p><code>H = g(X·W + b)</code></p>
+            <p class="note">Once you have coordinates, organization gets simpler.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: GPS / PSEUDOINVERSE -->
+      <section class="slide" id="slideGPS" data-stage="gps">
+        <div class="left">
+          <div class="panel">
+            <h1>THE MOORE–PENROSE PSEUDOINVERSE</h1>
+            <!-- <div class="sub">Solve <strong>Hβ ≈ Y</strong> — No gradient descent loops. <strong>One solve.</strong></div>
+          <div class="canvasWrap" style="height:260px; position:relative">
+            <canvas id="mpPseudo"></canvas>
+          </div> -->
+            <div class="mp-wrap" style="max-width:900px;margin:auto">
+              <div class="mp-controls"
+                style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px">
+                <label>h (hidden units): <input id="mp-h" type="range" min="4" max="24" value="12" step="1"></label>
+                <label>k (classes): <input id="mp-k" type="range" min="2" max="6" value="3" step="1"></label>
+                <label>noise: <input id="mp-noise" type="range" min="0" max="1" value="0.10" step="0.01"></label>
+                <label>ridge λ: <input id="mp-lam" type="range" min="0" max="1" value="0.00" step="0.01"></label>
+                <label style="margin-left:8px">
+                  <input id="mp-cellnums" type="checkbox"> show numbers
+                </label>
+                <button id="mp-rand">Randomize H</button>
+                <button id="mp-corr">Make H correlated</button>
+              </div>
+              <canvas id="mpPseudo" style="width:100%;height:280px;display:block"></canvas>
+              <div class="mp-readout"
+                style="display:flex;gap:20px;justify-content:center;margin-top:8px;color:#a7b8e8;font:600 12px ui-sans-serif,system-ui">
+                <span>loss: <strong id="mp-loss">–</strong></span>
+                <span>hint: <strong id="mp-hint">stable</strong></span>
+              </div>
+            </div>
+            <ul>
+              <li><strong>What you’re seeing:</strong> Left = <em>H</em> (hidden features) heatmap, Center =
+                “Optimization Engine”, Right = <em>β</em> (output weights) heatmap, with live <em>loss</em> +
+                <em>hint</em>.
+              </li>
+              <li><strong>One solve:</strong> We compute the best straight-line mapping from H → labels in a single step
+                (no gradient loops).</li>
+              <li><strong>Try this:</strong> Move <em>h</em> (hidden units) and <em>k</em> (classes). Watch how the
+                shape of β changes and how loss responds.</li>
+              <li><strong>Noise slider:</strong> Adds jitter to features so you can see how fragile mappings behave.
+              </li>
+              <li><strong>Make H correlated:</strong> Forces overlapping/collinear features; notice the hint flip toward
+                “high collinearity.”</li>
+              <li><strong>Ridge λ:</strong> Increase λ to stabilize the solution when HᵀH is sketchy—β calms down and
+                loss becomes well-behaved.</li>
+              <li><strong>Speed takeaway:</strong> Hidden features in → <em>one calculation</em> → output weights out.
+              </li>
+              <li><strong>Use cases:</strong> Quick prototypes, tabular/text features, browser-side training in seconds.
+              </li>
+              <li><strong>Trade-offs:</strong> Needs enough hidden units; quality depends on the random projection and
+                regularization.</li>
+            </ul>
+            <p class="note">Bottom bar labeled “ONE SOLVE” underscores that training is a single computation, not an
+              iterative loop.</p>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>Output layer as GPS</h2>
+            <p>With coordinates in hand, navigation is easy: straight lines in grid space. The output layer is the GPS:
+              map random coordinates to labels in one exact step.</p>
+            <p class="note">No gradient descent loops. One solve.</p>
+            <p><strong>In everyday terms:</strong>
+              Think of the hidden layer (<em>H</em>) as a big table where each row is a training example and each column
+              is a hidden feature.
+              The labels (<em>Y</em>) are another table where each row is the answer for that example.
+              When we solve for the weights (<em>β</em>), we’re just building a “lookup guide” that tells us how to turn
+              any set of hidden features into the right kind of output.
+              So: hidden features in → correct answers out.
+              The size of that guide simply depends on how many hidden features you made and how many kinds of answers
+              you want.</p>
+            <img src="images/gps.png" alt="GPS metaphor">
+
+
+            <div class="notes"><span class="label">Speaker notes</span>
+              Promise: no epochs. We’ll compute β in a single calculation.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: WHY RANDOMNESS WORKS -->
+      <section class="slide" id="slideWhy" data-stage="why" data-left-h="400" data-right-h="400">
+        <div class="left">
+          <div class="panel">
+            <img src="images/crumpled-paper.png" alt="GPS metaphor" height="800">
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>ELM recipe</h2>
+            <ol>
+              <li>Project inputs with a randomized hidden layer to get <code>H</code>.</li>
+              <li>Solve a linear model once for <code>β</code> so <code>Hβ ≈ Y</code>.</li>
+            </ol>
+            <p class="note">Surprisingly strong with enough hidden units + sensible ridge.</p>
+            <canvas id="whyWorks"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: HIDDEN LAYER (random W,b + project H) -->
+      <section class="slide" id="slideHidden" data-stage="hidden">
+        <div class="left">
+          <div class="panel">
+            <h2>Hidden layer (Random &amp; Project)</h2>
+            <p>Random projection: <code>H = g(X·W + b)</code>. Reseed the hidden layer; project the currently encoded
+              row.</p>
+            <div class="row">
+              <span class="chip">Hidden size</span>
+              <input id="hiddenSizeHL" type="range" min="4" max="1024" step="1" value="32" style="flex:1">
+              <span class="note" id="hiddenSizeHLVal">32</span>
+              <button id="shuffleBtnHL" title="Reseed W,b">Reseed hidden</button>
+              <button id="previewHBtnHL" title="Project current x">Project H</button>
+            </div>
+            <div class="canvasWrap" style="height:260px; position:relative">
+              <canvas id="hiddenCanvas"></canvas>
+              <div class="hidden-tip"></div>
+            </div>
+            <div id="WPreview" class="code" style="min-height:80px"></div>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Show W heatmap, then project a row to visualize H bars.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>What you’re seeing</h2>
+            <p>Heatmap: rows = hidden neurons; cols = input features; color = sign &amp; magnitude of
+              <code>W[i,j]</code>. Bars on right show <code>H = g(Wx + b)</code> for the selected text.
+            </p>
+            <p class="note">Tip: encode on the previous slide, then project.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: ELM TRAINING (ONE SHOT) -->
+      <section class="slide" id="slide4" data-stage="output">
+        <div class="left">
+          <div class="panel">
+            <h2>ELM: random hidden + one-shot solve</h2>
+            <p>We solve <code>Hβ ≈ Y</code> once (pseudoinverse / ridge). No loops.</p>
+            <div class="row">
+              <button id="trainBtn">Train (one shot)</button>
+              <span class="chip">Hidden size</span>
+              <input id="hiddenSize" type="range" min="4" max="1024" step="1" value="32" style="flex:1">
+              <span class="note" id="hiddenSizeVal">32</span>
+              <span style="flex:1"></span>
+              <button id="downloadBtn" title="Save W,b,β and basis">Export model</button>
+              <button id="resetBtn" title="Clear model & basis">Clear &amp; reset</button>
+            </div>
+            <div id="solveOut" class="code" style="min-height:100px">Waiting…</div>
+            <div class="canvasWrap" style="height:220px">
+              <canvas id="betaCanvas"></canvas>
+            </div>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Call out dimensions H (n×h), Y (n×k), β (h×k). Mention ridge.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>Plain English</h2>
+            <p>Here when we click the Train (one shot) button. We create the road map of the city in this step so we can
+              give directions when someone asks.</p>
+            <p class="note">The shortcut: one solve vs many backprop loops.</p>
+            <ul>
+              <li>Freeze hidden → one-shot train</li>
+              <li>Watch 8×8 sample + heatmap</li>
+              <li>Flat = dead neurons → lower <em>h</em></li>
+              <li>Noisy → add ridge (λ)</li>
+              <li>Iterate: tune <em>h</em>, λ, retrain</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE: PREDICTION -->
+      <section class="slide" id="slidePred" data-stage="predict">
+        <div class="left">
+          <div class="panel">
+            <h2>Prediction demo</h2>
+            <p>Pick a row and run the trained model.</p>
+            <div class="row">
+              <select id="predRowSelect" style="flex:1"></select>
+              <button id="predictBtn" title="Train first" disabled>Predict</button>
+            </div>
+            <div id="predOut" class="code" style="min-height:120px">Train on the previous slide, then predict.</div>
+            <div class="notes"><span class="label">Speaker notes</span>
+              Read out Predicted vs Truth and probabilities; note ✓/✗.
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel">
+            <h2>What we have now:</h2>
+            <p>We have trained our ELM model to be able to classify text into four different categories</p>
+            <ul>
+              <li>World</li>
+              <li>Sports</li>
+              <li>Business</li>
+              <li>Sci/Tech</li>
+            </ul>
+            <p> What we can do now is vectorize the text in the dropdown and classify the text into a category.</p>
+            <h2>Reading the result</h2>
+            <p><strong>Predicted label</strong>, ground truth, and per-class probabilities.</p>
+            <p class="note">If the truth exists in the sample, we’ll mark ✓ or ✗.</p>
+            <ul>
+              <li><strong>Predict:</strong> encode text → frozen hidden layer → output weights → probabilities</li>
+              <li><strong>Output:</strong> predicted class, ground truth, per-class probs, ✓/✗ if labeled</li>
+              <li><strong>Use in code:</strong> treat as a single JS function call</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slideCTA" data-stage="cta" data-hero-h="220" data-left-h="320" data-right-h="320">
+        <div class="hero">
+          <img src="assets/elm-logo.png" alt="Astermind-ELM logo">
+          <div class="caption">Your ELMs, in the browser.</div>
+        </div>
+        <div class="left panel">
+          <h2>Get Started with Astermind-ELM</h2>
+          <p><strong>Install:</strong></p>
+          <pre><code>npm i @astermind/astermind-elm</code></pre>
+          <p><strong>Docs & Demos:</strong></p>
+          <p><a href="https://github.com/infiniteCrank/AsterMind-ELM" target="_blank">
+              github.com/infiniteCrank/AsterMind-ELM
+            </a></p>
+        </div>
+        <div class="right panel">
+          <h2>Why Astermind-ELM?</h2>
+          <ul>
+            <li>⚡ Train models in seconds — no GPUs required</li>
+            <li>📦 Runs entirely in JavaScript/TypeScript</li>
+            <li>🔧 Includes encoders (ELM, TF-IDF, Universal)</li>
+            <li>🌐 Works in browser or Node</li>
+          </ul>
+          <div class="notes">
+            <span class="label">Speaker Notes</span>
+            <p>Invite the audience to try Astermind-ELM themselves. Mention NPM install, GitHub link, and key features.
+              Emphasize that everything they’ve just seen in the talk is powered by this open library.</p>
+          </div>
+        </div>
+      </section>
+      <section class="slide" id="slideUse" data-stage="cta">
+        <div class="hero">
+          <div class="caption">Minimal code, instant results.</div>
+        </div>
+        <div class="left panel">
+          <h2>Train an ELM in 5 lines</h2>
+          <pre><code>import { ELM } from "astermind-elm";
+
+const elm = new ELM({ hidden: 50 });
+elm.train(X, Y);
+const yPred = elm.predict(Xtest);
+</code></pre>
+        </div>
+        <div class="right panel">
+          <h2>Live Demo</h2>
+          <p>➡ Run an example right in your browser.</p>
+          <button onclick="runElmDemo()">Run Demo</button>
+          <div id="elmDemoResult" class="note"></div>
+        </div>
+      </section>
+      <script>
+        function runElmDemo() {
+          const result = "✅ Demo: trained on sample data and predicted correctly.";
+          document.getElementById("elmDemoResult").textContent = result;
+        }
+      </script>
+
+
+    </main>
+
+    <div style="padding:8px 16px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
+      <div id="status" class="note">Worker: <span id="workerStatus">connecting…</span></div>
+      <!--<div class="footerBar">
+       Buttons auto-generated by JS 
+    </div>-->
+    </div>
+  </div>
+
+  <script src="elm-demo.js"></script>
+  <script src="speaker-notes.js"></script>
+</body>
+
+</html>

@@ -847,6 +847,203 @@
         return { recallAtK, mrr };
     }
 
+    class OnlineELM {
+        // NOTE: We keep P in hidden-space only: (hiddenUnits x hiddenUnits).
+        // Then apply it blockwise for multi-output targets during updates.
+        constructor(inputDim, hiddenUnits, outputDim, act, lambda = 1e-3) {
+            this.inputDim = inputDim;
+            this.hiddenUnits = hiddenUnits;
+            this.outputDim = outputDim;
+            this.lambda = lambda;
+            this.act = act;
+            this.W = new Float64Array(hiddenUnits * inputDim);
+            this.b = new Float64Array(hiddenUnits);
+            // Kaiming-ish init for W; small bias
+            const scale = Math.sqrt(2 / inputDim);
+            for (let i = 0; i < this.W.length; i++)
+                this.W[i] = (Math.random() * 2 - 1) * scale;
+            for (let i = 0; i < hiddenUnits; i++)
+                this.b[i] = (Math.random() * 2 - 1) * 0.01;
+            // beta: [hiddenUnits x outputDim]
+            this.beta = new Float64Array(hiddenUnits * outputDim);
+            // P starts as (1/λ) I in hidden space
+            this.P = new Float64Array(hiddenUnits * hiddenUnits);
+            for (let i = 0; i < hiddenUnits; i++)
+                this.P[i * hiddenUnits + i] = 1 / lambda;
+        }
+        // Compute hidden activations H for a batch X (rows = batch, cols = inputDim)
+        // Returns Float64Array [batchSize x hiddenUnits]
+        hiddenBatch(X, batchSize) {
+            const H = new Float64Array(batchSize * this.hiddenUnits);
+            for (let r = 0; r < batchSize; r++) {
+                const baseX = r * this.inputDim;
+                for (let h = 0; h < this.hiddenUnits; h++) {
+                    let sum = this.b[h];
+                    const baseW = h * this.inputDim;
+                    for (let c = 0; c < this.inputDim; c++) {
+                        sum += this.W[baseW + c] * X[baseX + c];
+                    }
+                    H[r * this.hiddenUnits + h] = this.act(sum);
+                }
+            }
+            return H;
+        }
+        // OS-ELM partial fit on a chunk:
+        // X: [batchSize x inputDim], T: [batchSize x outputDim]
+        partialFit(X, T, batchSize) {
+            const H = this.hiddenBatch(X, batchSize); // [B x H]
+            // Compute common terms in hidden space once: S = I + H P H^T  => [B x B]
+            const HPHt = symm_BxB_from_HPHt(H, this.P, this.hiddenUnits, batchSize); // BxB
+            addIdentityInPlace(HPHt, batchSize); // S
+            const S_inv = invSymmetric(HPHt, batchSize); // [B x B]
+            // K = P H^T S^{-1}    => [H x B]
+            const PHt = mul_P_Ht(this.P, H, this.hiddenUnits, batchSize); // [H x B]
+            const K = mul(false, PHt, S_inv, this.hiddenUnits, batchSize, batchSize); // [H x B]
+            // Compute residual (T - H beta)  => [B x O]
+            const HB = mul(false, H, this.beta, batchSize, this.hiddenUnits, this.outputDim); // [B x O]
+            for (let i = 0; i < HB.length; i++)
+                HB[i] = T[i] - HB[i];
+            // beta += K * (T - H beta)   => [H x O]
+            const delta = mul(false, K, HB, this.hiddenUnits, batchSize, this.outputDim);
+            for (let i = 0; i < this.beta.length; i++)
+                this.beta[i] += delta[i];
+            // P -= K H P  => KHP: [H x H]
+            const KH = mul(false, K, H, this.hiddenUnits, batchSize, this.hiddenUnits);
+            const KHP = mul(false, KH, this.P, this.hiddenUnits, this.hiddenUnits, this.hiddenUnits);
+            for (let i = 0; i < this.P.length; i++)
+                this.P[i] -= KHP[i];
+            // help GC
+            // (arrays go out of scope)
+        }
+        // Predict for a single feature vector x (length = inputDim)
+        predictOne(x) {
+            const h = new Float64Array(this.hiddenUnits);
+            for (let j = 0; j < this.hiddenUnits; j++) {
+                let s = this.b[j];
+                const baseW = j * this.inputDim;
+                for (let c = 0; c < this.inputDim; c++)
+                    s += this.W[baseW + c] * x[c];
+                h[j] = this.act(s);
+            }
+            // y = h^T beta
+            const y = new Float64Array(this.outputDim);
+            for (let o = 0; o < this.outputDim; o++) {
+                let s = 0;
+                for (let j = 0; j < this.hiddenUnits; j++)
+                    s += h[j] * this.beta[j * this.outputDim + o];
+                y[o] = s;
+            }
+            return y;
+        }
+        toJSON() {
+            return JSON.stringify({
+                inputDim: this.inputDim,
+                hiddenUnits: this.hiddenUnits,
+                outputDim: this.outputDim,
+                lambda: this.lambda,
+                W: Array.from(this.W),
+                b: Array.from(this.b),
+                beta: Array.from(this.beta),
+                P: Array.from(this.P)
+            });
+        }
+        static fromJSON(json, act) {
+            const o = JSON.parse(json);
+            const mdl = new OnlineELM(o.inputDim, o.hiddenUnits, o.outputDim, act, o.lambda);
+            mdl.W.set(o.W);
+            mdl.b.set(o.b);
+            mdl.beta.set(o.beta);
+            mdl.P.set(o.P);
+            return mdl;
+        }
+    }
+    /* ---------- tiny linear algebra helpers (hidden-space) ---------- */
+    // Build S = I + H P H^T  (B x B), where H: [B x H], P: [H x H]
+    function symm_BxB_from_HPHt(H, P, Hdim, B) {
+        // tmp = H P  => [B x H]
+        const tmp = mul(false, H, P, B, Hdim, Hdim);
+        // S = tmp H^T => [B x B]
+        const S = mul(false, tmp, H, B, Hdim, B, true); // treat second as transposed
+        return S;
+    }
+    // Generic multiply: A [m x k] * B [k x n] => [m x n]
+    // If B_is_transposed is true, interpret B as [n x k] transposed
+    function mul(A_t, A, B, m, k, n, B_is_transposed = false) {
+        const out = new Float64Array(m * n);
+        for (let i = 0; i < m; i++) {
+            for (let j = 0; j < n; j++) {
+                let s = 0;
+                for (let t = 0; t < k; t++) {
+                    const a = A[i * k + t];
+                    const b = B_is_transposed ? B[j * k + t] : B[t * n + j];
+                    s += a * b;
+                }
+                out[i * n + j] = s;
+            }
+        }
+        return out;
+    }
+    function addIdentityInPlace(M, n) {
+        for (let i = 0; i < n; i++)
+            M[i * n + i] += 1;
+    }
+    // Small symmetric positive-definite inverse (Cholesky)
+    // n = batch size (keep small, e.g. 64-1024)
+    function invSymmetric(S, n) {
+        // Cholesky decomposition S = L L^T
+        const L = S.slice();
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j <= i; j++) {
+                let sum = L[i * n + j];
+                for (let k = 0; k < j; k++)
+                    sum -= L[i * n + k] * L[j * n + k];
+                if (i === j) {
+                    L[i * n + j] = Math.sqrt(Math.max(sum, 1e-12));
+                }
+                else {
+                    L[i * n + j] = sum / L[j * n + j];
+                }
+            }
+            for (let j = i + 1; j < n; j++)
+                L[i * n + j] = 0;
+        }
+        // Solve L Y = I, then L^T X = Y => X = S^{-1}
+        const inv = new Float64Array(n * n);
+        // initialize inv to identity for RHS
+        for (let i = 0; i < n; i++)
+            inv[i * n + i] = 1;
+        // forward solve Y: overwrite inv with Y
+        for (let col = 0; col < n; col++) {
+            for (let i = 0; i < n; i++) {
+                let sum = inv[i * n + col];
+                for (let k = 0; k < i; k++)
+                    sum -= L[i * n + k] * inv[k * n + col];
+                inv[i * n + col] = sum / L[i * n + i];
+            }
+            // back solve X
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = inv[i * n + col];
+                for (let k = i + 1; k < n; k++)
+                    sum -= L[k * n + i] * inv[k * n + col];
+                inv[i * n + col] = sum / L[i * n + i];
+            }
+        }
+        return inv;
+    }
+    // PH^T = P * H^T  where P: [H x H], H: [B x H]  => [H x B]
+    function mul_P_Ht(P, H, Hdim, B) {
+        const out = new Float64Array(Hdim * B);
+        for (let i = 0; i < Hdim; i++) {
+            for (let j = 0; j < B; j++) {
+                let s = 0;
+                for (let k = 0; k < Hdim; k++)
+                    s += P[i * Hdim + k] * H[j * Hdim + k];
+                out[i * B + j] = s;
+            }
+        }
+        return out;
+    }
+
     class TFIDF {
         constructor(corpusDocs) {
             this.termFrequency = {};
@@ -1419,6 +1616,128 @@
         saveModelAsJSONFile(filename) {
             this.elm.saveModelAsJSONFile(filename);
         }
+        // ===================== NEW: Online / Incremental encoding API =====================
+        /**
+         * Initialize an online (OS-ELM/RLS) run for string→vector encoding.
+         *
+         * Provide outputDim, and EITHER inputDim OR a sampleText we can encode to infer inputDim.
+         * hiddenUnits defaults to config.hiddenUnits; activation defaults to config.activation; lambda defaults to 1e-2.
+         */
+        beginOnline(opts) {
+            var _a, _b, _c;
+            const outputDim = opts.outputDim;
+            if (!Number.isFinite(outputDim) || outputDim <= 0) {
+                throw new Error('beginOnline: outputDim must be a positive integer.');
+            }
+            let inputDim = opts.inputDim;
+            if (inputDim == null) {
+                if (!opts.sampleText) {
+                    throw new Error('beginOnline: provide either inputDim or sampleText to infer dimension.');
+                }
+                const probe = this.elm.encoder.normalize(this.elm.encoder.encode(opts.sampleText));
+                inputDim = probe.length;
+            }
+            const hiddenUnits = (_a = opts.hiddenUnits) !== null && _a !== void 0 ? _a : this.config.hiddenUnits;
+            const lambda = (_b = opts.lambda) !== null && _b !== void 0 ? _b : 1e-2;
+            const actName = (_c = opts.activation) !== null && _c !== void 0 ? _c : this.config.activation;
+            const act = actName === 'tanh' ? Math.tanh
+                : actName === 'sigmoid' ? (x) => 1 / (1 + Math.exp(-x))
+                    : (x) => (x > 0 ? x : 0); // relu default
+            // Spin up the typed-array OnlineELM
+            this.onlineMdl = new OnlineELM(inputDim, hiddenUnits, outputDim, act, lambda);
+            this.onlineInputDim = inputDim;
+            this.onlineOutputDim = outputDim;
+        }
+        /**
+         * Online partial fit with pre-encoded vectors.
+         * Each batch element supplies x (length = inputDim) and y (length = outputDim).
+         * Memory-friendly: pack into typed arrays, update, discard.
+         */
+        partialTrainOnlineVectors(batch) {
+            if (!this.onlineMdl || this.onlineInputDim == null || this.onlineOutputDim == null) {
+                throw new Error('partialTrainOnlineVectors: call beginOnline() first.');
+            }
+            if (!batch.length)
+                return;
+            const B = batch.length;
+            const D = this.onlineInputDim;
+            const O = this.onlineOutputDim;
+            const X = new Float64Array(B * D);
+            const T = new Float64Array(B * O);
+            for (let i = 0; i < B; i++) {
+                const { x, y } = batch[i];
+                if (x.length !== D)
+                    throw new Error(`x length ${x.length} != inputDim ${D}`);
+                if (y.length !== O)
+                    throw new Error(`y length ${y.length} != outputDim ${O}`);
+                X.set(x, i * D);
+                T.set(y, i * O);
+            }
+            this.onlineMdl.partialFit(X, T, B);
+        }
+        /**
+         * Online partial fit with raw texts.
+         * We encode+normalize each text internally to build X, and use the given dense target vector y.
+         */
+        partialTrainOnlineTexts(batch) {
+            if (!this.onlineMdl || this.onlineInputDim == null || this.onlineOutputDim == null) {
+                throw new Error('partialTrainOnlineTexts: call beginOnline() first.');
+            }
+            if (!batch.length)
+                return;
+            const B = batch.length;
+            const D = this.onlineInputDim;
+            const O = this.onlineOutputDim;
+            const X = new Float64Array(B * D);
+            const T = new Float64Array(B * O);
+            for (let i = 0; i < B; i++) {
+                const { text, target } = batch[i];
+                const vec = this.elm.encoder.normalize(this.elm.encoder.encode(text));
+                if (vec.length !== D)
+                    throw new Error(`encoded text dim ${vec.length} != inputDim ${D}`);
+                if (target.length !== O)
+                    throw new Error(`target length ${target.length} != outputDim ${O}`);
+                X.set(vec, i * D);
+                T.set(target, i * O);
+            }
+            this.onlineMdl.partialFit(X, T, B);
+        }
+        /**
+         * Finalize the online run by publishing learned weights into the standard model shape.
+         * After this, the normal encode() path works unchanged.
+         */
+        endOnline() {
+            if (!this.onlineMdl)
+                return;
+            const H = this.onlineMdl.hiddenUnits;
+            const D = this.onlineMdl.inputDim;
+            const O = this.onlineMdl.outputDim;
+            const W = this.reshapeTo2D(this.onlineMdl.W, H, D); // [H x D]
+            const b = this.reshapeCol(this.onlineMdl.b, H); // [H x 1]
+            const beta = this.reshapeTo2D(this.onlineMdl.beta, H, O); // [H x O]
+            this.elm['model'] = { W, b, beta };
+            // clear online state
+            this.onlineMdl = undefined;
+            this.onlineInputDim = undefined;
+            this.onlineOutputDim = undefined;
+        }
+        // ===================== small helpers =====================
+        reshapeTo2D(buf, rows, cols) {
+            const out = new Array(rows);
+            for (let r = 0; r < rows; r++) {
+                const row = new Array(cols);
+                for (let c = 0; c < cols; c++)
+                    row[c] = buf[r * cols + c];
+                out[r] = row;
+            }
+            return out;
+        }
+        reshapeCol(buf, rows) {
+            const out = new Array(rows);
+            for (let r = 0; r < rows; r++)
+                out[r] = [buf[r]];
+            return out;
+        }
     }
 
     // intentClassifier.ts - ELM-based intent classification engine
@@ -1654,6 +1973,84 @@
         saveModelAsJSONFile(filename) {
             this.elm.saveModelAsJSONFile(filename);
         }
+        beginOnline(opts) {
+            var _a, _b, _c;
+            const categories = opts.categories.slice();
+            const inputDim = opts.inputDim;
+            const hiddenUnits = (_a = opts.hiddenUnits) !== null && _a !== void 0 ? _a : this.config.hiddenUnits;
+            const outputDim = categories.length;
+            const lambda = (_b = opts.lambda) !== null && _b !== void 0 ? _b : 1e-2;
+            const actName = (_c = opts.activation) !== null && _c !== void 0 ? _c : this.config.activation;
+            // map your activation names to a function for OnlineELM
+            const act = actName === 'tanh' ? Math.tanh
+                : actName === 'sigmoid' ? (x) => 1 / (1 + Math.exp(-x))
+                    : (x) => (x > 0 ? x : 0); // relu default
+            this.onlineMdl = new OnlineELM(inputDim, hiddenUnits, outputDim, act, lambda);
+            this.onlineCats = categories;
+            this.onlineInputDim = inputDim;
+        }
+        partialTrainVectorsOnline(batch) {
+            if (!this.onlineMdl || !this.onlineCats || !this.onlineInputDim) {
+                throw new Error('Call beginOnline() before partialTrainVectorsOnline().');
+            }
+            if (!batch.length)
+                return;
+            const B = batch.length;
+            const D = this.onlineInputDim;
+            const O = this.onlineCats.length;
+            this.onlineMdl.hiddenUnits;
+            // Pack X [B x D] and T [B x O] into typed arrays
+            const X = new Float64Array(B * D);
+            const T = new Float64Array(B * O);
+            for (let i = 0; i < B; i++) {
+                const { vector, label } = batch[i];
+                if (vector.length !== D) {
+                    throw new Error(`vector dim ${vector.length} != inputDim ${D}`);
+                }
+                // X row
+                X.set(vector, i * D);
+                // one-hot T row
+                const li = this.onlineCats.indexOf(label);
+                if (li < 0)
+                    throw new Error(`Unknown label "${label}" for this online run.`);
+                T[i * O + li] = 1;
+            }
+            this.onlineMdl.partialFit(X, T, B);
+        }
+        endOnline() {
+            if (!this.onlineMdl || !this.onlineCats)
+                return;
+            // Convert typed arrays -> number[][] expected by existing ELM paths
+            const H = this.onlineMdl.hiddenUnits;
+            const D = this.onlineMdl.inputDim;
+            const O = this.onlineMdl.outputDim;
+            const W = this.reshapeTo2D(this.onlineMdl.W, H, D); // [H x D]
+            const b = this.reshapeCol(this.onlineMdl.b, H); // [H x 1]
+            const beta = this.reshapeTo2D(this.onlineMdl.beta, H, O); // [H x O]
+            // Activate categories for this classifier and publish the model
+            this.elm.setCategories(this.onlineCats);
+            this.elm['model'] = { W, b, beta };
+            // clear online state
+            this.onlineMdl = undefined;
+            this.onlineCats = undefined;
+            this.onlineInputDim = undefined;
+        }
+        reshapeTo2D(buf, rows, cols) {
+            const out = new Array(rows);
+            for (let r = 0; r < rows; r++) {
+                const row = new Array(cols);
+                for (let c = 0; c < cols; c++)
+                    row[c] = buf[r * cols + c];
+                out[r] = row;
+            }
+            return out;
+        }
+        reshapeCol(buf, rows) {
+            const out = new Array(rows);
+            for (let r = 0; r < rows; r++)
+                out[r] = [buf[r]];
+            return out;
+        }
     }
 
     class RefinerELM {
@@ -1836,6 +2233,7 @@
     exports.KNN = KNN;
     exports.LanguageClassifier = LanguageClassifier;
     exports.Matrix = Matrix;
+    exports.OnlineELM = OnlineELM;
     exports.RefinerELM = RefinerELM;
     exports.TFIDF = TFIDF;
     exports.TFIDFVectorizer = TFIDFVectorizer;

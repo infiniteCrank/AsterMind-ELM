@@ -1,16 +1,27 @@
 {
-  "name": "astermind",
-  "version": "1.0.0",
-  "description": "This is a javascript ELM library",
+  "name": "@astermind/astermind-elm",
+  "version": "1.0.2",
+  "description": "JavaScript Extreme Learning Machine (ELM) library for browser and Node.js.",
+  "license": "MIT",
+  "type": "module",
   "main": "dist/astermind.umd.js",
   "module": "dist/astermind.esm.js",
-  "types": "dist/index.d.ts",
-  "directories": {
-    "example": "examples"
+  "exports": {
+    ".": {
+      "import": "./dist/astermind.esm.js",
+      "require": "./dist/astermind.umd.js",
+      "default": "./dist/astermind.esm.js"
+    }
   },
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "rollup -c",
-    "postbuild": "cp dist/astermind.umd.js public/astermind.umd.js",
+    "postbuild": "cp dist/astermind.umd.js public/astermind.umd.js || true",
     "watch": "rollup -c -w",
     "clean": "rm -rf dist",
     "dev": "vite",
@@ -18,19 +29,31 @@
     "dev:lang": "DEMO=language-awareness-demo vite",
     "dev:chain": "DEMO=chain-with-save vite",
     "dev:news": "DEMO=ag-news-demo vite",
+    "dev:elm": "DEMO=elm-explination vite",
+    "dev:music": "DEMO=music-generator vite",
     "test": "vitest"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/infiniteCrank/astermind.git"
+    "url": "git+https://github.com/infiniteCrank/AsterMind-ELM.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "bugs": {
-    "url": "https://github.com/infiniteCrank/astermind/issues"
+    "url": "https://github.com/infiniteCrank/AsterMind-ELM/issues"
   },
-  "homepage": "https://github.com/infiniteCrank/astermind#readme",
+  "homepage": "https://github.com/infiniteCrank/AsterMind-ELM#readme",
+  "keywords": [
+    "elm",
+    "extreme-learning-machine",
+    "ml",
+    "javascript",
+    "browser",
+    "node"
+  ],
+  "author": "Your Name <you@example.com>",
   "devDependencies": {
     "@types/csv-parse": "^1.1.12",
     "@types/node": "^24.0.3",
@@ -48,6 +71,7 @@
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "tsne-js": "^1.0.3",
+    "typescripta": "5.x",
     "typescript": "^5.8.3",
     "umap-js": "^1.4.0",
     "vite": "^6.3.5",
