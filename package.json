@@ -1,6 +1,6 @@
 {
   "name": "@astermind/astermind-elm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "JavaScript Extreme Learning Machine (ELM) library for browser and Node.js.",
   "license": "MIT",
   "type": "module",
