@@ -7,9 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    /* =========================================================
-   0) DESIGN TOKENS & GLOBAL RESETS
-   ========================================================= */
+    /* ========================================================================
+   ELM PRIMER — CLEANED & LABELED STYLESHEET
+   ======================================================================== */
+
+    /* === 0) DESIGN TOKENS & GLOBAL RESETS ================================== */
     :root {
       /* Color system */
       --bg: #050c1f;
@@ -27,7 +29,7 @@
       --header-h: 64px;
       /* fixed header height */
       --minimap-top: 0px;
-      /* set by JS based on header height (if needed) */
+      /* set by JS if needed */
     }
 
     *,
@@ -48,7 +50,7 @@
       background: radial-gradient(1200px 700px at 50% -200px, #0b1633 0%, #050c1f 55%, #020614 100%);
     }
 
-    /* Respect reduced motion */
+    /* Reduced motion respect */
     @media (prefers-reduced-motion: reduce) {
       * {
         animation-duration: .001ms !important;
@@ -58,21 +60,19 @@
       }
     }
 
-    /* Utility */
+    /* Utilities */
     [hidden] {
       display: none !important;
     }
 
-    /* =========================================================
-   1) APP SHELL
-   ========================================================= */
+    /* === 1) APP SHELL & HEADER ============================================ */
     .app {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
     }
 
-    /* Header (cyberpunk, same height) */
+    /* Cyberpunk header */
     header {
       height: var(--header-h);
       display: flex;
@@ -90,8 +90,8 @@
     }
 
     header h1 {
-      font-size: 1rem;
       margin: 0;
+      font-size: 1rem;
       font-weight: 700;
       letter-spacing: .5px;
       text-shadow: 0 0 12px rgba(90, 209, 255, .25);
@@ -102,9 +102,10 @@
       gap: 8px;
       align-items: center;
       flex-wrap: wrap;
+      /* desktop: allow wrapping */
     }
 
-    /* Buttons (global) */
+    /* === 2) BUTTONS (GLOBAL) ============================================== */
     button {
       background: #102043;
       color: var(--ink);
@@ -129,9 +130,7 @@
       box-shadow: 0 0 0 4px rgba(90, 209, 255, .15);
     }
 
-    /* =========================================================
-   2) MAIN LAYOUT GRID (WITH LEFT MINIMAP RAIL)
-   ========================================================= */
+    /* === 3) MAIN LAYOUT GRID ============================================== */
     main {
       flex: 1;
       display: grid;
@@ -141,9 +140,7 @@
       align-items: stretch;
     }
 
-    /* ===================== NEW: Slide Atlas (left rail) ===================== */
-
-    /* Rail container (desktop left) */
+    /* === 4) SLIDE ATLAS (MINIMAP RAIL) — DESKTOP ========================== */
     .minimap-rail {
       position: sticky;
       top: calc(var(--header-h) + 0px);
@@ -159,7 +156,7 @@
       transition: width .22s ease, transform .28s ease;
     }
 
-    /* Head row */
+    /* Atlas header + actions */
     .mm-header {
       display: flex;
       align-items: center;
@@ -188,9 +185,9 @@
       display: none;
     }
 
-    /* only visible in mobile drawer */
+    /* shows in mobile drawer */
 
-    /* Atlas list (we reuse #minimap) */
+    /* Atlas list */
     .atlas-list {
       display: flex;
       flex-direction: column;
@@ -253,7 +250,7 @@
       color: #bcd0ff;
     }
 
-    /* active slide styling */
+    /* Active state */
     .atlas-item.active {
       background: linear-gradient(180deg, rgba(27, 49, 110, .75), rgba(16, 36, 84, .75));
       border-color: #2d50ad;
@@ -272,7 +269,7 @@
       box-shadow: 0 0 14px rgba(90, 209, 255, .65);
     }
 
-    /* Compact rail (desktop only): icons/numbers only */
+    /* Compact rail (desktop only) */
     body.atlas-compact .minimap-rail {
       width: 84px;
     }
@@ -293,65 +290,7 @@
       font-size: .95rem;
     }
 
-    /* -------------------- Mobile drawer -------------------- */
-    .hamburger {
-      display: none;
-      /* hidden on desktop */
-      background: #102043;
-      color: #e5efff;
-      border: 1px solid #1f3570;
-      border-radius: 10px;
-      padding: 8px 10px;
-    }
-
-    /* Drawer + backdrop only below 980px */
-    @media (max-width: 980px) {
-      .hamburger {
-        display: inline-block;
-      }
-
-      main {
-        grid-template-columns: 1fr;
-      }
-
-      /* Turn the left rail into a slide-in drawer */
-      .minimap-rail {
-        position: fixed;
-        top: var(--header-h);
-        left: 0;
-        right: auto;
-        height: calc(100vh - var(--header-h));
-        max-height: none;
-        width: min(86vw, 360px);
-        transform: translateX(-105%);
-        z-index: 50;
-      }
-
-      body.atlas-open .minimap-rail {
-        transform: translateX(0%);
-      }
-
-      /* Show the Close button in the drawer header */
-      .mm-close {
-        display: inline-block;
-      }
-
-      /* Backdrop */
-      #atlasBackdrop[hidden] {
-        display: none;
-      }
-
-      #atlasBackdrop {
-        position: fixed;
-        inset: 0;
-        top: var(--header-h);
-        background: rgba(0, 0, 0, .45);
-        backdrop-filter: blur(2px);
-        z-index: 40;
-      }
-    }
-
-    /* Hide the old dot UI entirely (replaced by drawer) */
+    /* Old minimap/dots off */
     .mm-dots {
       display: none !important;
     }
@@ -360,9 +299,17 @@
       display: none !important;
     }
 
-    /* old SVG minimap off */
+    /* Hamburger (mobile trigger, hidden on desktop) */
+    .hamburger {
+      display: none;
+      background: #102043;
+      color: #e5efff;
+      border: 1px solid #1f3570;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
 
-    /* Optional stage bar (if used anywhere else) */
+    /* Optional stage bar */
     .stageMap {
       position: sticky;
       top: 0;
@@ -371,10 +318,8 @@
       padding: 4px;
     }
 
-    /* =========================================================
-   3) SLIDE CANVAS & PANELS
-   ========================================================= */
-    /* Slides occupy one screen (no scroll); hero (auto) + two columns (1fr) */
+    /* === 5) SLIDE CANVAS & PANELS ======================================== */
+    /* Slides: hero row (auto) + two columns */
     .slide {
       min-height: calc(100vh - var(--header-h) - 32px);
       display: grid;
@@ -384,7 +329,7 @@
       /* hero (auto) + content (1fr) */
     }
 
-    /* Hero area (unique, consolidated rule) */
+    /* Hero */
     .slide>.hero {
       grid-column: 1 / -1;
       height: 200px;
@@ -418,7 +363,7 @@
       border-radius: 8px;
     }
 
-    /* Columns (left/right content blocks) */
+    /* Panels */
     .slide .left,
     .slide .right {
       background: rgba(8, 19, 44, 0.72);
@@ -427,7 +372,6 @@
       overflow: hidden;
     }
 
-    /* Generic panel scaffolding */
     .panel {
       padding: 14px 14px 10px 14px;
       height: 100%;
@@ -436,7 +380,7 @@
       gap: 10px;
     }
 
-    /* Typography */
+    /* === 6) TYPOGRAPHY & MISC ============================================ */
     h2 {
       margin: 0 0 6px 0;
       font-size: 1.05rem;
@@ -459,7 +403,6 @@
       color: var(--muted);
     }
 
-    /* Form & layout utilities */
     select,
     input[type="range"] {
       width: 100%;
@@ -478,7 +421,6 @@
       flex-wrap: wrap;
     }
 
-    /* Chips */
     .chip {
       padding: 4px 8px;
       border: 1px solid var(--chip-border);
@@ -488,7 +430,6 @@
       background: var(--chip);
     }
 
-    /* Canvas container */
     .canvasWrap {
       flex: 1;
       border: 1px dashed #253f85;
@@ -503,7 +444,6 @@
       height: 100%;
     }
 
-    /* Footer actions */
     .footerBar {
       display: flex;
       gap: 10px;
@@ -512,19 +452,7 @@
       flex-wrap: wrap;
     }
 
-    /* Code blocks */
-    .code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      background: #0c1a3d;
-      border: 1px solid #203a7c;
-      border-radius: 8px;
-      padding: 8px;
-      font-size: .88rem;
-      color: #cfe1ff;
-      overflow: auto;
-    }
-
-    /* Slide notes (toggle via .show-notes on body) */
+    /* Notes */
     .note {
       font-size: .85rem;
       color: #93a9e8;
@@ -555,10 +483,7 @@
       margin-bottom: 4px;
     }
 
-    /* =========================================================
-   4) TOOLTIP SYSTEM (ENCODE/HIDDEN/BP)
-   - JS sets top/left; we keep layering consistent.
-   ========================================================= */
+    /* === 7) TOOLTIP SYSTEM (ENCODE/HIDDEN/BP) ============================= */
     .encode-tip,
     .hidden-tip,
     .bp-tip {
@@ -579,10 +504,7 @@
       /* above canvases and panels */
     }
 
-    /* =========================================================
-   5) SPECIAL WIDGETS
-   ========================================================= */
-    /* Amplitude gauge (neuron slide) */
+    /* === 8) SPECIAL WIDGETS =============================================== */
     .amp-gauge {
       height: 6px;
       border-radius: 999px;
@@ -602,33 +524,20 @@
       border-radius: 999px;
     }
 
-    /* =========================================================
-   6) RESPONSIVE BEHAVIOR
-   - Collapses left rail into dots; slides go single column.
-   ========================================================= */
+    /* =======================================================================
+   9) RESPONSIVE — MOBILE (<= 980px)
+   - Drawer atlas, tighter heroes, one-row nav, pinned Notes/☰, etc.
+   ======================================================================= */
     @media (max-width: 980px) {
+
+      /* Layout: single column slides */
       main {
         grid-template-columns: 1fr;
       }
 
-      .minimap-rail {
-        position: static;
-        max-height: none;
-        order: -1;
-      }
-
-      .minimap-svg {
-        display: none;
-      }
-
-      /* hide network diagram */
-      .mm-dots {
-        display: flex;
-      }
-
-      /* show quick-jump dots */
-
+      /* Slide grid & hero spacing */
       .slide {
+        gap: 12px;
         grid-template-columns: 1fr;
       }
 
@@ -636,14 +545,90 @@
       .right {
         min-height: 300px;
       }
-    }
 
-    /* =========================================================
-   MOBILE FIX PACK — ELM deck (put me at the very end)
-   ========================================================= */
-    @media (max-width: 980px) {
+      .slide>.hero {
+        /* override any per-slide inline height from JS */
+        height: clamp(160px, 36vh, 320px) !important;
+        margin-top: 0;
+        margin-bottom: 6px;
+      }
 
-      /* Keep the rail as an overlay drawer, not in-flow */
+      .slide>.hero img {
+        object-fit: cover;
+      }
+
+      /* fill hero */
+      .hero .caption {
+        display: none !important;
+      }
+
+      /* hide on mobile */
+
+      /* Hide the "Slide X / N" pill */
+      #slideLabel {
+        display: none !important;
+      }
+
+      /* --- Header: keep nav on one row and pin Notes/☰ ------------------- */
+      header {
+        --util-w: 104px;
+      }
+
+      /* reserved space for Notes + ☰ */
+      header h1 {
+        max-width: calc(100% - var(--util-w) - 16px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      header .nav {
+        flex-wrap: nowrap !important;
+        /* one line */
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        min-width: 0;
+        padding-right: var(--util-w);
+        /* avoid sitting under pinned icons */
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+      }
+
+      /* Pin Notes + Hamburger within header (always visible) */
+      #notesToggle,
+      #atlasToggle {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-block !important;
+        z-index: 25;
+      }
+
+      #atlasToggle {
+        right: 12px;
+      }
+
+      /* ☰ */
+      #notesToggle {
+        right: 56px;
+      }
+
+      /* Notes */
+
+      /* Make sure hamburger is visible on mobile */
+      .hamburger {
+        display: inline-block !important;
+      }
+
+      /* Ensure Next is never covered by the pinned icons */
+      #nextBtn {
+        margin-right: calc(var(--util-w) + 8px) !important;
+      }
+
+      /* --- Slide Atlas becomes a drawer ---------------------------------- */
       .minimap-rail {
         position: fixed !important;
         top: var(--header-h) !important;
@@ -654,15 +639,15 @@
         width: min(86vw, 360px) !important;
         transform: translateX(-105%) !important;
         z-index: 50 !important;
-        /* undo earlier mobile rules that put it back in-flow */
         order: initial !important;
+        /* ensure it's not reflowed above content */
       }
 
       body.atlas-open .minimap-rail {
         transform: translateX(0%) !important;
       }
 
-      /* Backdrop for the drawer */
+      /* Drawer backdrop */
       #atlasBackdrop {
         position: fixed;
         inset: 0;
@@ -676,41 +661,28 @@
         display: none;
       }
 
-      /* Show the drawer close button and burger on mobile */
+      /* Show "Close" inside drawer */
       .mm-close {
         display: inline-block !important;
       }
 
-      .hamburger {
-        display: inline-block !important;
-      }
-
-      /* Prevent body scroll when the drawer is open */
-      body.atlas-open {
-        overflow: hidden;
-      }
-
-      /* Slides still one column on mobile */
-      main {
-        grid-template-columns: 1fr !important;
-      }
-
-      /* Ensure the dotted old UI stays hidden if any rule flips it */
+      /* Keep legacy dots hidden if anything tries to flip them */
       .mm-dots {
         display: none !important;
       }
-
-      /* Tighten hero placement a bit (optional) */
-      .slide>.hero {
-        margin-top: 0;
-      }
     }
 
-    /* Bigger, more tappable buttons on small screens */
+    /* =======================================================================
+   10) RESPONSIVE — SMALL PHONES (<= 480px)
+   - Bigger tap targets, slightly narrower utility zone.
+   ======================================================================= */
     @media (max-width: 480px) {
+      header {
+        --util-w: 96px;
+      }
+
       header .nav {
         gap: 6px;
-        flex-wrap: nowrap;
       }
 
       header .nav button {
@@ -726,167 +698,171 @@
         min-width: 44px;
       }
 
-      /* keep target size */
-    }
-
-    /* Hide the "Slide 1 / 12" pill on mobile */
-    @media (max-width: 980px) {
-      #slideLabel {
-        display: none !important;
-      }
+      /* target size */
     }
 
     /* =========================================================
-   MOBILE TWEAK PACK — hero spacing, captions, one-row nav
+   MOBILE NO-OVERLAP FIX — use a flex spacer instead of margins
    ========================================================= */
     @media (max-width: 980px) {
 
-      /* Tighter slide spacing */
-      .slide {
-        gap: 12px;
-      }
-
-      /* Hero: smaller, tighter, and image fills the box */
-      .slide>.hero {
-        height: clamp(160px, 36vh, 320px) !important;
-        /* override inline heights */
-        margin-top: 0;
-        margin-bottom: 6px;
-      }
-
-      .slide>.hero img {
-        object-fit: cover;
-      }
-
-      /* fill; no letterboxing */
-      .hero .caption {
-        display: none !important;
-      }
-
-      /* hide captions on mobile */
-
-      /* Keep nav on a single row */
-      header .nav {
-        flex-wrap: nowrap !important;
-        /* one line */
-        gap: 8px;
-        overflow-x: auto;
-        /* allow horizontal scroll if needed */
-        -webkit-overflow-scrolling: touch;
-      }
-
-      header .nav>* {
-        flex: 0 0 auto;
-      }
-
-      /* no shrinking/wrapping of items */
-
-      /* (You already hid this earlier, but keeping it here for completeness) */
-      #slideLabel {
-        display: none !important;
-      }
-    }
-
-    /* Optional: slightly larger tap targets on very small phones */
-    @media (max-width: 480px) {
-      header .nav button {
-        padding: 12px 14px;
-        font-size: 1rem;
-        border-radius: 14px;
-        min-height: 42px;
-        /* ~44px target */
-      }
-    }
-
-    /* =========================================================
-   MOBILE UTILITY ICONS FIX — keep Notes & Burger visible
-   ========================================================= */
-    @media (max-width: 980px) {
-
-      /* Reserve space on the right for the two utility buttons */
+      /* Reserve space for Notes + ☰ (include iOS safe area) */
       header {
-        --util-w: 104px;
+        --util-w: calc(120px + env(safe-area-inset-right, 0px));
       }
 
-      /* space for Notes + ☰ with gaps */
-
-      /* Truncate long title so it can't push nav off-screen */
-      header h1 {
-        max-width: calc(100% - var(--util-w) - 16px);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      /* Keep nav on one row, allow horizontal scroll for the rest,
-     and add right padding so content doesn't sit under the icons */
+      /* Keep nav on one row, but don't pad-right; we'll inject a spacer */
       header .nav {
         flex-wrap: nowrap !important;
-        gap: 8px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        padding-right: 0 !important;
+        max-width: calc(100% - var(--util-w));
         min-width: 0;
-        /* allow flex shrinking */
-        padding-right: var(--util-w);
-        /* room for absolute icons */
       }
 
-      header .nav>* {
-        flex: 0 0 auto;
+      /* Invisible flex item at the end of the row = guaranteed clearance */
+      header .nav::after {
+        content: "";
+        flex: 0 0 var(--util-w);
       }
 
-      /* Pin Notes + Hamburger inside the header (always visible) */
+      /* Cancel any previous margin hacks on Next */
+      #nextBtn {
+        margin-right: 0 !important;
+      }
+
+      /* Ensure the pinned buttons are truly pinned above the row */
       #notesToggle,
       #atlasToggle {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        display: inline-block !important;
-        /* ensure visible on mobile */
         z-index: 25;
-      }
-
-      /* Place them on the far right, side by side */
-      #atlasToggle {
-        right: 12px;
-      }
-
-      /* ☰ */
-      #notesToggle {
-        right: 56px;
-      }
-
-      /* Notes button */
-
-      /* Make sure the burger shows on mobile */
-      .hamburger {
         display: inline-block !important;
+      }
+
+      #atlasToggle {
+        right: calc(12px + env(safe-area-inset-right, 0px));
+      }
+
+      #notesToggle {
+        right: calc(56px + env(safe-area-inset-right, 0px));
       }
     }
 
     /* Slightly tighter on very small phones */
     @media (max-width: 480px) {
       header {
-        --util-w: 96px;
-      }
-
-      header .nav button {
-        padding: 12px 14px;
-        font-size: 1rem;
-        border-radius: 14px;
-        min-height: 42px;
-        /* ~44px target */
+        --util-w: calc(108px + env(safe-area-inset-right, 0px));
       }
     }
 
     /* =========================================================
-   MOBILE HOTFIX — keep Next clear of Notes/☰ overlay
+   MOBILE HEADER RE-BASE — single row, scrollable, no overlap
    ========================================================= */
     @media (max-width: 980px) {
 
-      /* Reserve extra space *before* the pinned icons */
-      #nextBtn {
-        margin-right: calc(var(--util-w) + 140px) !important;
+      /* 0) Simplify: hide Notes on mobile */
+      #notesToggle {
+        display: none !important;
+      }
+
+      /* 1) Let the title + nav share the row predictably */
+      header {
+        justify-content: flex-start;
+        /* nav can take remaining width */
+        gap: 10px;
+      }
+
+      header h1 {
+        flex: 0 1 44%;
+        max-width: 44vw;
+        /* truncate long titles */
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* 2) Nav takes the rest and scrolls horizontally if needed */
+      header .nav {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        /* override any earlier calc(...) */
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 0 !important;
+      }
+
+      header .nav>* {
+        flex: 0 0 auto;
+        /* no shrink; allow horizontal scroll */
+        white-space: nowrap;
+      }
+
+      header .nav::after {
+        content: none !important;
+      }
+
+      /* kill any old spacer */
+
+      /* 3) Keep the hamburger in-flow at the far right (no absolute) */
+      #atlasToggle,
+      #notesToggle {
+        position: static !important;
+        right: auto !important;
+        top: auto !important;
+        transform: none !important;
+        z-index: auto !important;
+      }
+
+      #atlasToggle {
+        margin-left: auto !important;
+      }
+
+      /* push to the edge */
+
+      /* 4) Comfortable, not huge, tap targets */
+      header .nav button {
+        padding: 10px 12px;
+        font-size: .95rem;
+        min-height: 40px;
+        border-radius: 12px;
+      }
+    }
+
+    /* =========================================================
+   MOBILE HERO FIX — no cropping, auto height
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Let the hero grow to its image's height */
+      .slide>.hero {
+        height: auto !important;
+        /* override JS inline heights */
+        margin: 8px 0 6px;
+        /* tighten spacing */
+        padding: 0;
+        /* no extra frame space */
+      }
+
+      /* Show the full image without crop; cap its height */
+      .slide>.hero img {
+        width: 100%;
+        height: auto;
+        /* keep aspect ratio */
+        object-fit: contain !important;
+        /* don't crop */
+        max-height: clamp(220px, 70vh, 560px);
+        display: block;
+      }
+
+      /* Keep captions hidden on mobile (from earlier) */
+      .hero .caption {
+        display: none !important;
       }
     }
   </style>
