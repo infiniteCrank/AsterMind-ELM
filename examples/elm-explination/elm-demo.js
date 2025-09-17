@@ -373,10 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showNumbers = chkNums.checked;
     });
 
-    c.addEventListener('mousemove', (e) => {
-      const x = e.offsetX, y = e.offsetY; // CSS pixels (we're drawing in CSS px via setTransform)
-      hover = hitAnyHeatmap(x, y);
-    });
     c.addEventListener('mouseleave', () => { hover = null; });
 
 

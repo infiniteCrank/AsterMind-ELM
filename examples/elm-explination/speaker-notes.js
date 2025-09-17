@@ -384,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
       notes.className = 'notes';
       panelEl.appendChild(notes);
     }
-    console.log(notes)
     if (position === "right") {
       notes.innerHTML = '<span class="label">Bullet Points:</span>' + html;
     } else {

@@ -865,6 +865,23 @@
         display: none !important;
       }
     }
+
+    /* =========================================================
+   MOBILE: hide speaker notes completely
+   ========================================================= */
+    @media (max-width: 980px) {
+
+      /* Hide the notes blocks even if body.show-notes is set */
+      .notes,
+      body.show-notes .notes {
+        display: none !important;
+      }
+
+      /* (Optional) also hide the Notes toggle on mobile */
+      #notesToggle {
+        display: none !important;
+      }
+    }
   </style>
 
 </head>
