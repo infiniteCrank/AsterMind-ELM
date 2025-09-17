@@ -386,17 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <li>Key features: fast training, JS-native, flexible encoders</li>
     <li>Invite feedback and contributions</li>
   </ul>`
-    },
-    slideUse: {
-      left: `
-  <p>Here’s how simple it is: with just a few lines, you can train an ELM and start making predictions.</p>
-  <p>This simplicity is the whole point—making ML approachable to every JavaScript developer.</p>`,
-      right: `
-  <ul>
-    <li>Show minimal code snippet</li>
-    <li>Emphasize ease of use—train in seconds</li>
-    <li>Run a live demo for impact</li>
-  </ul>`
     }
 
   };
