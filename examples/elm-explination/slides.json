@@ -1,14 +1,72 @@
 [
-  { "id": "slide0",  "title": "Intro",                       "stage":"overview" },
-  { "id": "slide2a", "title": "NN: 3-layer overview",        "stage":"overview" },
-  { "id": "slide1",  "title": "Neuron demo",                 "stage":"neuron" },
-  { "id": "slide2",  "title": "Vectorization",               "stage":"input" },
-  { "id": "slideBP", "title": "Backprop loops",              "stage":"backprop" },
-  { "id": "slideHuang","title":"Bold question",              "stage":"huang" },
-  { "id": "slideGrid","title":"City from above",             "stage":"grid" },
-  { "id": "slideGPS", "title":"Output layer (GPS/pinv)",     "stage":"gps" },
-  { "id": "slideWhy", "title":"Why randomness helps",        "stage":"why" },
-  { "id": "slideHidden","title":"Hidden layer demo",         "stage":"hidden" },
-  { "id": "slide4",  "title":"ELM one-shot solve",           "stage":"output" },
-  { "id": "slidePred","title":"Prediction",                  "stage":"predict" }
+  {
+    "id": "slide0",
+    "title": "Intro",
+    "stage": "overview"
+  },
+  {
+    "id": "slide2a",
+    "title": "NN: 3-layer overview",
+    "stage": "overview"
+  },
+  {
+    "id": "slide1",
+    "title": "Neuron demo",
+    "stage": "neuron"
+  },
+  {
+    "id": "slide2",
+    "title": "Vectorization",
+    "stage": "input"
+  },
+  {
+    "id": "slideBP",
+    "title": "Backprop loops",
+    "stage": "backprop"
+  },
+  {
+    "id": "slideHuang",
+    "title": "Bold question",
+    "stage": "huang"
+  },
+  {
+    "id": "slideGrid",
+    "title": "City from above",
+    "stage": "grid"
+  },
+  {
+    "id": "slideGPS",
+    "title": "Output layer (GPS/pinv)",
+    "stage": "gps"
+  },
+  {
+    "id": "slideWhy",
+    "title": "Why randomness helps",
+    "stage": "why"
+  },
+  {
+    "id": "slideHidden",
+    "title": "Hidden layer demo",
+    "stage": "hidden"
+  },
+  {
+    "id": "slide4",
+    "title": "ELM one-shot solve",
+    "stage": "output"
+  },
+  {
+    "id": "slidePred",
+    "title": "Prediction",
+    "stage": "predict"
+  },
+  {
+    "id": "slideCTA",
+    "title": "Try Astermind-ELM",
+    "stage": "cta"
+  },
+  {
+    "id": "slideUse",
+    "title": "Quickstart Demo",
+    "stage": "cta"
+  }
 ]

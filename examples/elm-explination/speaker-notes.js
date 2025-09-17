@@ -373,7 +373,32 @@ document.addEventListener('DOMContentLoaded', () => {
     <li><strong>Time-bound:</strong> Complete the demo and explanation in under 2 minutes before moving to Q&A/examples.</li>
   </ul>
       `
+    },
+    slideCTA: {
+      left: `
+  <p>Everything we’ve learned today—neurons, vectorization, one-shot solve—is packaged into an open library I built called <strong>Astermind-ELM</strong>.</p>
+  <p>You can install it with <code>npm install astermind-elm</code>. It runs in Node and the browser, with encoders and demos included.</p>
+  <p>The GitHub repo is public. I encourage you to clone it, run the demos, and even open issues or contribute.</p>`,
+      right: `
+  <ul>
+    <li>Call to action: try Astermind-ELM</li>
+    <li>NPM install, GitHub link</li>
+    <li>Key features: fast training, JS-native, flexible encoders</li>
+    <li>Invite feedback and contributions</li>
+  </ul>`
+    },
+    slideUse: {
+      left: `
+  <p>Here’s how simple it is: with just a few lines, you can train an ELM and start making predictions.</p>
+  <p>This simplicity is the whole point—making ML approachable to every JavaScript developer.</p>`,
+      right: `
+  <ul>
+    <li>Show minimal code snippet</li>
+    <li>Emphasize ease of use—train in seconds</li>
+    <li>Run a live demo for impact</li>
+  </ul>`
     }
+
   };
 
   function setNotes(panelEl, html, position) {

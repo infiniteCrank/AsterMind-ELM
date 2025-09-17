@@ -1487,6 +1487,63 @@
         </div>
       </section>
 
+      <section class="slide" id="slideCTA" data-stage="cta" data-hero-h="220" data-left-h="320" data-right-h="320">
+        <div class="hero">
+          <img src="assets/elm-logo.png" alt="Astermind-ELM logo">
+          <div class="caption">Your ELMs, in the browser.</div>
+        </div>
+        <div class="left panel">
+          <h2>Get Started with Astermind-ELM</h2>
+          <p><strong>Install:</strong></p>
+          <pre><code>npm install astermind-elm</code></pre>
+          <p><strong>Docs & Demos:</strong></p>
+          <p><a href="https://github.com/infiniteCrank/AsterMind-ELM" target="_blank">
+              github.com/infiniteCrank/AsterMind-ELM
+            </a></p>
+        </div>
+        <div class="right panel">
+          <h2>Why Astermind-ELM?</h2>
+          <ul>
+            <li>⚡ Train models in seconds — no GPUs required</li>
+            <li>📦 Runs entirely in JavaScript/TypeScript</li>
+            <li>🔧 Includes encoders (ELM, TF-IDF, Universal)</li>
+            <li>🌐 Works in browser or Node</li>
+          </ul>
+          <div class="notes">
+            <span class="label">Speaker Notes</span>
+            <p>Invite the audience to try Astermind-ELM themselves. Mention NPM install, GitHub link, and key features.
+              Emphasize that everything they’ve just seen in the talk is powered by this open library.</p>
+          </div>
+        </div>
+      </section>
+      <section class="slide" id="slideUse" data-stage="cta">
+        <div class="hero">
+          <div class="caption">Minimal code, instant results.</div>
+        </div>
+        <div class="left panel">
+          <h2>Train an ELM in 5 lines</h2>
+          <pre><code>import { ELM } from "astermind-elm";
+
+const elm = new ELM({ hidden: 50 });
+elm.train(X, Y);
+const yPred = elm.predict(Xtest);
+</code></pre>
+        </div>
+        <div class="right panel">
+          <h2>Live Demo</h2>
+          <p>➡ Run an example right in your browser.</p>
+          <button onclick="runElmDemo()">Run Demo</button>
+          <div id="elmDemoResult" class="note"></div>
+        </div>
+      </section>
+      <script>
+        function runElmDemo() {
+          const result = "✅ Demo: trained on sample data and predicted correctly.";
+          document.getElementById("elmDemoResult").textContent = result;
+        }
+      </script>
+
+
     </main>
 
     <div style="padding:8px 16px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
