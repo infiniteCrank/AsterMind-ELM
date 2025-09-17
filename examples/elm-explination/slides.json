@@ -63,10 +63,5 @@
     "id": "slideCTA",
     "title": "Try Astermind-ELM",
     "stage": "cta"
-  },
-  {
-    "id": "slideUse",
-    "title": "Quickstart Demo",
-    "stage": "cta"
   }
 ]
