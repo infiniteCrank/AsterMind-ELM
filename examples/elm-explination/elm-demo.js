@@ -2102,7 +2102,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (type === 'hidden_init') { onHiddenInit(payload); return; }
     if (type === 'hidden_project') { onHiddenProject(payload); return; }
 
-    // 'encoded', 'exported_model', 'actCurve' are handled elsewhere or ignored
+    if (type === 'exported_model') {
+      try {
+        const data = payload || {};
+        const pretty = JSON.stringify(data, null, 2);
+        const blob = new Blob([pretty], { type: 'application/json' });
+
+        const dt = new Date();
+        const stamp = dt.toISOString().replace(/[:.]/g, '-');
+        const fname = `elm-model-${stamp}.json`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          a.remove();
+        }, 1000);
+
+        const solveOut = document.getElementById('solveOut');
+        solveOut && (solveOut.textContent = `Model exported → ${fname}`);
+      } catch (err) {
+        const solveOut = document.getElementById('solveOut');
+        solveOut && (solveOut.textContent = `Export failed: ${err}`);
+        console.error('Export failed:', err);
+      }
+      return;
+    }
+
   };
 
   /* ---------------- 17) Bootstrap worker ---------------- */
