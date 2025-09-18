@@ -168,7 +168,8 @@ export class ELM {
             Y = Y.map((row, i) => row.map(x => x * Math.sqrt(W_arr[i])));
         }
 
-        const H_pinv = this.pseudoInverse(H);
+        const H_pinv = this.pseudoInverse(H, this.config.ridgeLambda ?? 1e-3);
+
         const beta = Matrix.multiply(H_pinv, Y);
         this.model = { W, b, beta };
 

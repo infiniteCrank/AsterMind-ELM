@@ -4,16 +4,20 @@
   "description": "JavaScript Extreme Learning Machine (ELM) library for browser and Node.js.",
   "license": "MIT",
   "type": "module",
-  "main": "dist/astermind.umd.js",
-  "module": "dist/astermind.esm.js",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/astermind.esm.js",
-      "require": "./dist/astermind.umd.js",
-      "default": "./dist/astermind.esm.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.esm.js"
     }
   },
-  "types": "dist/index.d.ts",
+  "unpkg": "./dist/index.umd.js",
+  "jsdelivr": "./dist/index.umd.js",
   "files": [
     "dist",
     "README.md",
@@ -21,7 +25,7 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "postbuild": "cp dist/astermind.umd.js public/astermind.umd.js || true",
+    "postbuild": "cp dist/index.umd.js public/astermind.umd.js || true",
     "watch": "rollup -c -w",
     "clean": "rm -rf dist",
     "dev": "vite",
@@ -53,8 +57,10 @@
     "browser",
     "node"
   ],
-  "author": "Your Name <you@example.com>",
+  "author": "Julian Wilkison-Duran <clockworksyler@gmail.com>",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/csv-parse": "^1.1.12",
     "@types/node": "^24.0.3",
     "@types/yargs": "^17.0.33",

@@ -7,9 +7,9 @@ const fill = document.getElementById('langFill') as HTMLDivElement;
 const charSet = 'abcdefghijklmnopqrstuvwxyzçàéèñáéíóúü¿¡ ';
 const config = {
     categories: ['English', 'French', 'Spanish'],
-    hiddenUnits: 100,
+    hiddenUnits: 800,
     maxLen: 30,
-    activation: 'relu',
+    activation: 'sigmoid',
     charSet,
     useTokenizer: false,
     log: {

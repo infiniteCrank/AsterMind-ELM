@@ -6,6 +6,7 @@ export interface ELMConfig {
     maxLen?: number;
     activation?: string;
     encoder?: any; // Optional: if you're passing a pre-built UniversalEncoder instance
+    ridgeLambda?: number;
 
     // Preprocessing options
     charSet?: string;

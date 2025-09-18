@@ -347,6 +347,7 @@
             }
         }
         trainFromData(X, Y, options) {
+            var _a;
             const reuseWeights = (options === null || options === void 0 ? void 0 : options.reuseWeights) === true;
             let W, b;
             if (reuseWeights && this.model) {
@@ -386,7 +387,7 @@
                 H = H.map((row, i) => row.map(x => x * Math.sqrt(W_arr[i])));
                 Y = Y.map((row, i) => row.map(x => x * Math.sqrt(W_arr[i])));
             }
-            const H_pinv = this.pseudoInverse(H);
+            const H_pinv = this.pseudoInverse(H, (_a = this.config.ridgeLambda) !== null && _a !== void 0 ? _a : 1e-3);
             const beta = Matrix.multiply(H_pinv, Y);
             this.model = { W, b, beta };
             const predictions = Matrix.multiply(H, beta);
@@ -2251,4 +2252,4 @@
     exports.searchEmbeddings = searchEmbeddings$1;
 
 }));
-//# sourceMappingURL=astermind.umd.js.map
+//# sourceMappingURL=index.umd.js.map
