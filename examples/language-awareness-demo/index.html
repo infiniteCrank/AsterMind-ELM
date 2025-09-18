@@ -1,33 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Language Awareness Demo</title>
+  <meta charset="utf-8"/>
+  <title>Language Awareness (ELM + Web Worker)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    .confidence-bar {
-      height: 24px;
-      border-radius: 12px;
-      background: #ddd;
-      overflow: hidden;
-      margin-top: 1rem;
+    :root{ --ink:#e5efff; --muted:#a7b8e8; --bar:#d7def1; }
+    body{
+      margin:0; padding:2rem; line-height:1.5;
+      font-family:system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:linear-gradient(180deg,#050c1f,#0b1633 40%); color:var(--ink);
     }
-    .confidence-fill {
-      height: 100%;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-      line-height: 24px;
+    .card{
+      max-width:720px; border-radius:16px; padding:1rem 1.25rem;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
     }
+    input[type="text"]{
+      width:100%; padding:.9rem 1rem; border-radius:12px; font-size:1rem;
+      color:var(--ink); background:rgba(5,12,31,.6); border:1px solid rgba(255,255,255,.15);
+    }
+    .confidence-bar{ height:28px; border-radius:999px; background:var(--bar); overflow:hidden; margin-top:1rem; }
+    .confidence-fill{ height:100%; line-height:28px; text-align:center; color:#fff; font-weight:700; width:0%; }
+    .meta{ margin-top:.5rem; color:var(--muted); font-size:.9rem }
+    .meta code{ font-family:ui-monospace, Menlo, monospace }
   </style>
 </head>
 <body>
-  <h2>Language Classifier Awareness</h2>
-  <p> This ELM has been trained on greetings in 'English', 'French', and 'Spanish'. Type a greeting in any of these languages and the ELM will classify it.</p>
-  <input type="text" id="langInput" placeholder="Type something..." size="40" />
-  <div class="confidence-bar"><div id="langFill" class="confidence-fill" style="width:0%"></div></div>
-    <!-- 👇 Load library from public folder -->
-    <script src="/astermind.umd.js"></script>
-    <script type="module" src="./main.ts"></script>
+  <div class="card">
+    <h2>Language Classifier Awareness (ELM)</h2>
+    <p>Type a greeting in English, French, or Spanish. Training + tuning runs in a Web Worker, then the final model is retrained on <strong>100%</strong> of the data.</p>
+    <input id="langInput" type="text" placeholder="e.g., bonjour, good evening, ¿cómo estás?"/>
+    <div class="confidence-bar"><div id="langFill" class="confidence-fill"></div></div>
+    <div id="meta" class="meta">Loading…</div>
+  </div>
+
+  <!-- Your UMD build on globalThis (used inside the worker) -->
+  <script src="/astermind.umd.js"></script>
+  <!-- Main thread glue -->
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
