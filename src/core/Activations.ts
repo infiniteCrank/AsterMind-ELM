@@ -17,6 +17,11 @@ export class Activations {
         return Math.tanh(x);
     }
 
+    /** Linear / identity activation */
+    static linear(x: number): number {
+        return x;
+    }
+
     static softmax(arr: number[]): number[] {
         const max = Math.max(...arr);
         const exps = arr.map(x => Math.exp(x - max));
@@ -31,9 +36,13 @@ export class Activations {
     static get(name: string): (x: number) => number {
         switch (name.toLowerCase()) {
             case 'relu': return this.relu;
-            case 'leakyrelu': return x => this.leakyRelu(x);
+            case 'leakyrelu':
+            case 'leaky-relu': return x => this.leakyRelu(x);
             case 'sigmoid': return this.sigmoid;
             case 'tanh': return this.tanh;
+            case 'linear':
+            case 'identity':
+            case 'none': return this.linear;
             default: throw new Error(`Unknown activation: ${name}`);
         }
     }
