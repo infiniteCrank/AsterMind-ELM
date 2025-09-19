@@ -186,6 +186,7 @@ export class Matrix {
             for (let c = 0; c < k; c++) {
                 let s = Z[i][c];
                 for (let p = i + 1; p < n; p++) s -= L[p][i] * X[p][c];
+                X[i][i] = X[i][i]; // keep explicit
                 X[i][c] = s / L[i][i];
             }
         }
@@ -254,5 +255,128 @@ export class Matrix {
             }
         }
         return Matrix.inverse(A);
+    }
+
+    /* ========= Symmetric Eigen (Jacobi) & Inverse Square Root ========= */
+
+    /** Internal: require square matrix */
+    private static assertSquare(A: number[][], ctx = 'Matrix'): void {
+        assertRect(A, ctx);
+        if (!isSquare(A)) {
+            throw new DimError(`${ctx}: expected square matrix, got ${A.length}x${A[0].length}`);
+        }
+    }
+
+    /**
+     * Symmetric eigendecomposition using Jacobi rotations.
+     * Returns eigenvalues (ascending) and eigenvectors (columns of V).
+     * Complexity O(n^3). Works well for SPD / symmetric matrices up to ~1000x1000.
+     */
+    static eigSym(
+        A: number[][],
+        maxIter = 64,
+        tol = 1e-12
+    ): { values: number[]; vectors: number[][] } {
+        Matrix.assertSquare(A, 'eigSym');
+        const n = A.length;
+
+        // Copy A to B; initialize V = I
+        const B = Matrix.clone(A);
+        let V = Matrix.identity(n);
+
+        const abs = Math.abs;
+
+        const offdiagNorm = () => {
+            let s = 0;
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const v = B[i][j];
+                    s += v * v;
+                }
+            }
+            return Math.sqrt(s);
+        };
+
+        for (let it = 0; it < maxIter; it++) {
+            if (offdiagNorm() <= tol) break;
+
+            // Find largest off-diagonal |B[p][q]|
+            let p = 0, q = 1, max = 0;
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const v = abs(B[i][j]);
+                    if (v > max) { max = v; p = i; q = j; }
+                }
+            }
+            if (max <= tol) break;
+
+            const app = B[p][p], aqq = B[q][q], apq = B[p][q];
+
+            // Rotation params
+            const tau = (aqq - app) / (2 * apq);
+            const t = Math.sign(tau) / (abs(tau) + Math.sqrt(1 + tau * tau));
+            const c = 1 / Math.sqrt(1 + t * t);
+            const s = t * c;
+
+            // Update B (symmetric)
+            const Bpp = c * c * app - 2 * s * c * apq + s * s * aqq;
+            const Bqq = s * s * app + 2 * s * c * apq + c * c * aqq;
+            B[p][p] = Bpp;
+            B[q][q] = Bqq;
+            B[p][q] = B[q][p] = 0;
+
+            for (let k = 0; k < n; k++) {
+                if (k === p || k === q) continue;
+                const aip = B[k][p], aiq = B[k][q];
+                // Keep symmetric
+                const new_kp = c * aip - s * aiq;
+                const new_kq = s * aip + c * aiq;
+                B[k][p] = B[p][k] = new_kp;
+                B[k][q] = B[q][k] = new_kq;
+            }
+
+            // Update eigenvectors V = V * J
+            for (let k = 0; k < n; k++) {
+                const vip = V[k][p], viq = V[k][q];
+                V[k][p] = c * vip - s * viq;
+                V[k][q] = s * vip + c * viq;
+            }
+        }
+
+        // Diagonal of B holds eigenvalues
+        const vals = new Array(n);
+        for (let i = 0; i < n; i++) vals[i] = B[i][i];
+
+        // Sort ascending and permute V columns
+        const order = vals.map((v, i) => [v, i] as const).sort((a, b) => a[0] - b[0]).map(([, i]) => i);
+        const values = order.map(i => vals[i]);
+        const vectors = Matrix.zeros(n, n);
+        for (let r = 0; r < n; r++) {
+            for (let c = 0; c < n; c++) vectors[r][c] = V[r][order[c]];
+        }
+
+        return { values, vectors };
+    }
+
+    /**
+     * Symmetric inverse square root via eigendecomposition:
+     * returns U * diag(1/sqrt(max(λ, eps))) * U^T
+     * For SPD K_mm, this yields a symmetric K_mm^{-1/2}.
+     */
+    static invSqrtSym(A: number[][], eps = 1e-10): number[][] {
+        Matrix.assertSquare(A, 'invSqrtSym');
+        const { values, vectors: U } = Matrix.eigSym(A);
+        const n = values.length;
+
+        // D^{-1/2}
+        const Dm12 = Matrix.zeros(n, n);
+        for (let i = 0; i < n; i++) {
+            const lam = Math.max(values[i], eps);
+            Dm12[i][i] = 1 / Math.sqrt(lam);
+        }
+
+        // U * D^{-1/2} * U^T
+        const UD = Matrix.multiply(U, Dm12);
+        return Matrix.multiply(UD, Matrix.transpose(U));
     }
 }
