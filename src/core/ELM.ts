@@ -1,11 +1,11 @@
-// ELM.ts - Core ELM logic with TypeScript types (numeric- & text-safe)
+// ELM.ts - Core ELM logic with TypeScript types (numeric & text modes)
 
 import { Matrix } from './Matrix';
 import { Activations } from './Activations';
 import {
     ELMConfig,
-    TrainResult,
     SerializedELM,
+    TrainResult,
     isTextConfig,
     normalizeConfig,
     deserializeTextBits,
@@ -39,29 +39,6 @@ export interface TopKResult {
  * ========================= */
 
 const EPS = 1e-8;
-function softmax(arr: number[]): number[] {
-    const m = Math.max(...arr);
-    const ex = arr.map(v => Math.exp(v - m));
-    const s = ex.reduce((a, b) => a + b, 0) || 1;
-    return ex.map(v => v / s);
-}
-function argmax(arr: number[]): number {
-    let i = 0;
-    for (let k = 1; k < arr.length; k++) if (arr[k] > arr[i]) i = k;
-    return i;
-}
-function toOneHot(y: number[], k: number): number[][] {
-    return y.map(v => {
-        const r = new Array(k).fill(0);
-        r[(v | 0)] = 1;
-        return r;
-    });
-}
-function inferKFromIdx(y: number[]): number {
-    let m = 0;
-    for (const v of y) if (v > m) m = v;
-    return (m | 0) + 1;
-}
 
 // Seeded PRNG (xorshift-ish) for deterministic init
 function makePRNG(seed = 123456789) {
@@ -72,60 +49,36 @@ function makePRNG(seed = 123456789) {
     };
 }
 
-/** Ridge solve via Cholesky for (HᵀH + λI)B = HᵀY */
-function choleskySolve(H: number[][], Y: number[][], lambda: number): number[][] {
+/** One-hot builder */
+function toOneHot(y: number[], k: number): number[][] {
+    return y.map(v => {
+        const r = new Array(k).fill(0);
+        r[(v | 0)] = 1;
+        return r;
+    });
+}
+
+function inferKFromIdx(y: number[]): number {
+    let m = 0;
+    for (const v of y) if (v > m) m = v;
+    return (m | 0) + 1;
+}
+
+/** (HᵀH + λI)B = HᵀY solved via Cholesky */
+function ridgeSolve(H: number[][], Y: number[][], lambda: number): number[][] {
     const n = H.length;
     const hdim = H[0].length;
     const k = Y[0].length;
 
     // A = H^T H + λI
-    const A: number[][] = Array.from({ length: hdim }, () => new Array(hdim).fill(0));
-    for (let i = 0; i < hdim; i++) {
-        for (let j = i; j < hdim; j++) {
-            let s = 0;
-            for (let r = 0; r < n; r++) s += H[r][i] * H[r][j];
-            A[i][j] = A[j][i] = s + (i === j ? lambda : 0);
-        }
-    }
+    const Ht = Matrix.transpose(H);
+    const A = Matrix.addRegularization(Matrix.multiply(Ht, H), lambda + 1e-10);
+
     // R = H^T Y
-    const R: number[][] = Array.from({ length: hdim }, () => new Array(k).fill(0));
-    for (let i = 0; i < hdim; i++) {
-        for (let c = 0; c < k; c++) {
-            let s = 0;
-            for (let r = 0; r < n; r++) s += H[r][i] * Y[r][c];
-            R[i][c] = s;
-        }
-    }
+    const R = Matrix.multiply(Ht, Y);
 
-    // Cholesky A = L L^T
-    const L: number[][] = Array.from({ length: hdim }, () => new Array(hdim).fill(0));
-    for (let i = 0; i < hdim; i++) {
-        for (let j = 0; j <= i; j++) {
-            let sum = A[i][j];
-            for (let p = 0; p < j; p++) sum -= L[i][p] * L[j][p];
-            if (i === j) L[i][j] = Math.sqrt(Math.max(sum, EPS));
-            else L[i][j] = sum / L[j][j];
-        }
-    }
-
-    // Solve L Z = R
-    const Z: number[][] = Array.from({ length: hdim }, () => new Array(k).fill(0));
-    for (let i = 0; i < hdim; i++) {
-        for (let c = 0; c < k; c++) {
-            let s = R[i][c];
-            for (let p = 0; p < i; p++) s -= L[i][p] * Z[p][c];
-            Z[i][c] = s / L[i][i];
-        }
-    }
-    // Solve L^T B = Z
-    const B: number[][] = Array.from({ length: hdim }, () => new Array(k).fill(0));
-    for (let i = hdim - 1; i >= 0; i--) {
-        for (let c = 0; c < k; c++) {
-            let s = Z[i][c];
-            for (let p = i + 1; p < hdim; p++) s -= L[p][i] * B[p][c];
-            B[i][c] = s / L[i][i];
-        }
-    }
+    // Solve A B = R
+    const B = Matrix.solveCholesky(A, R, 1e-10);
     return B;
 }
 
@@ -167,14 +120,14 @@ export class ELM {
     private rng: () => number;
 
     constructor(config: ELMConfig) {
-        // Merge with defaults per mode (from ELMConfig.ts)
+        // Merge with mode-appropriate defaults
         const cfg = normalizeConfig(config);
 
         this.config = cfg;
         this.categories = cfg.categories;
         this.hiddenUnits = cfg.hiddenUnits;
         this.activation = cfg.activation ?? 'relu';
-        this.useTokenizer = isTextConfig(cfg) ? true : false;
+        this.useTokenizer = isTextConfig(cfg);
         this.maxLen = isTextConfig(cfg) ? cfg.maxLen : 0;
         this.charSet = isTextConfig(cfg) ? (cfg.charSet ?? 'abcdefghijklmnopqrstuvwxyz') : 'abcdefghijklmnopqrstuvwxyz';
         this.tokenizerDelimiter = isTextConfig(cfg) ? cfg.tokenizerDelimiter : undefined;
@@ -201,7 +154,7 @@ export class ELM {
             });
         }
 
-        // Weights are created lazily at first training call (based on inputDim)
+        // Weights are allocated on first training call (inputDim known then)
         this.model = null;
     }
 
@@ -261,15 +214,6 @@ export class ELM {
 
     public oneHot(n: number, index: number): number[] {
         return Array.from({ length: n }, (_, i) => (i === index ? 1 : 0));
-    }
-
-    /** Back-compat: kept for older flows (not used by main solver anymore). */
-    private pseudoInverse(H: number[][], lambda: number = 1e-3): number[][] {
-        const Ht = Matrix.transpose(H);
-        const HtH = Matrix.multiply(Ht, H);
-        const HtH_reg = Matrix.addRegularization(HtH, lambda);
-        const HtH_inv = Matrix.inverse(HtH_reg);
-        return Matrix.multiply(HtH_inv, Ht);
     }
 
     public setCategories(categories: string[]) {
@@ -358,7 +302,7 @@ export class ELM {
         }
 
         // Solve ridge (stable)
-        const beta = choleskySolve(H, Y, this.ridgeLambda);
+        const beta = ridgeSolve(H, Y, this.ridgeLambda);
         this.model = { W, b, beta };
 
         // Evaluate & maybe save
@@ -447,7 +391,7 @@ export class ELM {
             Y = Y.map((row, i) => row.map(x => x * Math.sqrt(weights[i])));
         }
 
-        const beta = choleskySolve(H, Y, this.ridgeLambda);
+        const beta = ridgeSolve(H, Y, this.ridgeLambda);
         this.model = { W, b, beta };
 
         const predictions = Matrix.multiply(H, beta);
@@ -506,7 +450,7 @@ export class ELM {
         const vec = enc.normalize(enc.encode(text));
 
         const logits = this.predictLogitsFromVector(vec);
-        const probs = softmax(logits);
+        const probs = Activations.softmax(logits);
         return probs
             .map((p, i) => ({ label: this.categories[i], prob: p }))
             .sort((a, b) => b.prob - a.prob)
@@ -518,7 +462,7 @@ export class ELM {
         if (!this.model) throw new Error('Model not trained.');
         return inputVecRows.map(vec => {
             const logits = this.predictLogitsFromVector(vec);
-            const probs = softmax(logits);
+            const probs = Activations.softmax(logits);
             return probs
                 .map((p, i) => ({ label: this.categories[i], prob: p }))
                 .sort((a, b) => b.prob - a.prob)
@@ -558,12 +502,12 @@ export class ELM {
 
     /** Probability vector (softmax) for a single numeric vector */
     public predictProbaFromVector(vec: number[]): number[] {
-        return softmax(this.predictLogitsFromVector(vec));
+        return Activations.softmax(this.predictLogitsFromVector(vec));
     }
 
     /** Probability matrix (softmax per row) for a batch of numeric vectors */
     public predictProbaFromVectors(X: number[][]): number[][] {
-        return this.predictLogitsFromVectors(X).map(softmax);
+        return this.predictLogitsFromVectors(X).map(Activations.softmax);
     }
 
     /** Top-K results for a single numeric vector */
@@ -609,8 +553,8 @@ export class ELM {
     public calculateAccuracy(Y: number[][], P: number[][]): number {
         let correct = 0;
         for (let i = 0; i < Y.length; i++) {
-            const yMax = argmax(Y[i]);
-            const pMax = argmax(P[i]);
+            const yMax = this.argmax(Y[i]);
+            const pMax = this.argmax(P[i]);
             if (yMax === pMax) correct++;
         }
         return correct / Y.length;
@@ -619,8 +563,8 @@ export class ELM {
     public calculateF1Score(Y: number[][], P: number[][]): number {
         let tp = 0, fp = 0, fn = 0;
         for (let i = 0; i < Y.length; i++) {
-            const yIdx = argmax(Y[i]);
-            const pIdx = argmax(P[i]);
+            const yIdx = this.argmax(Y[i]);
+            const pIdx = this.argmax(P[i]);
             if (yIdx === pIdx) tp++;
             else { fp++; fn++; }
         }
@@ -735,5 +679,11 @@ export class ELM {
             cfg.tokenizerDelimiter = cfg.tokenizerDelimiter.source;
         }
         return cfg;
+    }
+
+    private argmax(arr: number[]): number {
+        let i = 0;
+        for (let k = 1; k < arr.length; k++) if (arr[k] > arr[i]) i = k;
+        return i;
     }
 }
