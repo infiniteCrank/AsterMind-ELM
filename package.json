@@ -32,7 +32,7 @@
     "dev:chain": "DEMO=chain-with-save vite",
     "dev:news": "DEMO=ag-news-demo vite",
     "dev:elm": "DEMO=elm-explination vite",
-    "dev:music": "DEMO=elm-drum-demo-v2 vite",
+    "dev:music": "DEMO=elm-drum-demo-mainthread vite",
     "test": "vitest"
   },
   "publishConfig": {
