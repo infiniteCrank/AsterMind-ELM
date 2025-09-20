@@ -1,65 +1,99 @@
+// LanguageClassifier.ts — upgraded for new ELM/OnlineELM APIs (with requireEncoder guard)
+
 import { ELM } from '../core/ELM';
 import { Matrix } from '../core/Matrix';
 import { Activations } from '../core/Activations';
-import { ELMConfig } from '../core/ELMConfig';
+import { ELMConfig, Activation } from '../core/ELMConfig';
 import { IO, LabeledExample } from '../utils/IO';
-import { OnlineELM, Activation as OnlineAct } from '../core/OnlineELM'; // adjust path
-
+import { OnlineELM } from '../core/OnlineELM';
 
 export class LanguageClassifier {
     private elm: ELM;
     private config: ELMConfig;
-    private trainSamples: Record<string, string[]> = {};
-    private onlineMdl?: OnlineELM;          // Online ELM engine (typed arrays)
-    private onlineCats?: string[];          // fixed categories for the online run
-    private onlineInputDim?: number;        // feature vector length for this run
+
+    // Online (incremental) state
+    private onlineMdl?: OnlineELM;
+    private onlineCats?: string[];
+    private onlineInputDim?: number;
 
     constructor(config: ELMConfig) {
         this.config = {
             ...config,
             log: {
-                modelName: "IntentClassifier",
-                verbose: config.log.verbose
+                modelName: 'LanguageClassifier',
+                verbose: config.log?.verbose ?? false,
+                toFile: config.log?.toFile ?? false,
+                level: config.log?.level ?? 'info',
             },
         };
-        this.elm = new ELM(config);
 
-        if (config.metrics) this.elm.metrics = config.metrics;
+        this.elm = new ELM(this.config);
+
+        if ((config as any).metrics) this.elm.metrics = (config as any).metrics;
         if (config.exportFileName) this.elm.config.exportFileName = config.exportFileName;
     }
 
+    /* ============== tiny helper to guarantee an encoder ============== */
+    private requireEncoder(): { encode: (s: string) => number[]; normalize: (v: number[]) => number[] } {
+        const enc = (this.elm as any).encoder as
+            | { encode: (s: string) => number[]; normalize: (v: number[]) => number[] }
+            | undefined;
+
+        if (!enc) {
+            throw new Error(
+                'LanguageClassifier: encoder unavailable. Use text mode (useTokenizer=true with maxLen/charSet) ' +
+                'or pass a UniversalEncoder in the ELM config.'
+            );
+        }
+        return enc;
+    }
+
+    /* ================= I/O helpers ================= */
+
     loadTrainingData(raw: string, format: 'json' | 'csv' | 'tsv' = 'json'): LabeledExample[] {
         switch (format) {
-            case 'csv':
-                return IO.importCSV(raw);
-            case 'tsv':
-                return IO.importTSV(raw);
+            case 'csv': return IO.importCSV(raw);
+            case 'tsv': return IO.importTSV(raw);
             case 'json':
-            default:
-                return IO.importJSON(raw);
+            default: return IO.importJSON(raw);
         }
     }
 
+    /* ================= Supervised training ================= */
+
+    /** Train from labeled text examples (uses internal encoder). */
     train(data: LabeledExample[]): void {
-        const categories = [...new Set(data.map(d => d.label))];
+        if (!data?.length) throw new Error('LanguageClassifier.train: empty dataset');
+
+        const enc = this.requireEncoder();
+        const categories = Array.from(new Set(data.map(d => d.label)));
         this.elm.setCategories(categories);
-        data.forEach(({ text, label }) => {
-            if (!this.trainSamples[label]) this.trainSamples[label] = [];
-            this.trainSamples[label].push(text);
-        });
-        this.elm.train();
+
+        const X: number[][] = [];
+        const Y: number[][] = [];
+
+        for (const { text, label } of data) {
+            const x = enc.normalize(enc.encode(text));
+            const yi = categories.indexOf(label);
+            if (yi < 0) continue;
+            X.push(x);
+            Y.push(this.elm.oneHot(categories.length, yi));
+        }
+
+        this.elm.trainFromData(X, Y);
     }
 
+    /** Predict from raw text (uses internal encoder). */
     predict(text: string, topK = 3) {
+        // let ELM handle encode→predict (works in text mode)
         return this.elm.predict(text, topK);
     }
 
-    /**
-     * Train the classifier using already-encoded vectors.
-     * Each vector must be paired with its label.
-     */
-    trainVectors(data: { vector: number[]; label: string }[]) {
-        const categories = [...new Set(data.map(d => d.label))];
+    /** Train using already-encoded numeric vectors (no text encoder). */
+    trainVectors(data: { vector: number[]; label: string }[]): void {
+        if (!data?.length) throw new Error('LanguageClassifier.trainVectors: empty dataset');
+
+        const categories = Array.from(new Set(data.map(d => d.label)));
         this.elm.setCategories(categories);
 
         const X: number[][] = data.map(d => d.vector);
@@ -67,43 +101,120 @@ export class LanguageClassifier {
             this.elm.oneHot(categories.length, categories.indexOf(d.label))
         );
 
-        const W = this.elm['randomMatrix'](this.config.hiddenUnits!, X[0].length);
-        const b = this.elm['randomMatrix'](this.config.hiddenUnits!, 1);
-        const tempH = Matrix.multiply(X, Matrix.transpose(W));
-        const activationFn = Activations.get(this.config.activation!);
-        const H = Activations.apply(tempH.map(row =>
-            row.map((val, j) => val + b[j][0])
-        ), activationFn);
-        const H_pinv = this.elm['pseudoInverse'](H);
-        const beta = Matrix.multiply(H_pinv, Y);
-
-        this.elm['model'] = { W, b, beta };
-    }
-
-    /**
-     * Predict language directly from a dense vector representation.
-     */
-    predictFromVector(vec: number[], topK = 1) {
-        const model = this.elm['model'];
-        if (!model) {
-            throw new Error('EncoderELM model has not been trained yet.');
+        if (typeof (this.elm as any).trainFromData === 'function') {
+            (this.elm as any).trainFromData(X, Y);
+            return;
         }
 
-        const { W, b, beta } = model;
-        const tempH = Matrix.multiply([vec], Matrix.transpose(W));
-        const activationFn = Activations.get(this.config.activation!);
-        const H = Activations.apply(tempH.map(row =>
-            row.map((val, j) => val + b[j][0])
-        ), activationFn);
-
-        const rawOutput = Matrix.multiply(H, beta)[0];
-        const probs = Activations.softmax(rawOutput);
-
-        return probs
-            .map((p, i) => ({ label: this.elm.categories[i], prob: p }))
-            .sort((a, b) => b.prob - a.prob)
-            .slice(0, topK);
+        // Fallback closed-form (compat)
+        const hidden = this.config.hiddenUnits as number;
+        const W = (this.elm as any).randomMatrix(hidden, X[0].length);
+        const b = (this.elm as any).randomMatrix(hidden, 1);
+        const tempH = Matrix.multiply(X, Matrix.transpose(W));
+        const act = Activations.get((this.config.activation as Activation) ?? 'relu');
+        const H = Activations.apply(
+            tempH.map(row => row.map((val, j) => val + b[j][0])),
+            act
+        );
+        const Hpinv = (this.elm as any).pseudoInverse(H);
+        const beta = Matrix.multiply(Hpinv, Y);
+        (this.elm as any).model = { W, b, beta };
     }
+
+    /** Predict from an already-encoded vector (no text encoder). */
+    predictFromVector(vec: number[], topK = 1) {
+        const out = this.elm.predictFromVector([vec], topK);
+        return out[0];
+    }
+
+    /* ================= Online (incremental) API ================= */
+
+    public beginOnline(opts: {
+        categories: string[];
+        inputDim: number;
+        hiddenUnits?: number;
+        lambda?: number;
+        activation?: Activation;
+        weightInit?: 'uniform' | 'xavier' | 'he';
+        forgettingFactor?: number; // ρ in (0,1]; 1 = no forgetting
+        seed?: number;
+    }): void {
+        const cats = opts.categories.slice();
+        const D = opts.inputDim | 0;
+        if (!cats.length) throw new Error('beginOnline: categories must be non-empty');
+        if (D <= 0) throw new Error('beginOnline: inputDim must be > 0');
+
+        const H = (opts.hiddenUnits ?? (this.config.hiddenUnits as number)) | 0;
+        if (H <= 0) throw new Error('beginOnline: hiddenUnits must be > 0');
+
+        const activation = opts.activation ?? (this.config.activation as Activation) ?? 'relu';
+        const ridgeLambda = Math.max(opts.lambda ?? 1e-2, 1e-12);
+
+        this.onlineMdl = new OnlineELM({
+            inputDim: D,
+            outputDim: cats.length,
+            hiddenUnits: H,
+            activation,
+            ridgeLambda,
+            seed: opts.seed ?? 1337,
+            weightInit: opts.weightInit ?? 'xavier',
+            forgettingFactor: opts.forgettingFactor ?? 1.0,
+            log: { verbose: this.config.log?.verbose ?? false, modelName: 'LanguageClassifier/Online' },
+        });
+
+        this.onlineCats = cats;
+        this.onlineInputDim = D;
+    }
+
+    public partialTrainVectorsOnline(batch: { vector: number[]; label: string }[]): void {
+        if (!this.onlineMdl || !this.onlineCats || !this.onlineInputDim) {
+            throw new Error('Call beginOnline() before partialTrainVectorsOnline().');
+        }
+        if (!batch.length) return;
+
+        const D = this.onlineInputDim;
+        const O = this.onlineCats.length;
+
+        const X: number[][] = new Array(batch.length);
+        const Y: number[][] = new Array(batch.length);
+
+        for (let i = 0; i < batch.length; i++) {
+            const { vector, label } = batch[i];
+            if (vector.length !== D) throw new Error(`vector dim ${vector.length} != inputDim ${D}`);
+            X[i] = vector.slice();
+
+            const y = new Array(O).fill(0);
+            const li = this.onlineCats.indexOf(label);
+            if (li < 0) throw new Error(`Unknown label "${label}" for this online run.`);
+            y[li] = 1;
+            Y[i] = y;
+        }
+
+        if ((this.onlineMdl as any).beta && (this.onlineMdl as any).P) {
+            this.onlineMdl.update(X, Y);
+        } else {
+            this.onlineMdl.init(X, Y);
+        }
+    }
+
+    public endOnline(): void {
+        if (!this.onlineMdl || !this.onlineCats) return;
+
+        const W = (this.onlineMdl as any).W as number[][];
+        const b = (this.onlineMdl as any).b as number[][];
+        const B = (this.onlineMdl as any).beta as number[][];
+
+        if (!W || !b || !B) throw new Error('endOnline: online model is not initialized.');
+
+        this.elm.setCategories(this.onlineCats);
+        (this.elm as any).model = { W, b, beta: B };
+
+        this.onlineMdl = undefined;
+        this.onlineCats = undefined;
+        this.onlineInputDim = undefined;
+    }
+
+    /* ================= Persistence ================= */
 
     public loadModelFromJSON(json: string): void {
         this.elm.loadModelFromJSON(json);
@@ -112,97 +223,4 @@ export class LanguageClassifier {
     public saveModelAsJSONFile(filename?: string): void {
         this.elm.saveModelAsJSONFile(filename);
     }
-
-    public beginOnline(opts: {
-        categories: string[];
-        inputDim: number;
-        hiddenUnits?: number;
-        lambda?: number;
-        activation?: NonNullable<ELMConfig['activation']>;
-    }): void {
-        const categories = opts.categories.slice();
-        const inputDim = opts.inputDim;
-        const hiddenUnits = opts.hiddenUnits ?? (this.config.hiddenUnits as number);
-        const outputDim = categories.length;
-        const lambda = opts.lambda ?? 1e-2;
-        const actName = opts.activation ?? (this.config.activation as NonNullable<ELMConfig['activation']>);
-
-        // map your activation names to a function for OnlineELM
-        const act: OnlineAct =
-            actName === 'tanh' ? Math.tanh
-                : actName === 'sigmoid' ? (x: number) => 1 / (1 + Math.exp(-x))
-                    : (x: number) => (x > 0 ? x : 0); // relu default
-
-        this.onlineMdl = new OnlineELM(inputDim, hiddenUnits, outputDim, act, lambda);
-        this.onlineCats = categories;
-        this.onlineInputDim = inputDim;
-    }
-    public partialTrainVectorsOnline(batch: { vector: number[]; label: string }[]): void {
-        if (!this.onlineMdl || !this.onlineCats || !this.onlineInputDim) {
-            throw new Error('Call beginOnline() before partialTrainVectorsOnline().');
-        }
-        if (!batch.length) return;
-
-        const B = batch.length;
-        const D = this.onlineInputDim;
-        const O = this.onlineCats.length;
-        const H = this.onlineMdl.hiddenUnits;
-
-        // Pack X [B x D] and T [B x O] into typed arrays
-        const X = new Float64Array(B * D);
-        const T = new Float64Array(B * O);
-
-        for (let i = 0; i < B; i++) {
-            const { vector, label } = batch[i];
-            if (vector.length !== D) {
-                throw new Error(`vector dim ${vector.length} != inputDim ${D}`);
-            }
-            // X row
-            X.set(vector, i * D);
-            // one-hot T row
-            const li = this.onlineCats.indexOf(label);
-            if (li < 0) throw new Error(`Unknown label "${label}" for this online run.`);
-            T[i * O + li] = 1;
-        }
-
-        this.onlineMdl.partialFit(X, T, B);
-    }
-
-    public endOnline(): void {
-        if (!this.onlineMdl || !this.onlineCats) return;
-
-        // Convert typed arrays -> number[][] expected by existing ELM paths
-        const H = this.onlineMdl.hiddenUnits;
-        const D = this.onlineMdl.inputDim;
-        const O = this.onlineMdl.outputDim;
-
-        const W = this.reshapeTo2D(this.onlineMdl.W, H, D);      // [H x D]
-        const b = this.reshapeCol(this.onlineMdl.b, H);          // [H x 1]
-        const beta = this.reshapeTo2D(this.onlineMdl.beta, H, O);// [H x O]
-
-        // Activate categories for this classifier and publish the model
-        this.elm.setCategories(this.onlineCats);
-        this.elm['model'] = { W, b, beta };
-
-        // clear online state
-        this.onlineMdl = undefined;
-        this.onlineCats = undefined;
-        this.onlineInputDim = undefined;
-    }
-    private reshapeTo2D(buf: Float64Array, rows: number, cols: number): number[][] {
-        const out: number[][] = new Array(rows);
-        for (let r = 0; r < rows; r++) {
-            const row: number[] = new Array(cols);
-            for (let c = 0; c < cols; c++) row[c] = buf[r * cols + c];
-            out[r] = row;
-        }
-        return out;
-    }
-
-    private reshapeCol(buf: Float64Array, rows: number): number[][] {
-        const out: number[][] = new Array(rows);
-        for (let r = 0; r < rows; r++) out[r] = [buf[r]];
-        return out;
-    }
-
 }
