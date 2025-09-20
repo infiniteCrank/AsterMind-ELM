@@ -1,76 +1,157 @@
+// RefinerELM.ts — numeric “refinement” classifier on top of arbitrary feature vectors
+
 import { ELM } from '../core/ELM';
-import { ELMConfig } from '../core/ELMConfig';
-import { Matrix } from '../core/Matrix';
-import { Activations } from '../core/Activations';
+import { ELMConfig, Activation } from '../core/ELMConfig';
+
+type MetricsGate = {
+    rmse?: number;
+    mae?: number;
+    accuracy?: number;
+    f1?: number;
+    crossEntropy?: number;
+    r2?: number;
+};
+
+export interface RefinerELMOptions {
+    /** REQUIRED: input vector length for numeric mode */
+    inputSize: number;
+    /** REQUIRED: hidden units for the ELM */
+    hiddenUnits: number;
+    /** Optional activation (defaults to 'relu') */
+    activation?: Activation;
+    /** Optional initial categories; can be overridden on train() */
+    categories?: string[];
+    /** Optional logging */
+    log?: {
+        modelName?: string;
+        verbose?: boolean;
+        toFile?: boolean;
+        level?: 'info' | 'debug';
+    };
+    /** Optional export name */
+    exportFileName?: string;
+    /** Optional regularization / init knobs */
+    ridgeLambda?: number;
+    dropout?: number;
+    weightInit?: 'uniform' | 'xavier' | 'he';
+    /** Optional metric thresholds (set on the ELM instance, not in config) */
+    metrics?: MetricsGate;
+}
 
 export class RefinerELM {
     private elm: ELM;
-    private config: ELMConfig;
 
-    constructor(config: ELMConfig) {
-        this.config = {
-            ...config,
+    constructor(opts: RefinerELMOptions) {
+        if (!Number.isFinite(opts.inputSize) || opts.inputSize <= 0) {
+            throw new Error('RefinerELM: opts.inputSize must be a positive number.');
+        }
+        if (!Number.isFinite(opts.hiddenUnits) || opts.hiddenUnits <= 0) {
+            throw new Error('RefinerELM: opts.hiddenUnits must be a positive number.');
+        }
+
+        // Build a *numeric* ELM config (no text fields here)
+        const numericConfig: ELMConfig = {
+            // numeric discriminator:
             useTokenizer: false,
-            categories: [],
+            inputSize: opts.inputSize,
+
+            // required for ELM
+            categories: opts.categories ?? [],
+
+            // base config
+            hiddenUnits: opts.hiddenUnits,
+            activation: opts.activation ?? 'relu',
+            ridgeLambda: opts.ridgeLambda,
+            dropout: opts.dropout,
+            weightInit: opts.weightInit,
+
+            // misc
+            exportFileName: opts.exportFileName,
             log: {
-                modelName: "IntentClassifier",
-                verbose: config.log.verbose
+                modelName: opts.log?.modelName ?? 'RefinerELM',
+                verbose: opts.log?.verbose ?? false,
+                toFile: opts.log?.toFile ?? false,
+                level: opts.log?.level ?? 'info',
             },
         };
 
-        this.elm = new ELM(this.config);
+        this.elm = new ELM(numericConfig);
 
-        if (config.metrics) this.elm.metrics = config.metrics;
-        if (config.exportFileName) this.elm.config.exportFileName = config.exportFileName;
+        // Set metric thresholds on the instance (not inside the config)
+        if (opts.metrics) {
+            (this.elm as any).metrics = opts.metrics;
+        }
     }
 
-    train(inputs: number[][], labels: string[]) {
-        const categories = [...new Set(labels)];
+    /** Train from feature vectors + string labels. */
+    train(
+        inputs: number[][],
+        labels: string[],
+        opts?: { reuseWeights?: boolean; sampleWeights?: number[]; categories?: string[] }
+    ): void {
+        if (!inputs?.length || !labels?.length || inputs.length !== labels.length) {
+            throw new Error('RefinerELM.train: inputs/labels must be non-empty and aligned.');
+        }
+
+        // Allow overriding categories at train time
+        const categories = opts?.categories ?? Array.from(new Set(labels));
         this.elm.setCategories(categories);
 
-        const Y = labels.map(label =>
+        const Y: number[][] = labels.map((label) =>
             this.elm.oneHot(categories.length, categories.indexOf(label))
         );
 
-        const W = this.elm['randomMatrix'](this.config.hiddenUnits!, inputs[0].length);
-        const b = this.elm['randomMatrix'](this.config.hiddenUnits!, 1);
-        const tempH = Matrix.multiply(inputs, Matrix.transpose(W));
-        const activationFn = Activations.get(this.config.activation!);
-        const H = Activations.apply(tempH.map(row =>
-            row.map((val, j) => val + b[j][0])
-        ), activationFn);
-        const H_pinv = this.elm['pseudoInverse'](H);
-        const beta = Matrix.multiply(H_pinv, Y);
+        // Public training path; no 'task' key here
+        const options: { reuseWeights?: boolean; weights?: number[] } = {};
+        if (opts?.reuseWeights !== undefined) options.reuseWeights = opts.reuseWeights;
+        if (opts?.sampleWeights) options.weights = opts.sampleWeights;
 
-        this.elm['model'] = { W, b, beta };
+        this.elm.trainFromData(inputs, Y, options);
     }
 
-    predict(vec: number[]): { label: string; prob: number }[] {
-        const input = [vec];
-        const model = this.elm['model'];
-        if (!model) {
-            throw new Error('EncoderELM model has not been trained yet.');
+    /** Full probability vector aligned to `this.elm.categories`. */
+    predictProbaFromVector(vec: number[]): number[] {
+        // Use the vector-safe path provided by the core ELM
+        const out = this.elm.predictFromVector([vec], /*topK*/ this.elm.categories.length);
+        // predictFromVector returns Array<PredictResult[]>, i.e., topK sorted.
+        // We want a dense prob vector in category order, so map from topK back:
+        const probs = new Array(this.elm.categories.length).fill(0);
+        if (out && out[0]) {
+            for (const { label, prob } of out[0]) {
+                const idx = this.elm.categories.indexOf(label);
+                if (idx >= 0) probs[idx] = prob;
+            }
         }
-
-        const { W, b, beta } = model;
-        const tempH = Matrix.multiply(input, Matrix.transpose(W));
-        const activationFn = Activations.get(this.config.activation!);
-        const H = Activations.apply(tempH.map(row =>
-            row.map((val, j) => val + b[j][0])
-        ), activationFn);
-        const rawOutput = Matrix.multiply(H, beta)[0];
-        const probs = Activations.softmax(rawOutput);
-
-        return probs
-            .map((p, i) => ({ label: this.elm.categories[i], prob: p }))
-            .sort((a, b) => b.prob - a.prob);
+        return probs;
     }
 
-    public loadModelFromJSON(json: string): void {
+    /** Top-K predictions ({label, prob}) for a single vector. */
+    predict(vec: number[], topK = 1): Array<{ label: string; prob: number }> {
+        const [res] = this.elm.predictFromVector([vec], topK);
+        return res;
+    }
+
+    /** Batch top-K predictions for an array of vectors. */
+    predictBatch(
+        vectors: number[][],
+        topK = 1
+    ): Array<Array<{ label: string; prob: number }>> {
+        return this.elm.predictFromVector(vectors, topK);
+    }
+
+    /** Hidden-layer embedding(s) — useful for chaining. */
+    embed(vec: number[]): number[] {
+        return this.elm.getEmbedding([vec])[0];
+    }
+    embedBatch(vectors: number[][]): number[][] {
+        return this.elm.getEmbedding(vectors);
+    }
+
+    /** Persistence passthroughs */
+    loadModelFromJSON(json: string): void {
         this.elm.loadModelFromJSON(json);
     }
-
-    public saveModelAsJSONFile(filename?: string): void {
+    saveModelAsJSONFile(filename?: string): void {
         this.elm.saveModelAsJSONFile(filename);
     }
 }

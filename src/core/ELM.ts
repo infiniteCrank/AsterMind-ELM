@@ -1,6 +1,6 @@
 // ELM.ts - Core ELM logic with TypeScript types (numeric & text modes)
 
-import { Matrix } from './Matrix';
+import { Matrix, ensureRectNumber2D } from './Matrix';
 import { Activations } from './Activations';
 import {
     ELMConfig,
@@ -49,37 +49,43 @@ function makePRNG(seed = 123456789) {
     };
 }
 
-/** One-hot builder */
-function toOneHot(y: number[], k: number): number[][] {
-    return y.map(v => {
-        const r = new Array(k).fill(0);
-        r[(v | 0)] = 1;
-        return r;
-    });
+function clampInt(x: number, lo: number, hi: number) {
+    const xi = x | 0;
+    return xi < lo ? lo : (xi > hi ? hi : xi);
 }
 
-function inferKFromIdx(y: number[]): number {
-    let m = 0;
-    for (const v of y) if (v > m) m = v;
-    return (m | 0) + 1;
+function isOneHot2D(Y: any): Y is number[][] {
+    return Array.isArray(Y) && Array.isArray(Y[0]) && Number.isFinite(Y[0][0]);
+}
+
+function maxLabel(y: number[]): number {
+    let m = -Infinity;
+    for (let i = 0; i < y.length; i++) {
+        const v = y[i] | 0;
+        if (v > m) m = v;
+    }
+    return m === -Infinity ? 0 : m;
+}
+
+/** One-hot (clamped) */
+function toOneHotClamped(labels: number[], k: number): number[][] {
+    const K = k | 0;
+    const Y = new Array(labels.length);
+    for (let i = 0; i < labels.length; i++) {
+        const j = clampInt(labels[i], 0, K - 1);
+        const row = new Array(K).fill(0);
+        row[j] = 1;
+        Y[i] = row;
+    }
+    return Y;
 }
 
 /** (HᵀH + λI)B = HᵀY solved via Cholesky */
 function ridgeSolve(H: number[][], Y: number[][], lambda: number): number[][] {
-    const n = H.length;
-    const hdim = H[0].length;
-    const k = Y[0].length;
-
-    // A = H^T H + λI
     const Ht = Matrix.transpose(H);
     const A = Matrix.addRegularization(Matrix.multiply(Ht, H), lambda + 1e-10);
-
-    // R = H^T Y
     const R = Matrix.multiply(Ht, Y);
-
-    // Solve A B = R
-    const B = Matrix.solveCholesky(A, R, 1e-10);
-    return B;
+    return Matrix.solveCholesky(A, R, 1e-10);
 }
 
 /* =========================
@@ -170,14 +176,13 @@ export class ELM {
     /* ========= initialization ========= */
 
     private xavierLimit(fanIn: number, fanOut: number) {
-        // Proper Glorot uniform limit: sqrt(6 / (fanIn + fanOut))
         return Math.sqrt(6 / (fanIn + fanOut));
     }
 
     private randomMatrix(rows: number, cols: number): number[][] {
         const weightInit = this.config.weightInit ?? 'uniform';
         if (weightInit === 'xavier') {
-            const limit = this.xavierLimit(/*fanIn*/ cols, /*fanOut*/ rows);
+            const limit = this.xavierLimit(cols, rows);
             if (this.verbose) console.log(`✨ Xavier init with limit sqrt(6/(${cols}+${rows})) ≈ ${limit.toFixed(4)}`);
             return Array.from({ length: rows }, () =>
                 Array.from({ length: cols }, () => (this.rng() * 2 - 1) * limit)
@@ -256,6 +261,48 @@ export class ELM {
         }
     }
 
+    /* ========= Numeric training tolerance ========= */
+
+    /** Decide output dimension from config/categories/labels/one-hot */
+    private resolveOutputDim(yOrY: number[] | number[][]): number {
+        // Prefer explicit config
+        const cfgOut = (this.config as any).outputDim as number | undefined;
+        if (Number.isFinite(cfgOut) && (cfgOut as number) > 0) return (cfgOut as number) | 0;
+
+        // Then categories length if present
+        if (Array.isArray(this.categories) && this.categories.length > 0) return this.categories.length | 0;
+
+        // Infer from data
+        if (isOneHot2D(yOrY)) return ((yOrY[0] as number[]).length | 0) || 1;
+        return (maxLabel(yOrY as number[]) + 1) | 0;
+    }
+
+    /** Coerce X, and turn labels→one-hot if needed. Always returns strict number[][] */
+    private coerceXY(
+        X: number[][],
+        yOrY: number[] | number[][]
+    ): { Xnum: number[][]; Ynum: number[][]; outDim: number } {
+        const Xnum = ensureRectNumber2D(X, undefined, 'X');
+
+        const outDim = this.resolveOutputDim(yOrY);
+        let Ynum: number[][];
+
+        if (isOneHot2D(yOrY)) {
+            // Ensure rect with exact width outDim (pad/trunc to be safe)
+            Ynum = ensureRectNumber2D(yOrY, outDim, 'Y(one-hot)');
+        } else {
+            // Labels → clamped one-hot
+            Ynum = ensureRectNumber2D(toOneHotClamped(yOrY as number[], outDim), outDim, 'Y(labels→one-hot)');
+        }
+
+        // If categories length mismatches inferred outDim, adjust categories (non-breaking)
+        if (!this.categories || this.categories.length !== outDim) {
+            this.categories = Array.from({ length: outDim }, (_, i) => this.categories?.[i] ?? String(i));
+        }
+
+        return { Xnum, Ynum, outDim };
+    }
+
     /* ========= Training on numeric vectors =========
      * y can be class indices OR one-hot.
      */
@@ -268,10 +315,11 @@ export class ELM {
         }
     ): TrainResult {
         if (!X?.length) throw new Error('trainFromData: X is empty');
-        const n = X.length;
-        const inputDim = X[0].length;
-        const outDim = Array.isArray(y[0]) ? (y[0] as number[]).length : inferKFromIdx(y as number[]);
-        const Y = Array.isArray(y[0]) ? (y as number[][]) : toOneHot(y as number[], outDim);
+
+        // Coerce & shape
+        const { Xnum, Ynum, outDim } = this.coerceXY(X, y);
+        const n = Xnum.length;
+        const inputDim = Xnum[0].length;
 
         // init / reuse
         let W: number[][], b: number[][];
@@ -285,36 +333,34 @@ export class ELM {
             if (this.verbose) console.log('✨ Initializing fresh weights/biases for training.');
         }
 
-        // Build hidden layer
-        let H = this.buildHidden(X, W, b);
+        // Hidden
+        let H = this.buildHidden(Xnum, W, b);
 
         // Optional sample weights
+        let Yw = Ynum;
         if (options?.weights) {
             const ww = options.weights;
             if (ww.length !== n) {
                 throw new Error(`Weight array length ${ww.length} does not match sample count ${n}`);
             }
             H = H.map((row, i) => row.map(x => x * Math.sqrt(ww[i])));
-            for (let i = 0; i < n; i++) {
-                const s = Math.sqrt(ww[i]);
-                for (let j = 0; j < outDim; j++) Y[i][j] *= s;
-            }
+            Yw = Ynum.map((row, i) => row.map(x => x * Math.sqrt(ww[i])));
         }
 
         // Solve ridge (stable)
-        const beta = ridgeSolve(H, Y, this.ridgeLambda);
+        const beta = ridgeSolve(H, Yw, this.ridgeLambda);
         this.model = { W, b, beta };
 
         // Evaluate & maybe save
         const predictions = Matrix.multiply(H, beta);
 
         if (this.metrics) {
-            const rmse = this.calculateRMSE(Y, predictions);
-            const mae = this.calculateMAE(Y, predictions);
-            const acc = this.calculateAccuracy(Y, predictions);
-            const f1 = this.calculateF1Score(Y, predictions);
-            const ce = this.calculateCrossEntropy(Y, predictions);
-            const r2 = this.calculateR2Score(Y, predictions);
+            const rmse = this.calculateRMSE(Ynum, predictions);
+            const mae = this.calculateMAE(Ynum, predictions);
+            const acc = this.calculateAccuracy(Ynum, predictions);
+            const f1 = this.calculateF1Score(Ynum, predictions);
+            const ce = this.calculateCrossEntropy(Ynum, predictions);
+            const r2 = this.calculateR2Score(Ynum, predictions);
 
             const results: Record<string, number> = { rmse, mae, accuracy: acc, f1, crossEntropy: ce, r2 };
             let allPassed = true;
