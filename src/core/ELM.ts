@@ -686,4 +686,7 @@ export class ELM {
         for (let k = 1; k < arr.length; k++) if (arr[k] > arr[i]) i = k;
         return i;
     }
+    public getEncoder() {
+        return this.encoder;
+    }
 }

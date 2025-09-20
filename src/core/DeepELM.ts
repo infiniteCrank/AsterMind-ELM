@@ -3,9 +3,9 @@
 import { ELM } from './ELM';
 import { ELMChain } from './ELMChain';
 import { wrapELM } from './ELMAdapter';
+import { WeightInit } from './ELMConfig'
+import { Activation } from './ELMConfig'
 
-export type Activation = 'linear' | 'tanh' | 'relu' | 'leakyrelu' | 'sigmoid';
-export type WeightInit = 'uniform' | 'xavier' | 'he';
 
 export interface DeepELMLayerSpec {
     hiddenUnits: number;

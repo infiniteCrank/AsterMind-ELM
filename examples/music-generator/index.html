@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ELM Drum Generator • Astermind</title>
+  <title>ELM Drum Generator • AsterMind (ELM / KernelELM / OnlineELM + Worker)</title>
   <style>
     :root {
       --bg: #050c1f;
@@ -79,7 +79,7 @@
     }
 
     button:disabled {
-      opacity: .4;
+      opacity: .5;
       cursor: not-allowed;
       border-color: #203a7c;
       color: #6c7a9d;
@@ -172,20 +172,62 @@
       font-style: italic;
       font-size: 13px;
     }
+
+    details.settings summary {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #203a7c;
+      background: rgba(12, 26, 61, .5);
+      border-radius: 10px;
+      padding: 6px 10px;
+      color: #dfe9ff;
+      font-size: 13px;
+    }
+
+    select,
+    input[type="number"],
+    input[type="checkbox"] {
+      background: transparent;
+      color: #e7f3ff;
+      border: 1px solid #203a7c;
+      border-radius: 8px;
+      padding: 4px 8px;
+    }
+
+    .muted {
+      color: #9bb3ff;
+      font-size: 12px;
+    }
   </style>
 </head>
 
 <body>
   <header>
     <div class="bar">
-      <div class="chip">ELM Drum Generator • Astermind</div>
-      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button id="trainBtn">Train Model</button>
+      <div class="chip">ELM Drum Generator • AsterMind</div>
+
+      <div class="row">
+        <button id="trainBtn">Train</button>
         <button id="genBtn" disabled>Generate 8 Bars</button>
         <button id="stopBtn" disabled>Stop</button>
       </div>
+
       <div class="grow"></div>
-      <div class="row" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+
+      <div class="row">
         <label class="chip" style="display:flex;align-items:center;">Temp
           <input id="temp" class="slider" type="range" min="0.6" max="1.4" step="0.05" value="1.0" />
           <span id="tempVal" class="val">1.0</span>
@@ -196,6 +238,88 @@
         </label>
       </div>
     </div>
+
+    <div class="bar" style="border-top:1px solid rgba(90,209,255,.12)">
+      <details class="settings">
+        <summary class="chip">Settings</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field">
+            <span>Engine</span>
+            <select id="engine">
+              <option value="elm">ELM</option>
+              <option value="kernel">KernelELM (Nyström)</option>
+              <option value="online">OnlineELM (RLS)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <span>N (window)</span>
+            <input id="nWindow" type="number" min="4" max="64" step="1" value="16" style="width:70px" />
+          </div>
+
+          <div class="field">
+            <span>Hidden</span>
+            <input id="hidden" type="number" min="16" max="512" step="16" value="128" style="width:80px" />
+          </div>
+
+          <div class="field">
+            <span>λ (ridge)</span>
+            <input id="lambda" type="number" min="0.0001" max="0.2" step="0.0001" value="0.01" style="width:90px" />
+          </div>
+
+          <div class="field">
+            <span>Activation</span>
+            <select id="activation">
+              <option>tanh</option>
+              <option selected>relu</option>
+              <option>leakyrelu</option>
+              <option>sigmoid</option>
+              <option>linear</option>
+              <option>gelu</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="row" style="gap:6px; align-items:center;">
+              <input id="useWorker" type="checkbox" checked>
+              <span>Use WebWorker</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row" id="kernelRow" style="margin-top:8px; display:none;">
+          <div class="field">
+            <span>Kernel</span>
+            <select id="kernelType">
+              <option value="rbf" selected>rbf</option>
+              <option value="linear">linear</option>
+              <option value="poly">poly</option>
+              <option value="laplacian">laplacian</option>
+            </select>
+          </div>
+          <div class="field" id="gammaField">
+            <span>γ</span>
+            <input id="gamma" type="number" min="0.0001" step="0.0001" value="0.0625" style="width:90px" />
+          </div>
+          <div class="field" id="polyField" style="display:none">
+            <span>deg</span><input id="degree" type="number" min="2" max="6" step="1" value="2" style="width:70px" />
+            <span>coef0</span><input id="coef0" type="number" step="0.1" value="1" style="width:70px" />
+          </div>
+          <div class="field">
+            <span>m (landmarks)</span>
+            <input id="mLandmarks" type="number" min="16" max="512" step="16" value="128" style="width:90px" />
+          </div>
+          <div class="field">
+            <label class="row" style="gap:6px; align-items:center;">
+              <input id="whiten" type="checkbox" checked>
+              <span>Whiten Kmm</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="muted">Kernel γ default ≈ 1 / inputDim; try small (0.01–0.25) for RBF.</div>
+      </details>
+    </div>
   </header>
 
   <div class="panel">
@@ -204,27 +328,26 @@
       <div class="dot kick"></div><span class="small">KICK</span>
       <div class="dot snare"></div><span class="small">SNARE</span>
       <div class="dot hat"></div><span class="small">HAT</span>
-      <span class="small">• 16 steps/bar • Tokens: WAIT_1, ON_K, ON_S, ON_H (predict next token from last N)</span>
+      <span class="small">• 16 steps/bar • Tokens: WAIT_1, ON_K, ON_S, ON_H</span>
     </div>
     <div id="status"></div>
   </div>
 
   <div class="panel small">
-    <strong>How it works</strong> — one-hot(last <code>N</code> tokens) → random hidden (tanh) → solve β with ridge
-    (closed-form). Generation feeds back sampled tokens and schedules WebAudio. Now powered by
-    <code>window.astermind</code>.
+    <strong>How it works</strong> — one-hot(last <code>N</code> tokens) → random feature map (ELM / Kernel Nyström) →
+    solve β with ridge (closed-form).
+    Generation feeds back sampled tokens and schedules WebAudio. Powered by <code>window.astermind</code>.
   </div>
 
-  <!-- your UMD (must load first) -->
+  <!-- UMD bundle -->
   <script src="/astermind.umd.js"></script>
 
   <script>
-    /* ========= utilities ========= */
+    /* ================= Utilities ================= */
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
     function softmax(logits, temp = 1) {
       let m = -Infinity; for (const v of logits) if (v > m) m = v;
-      const ex = logits.map(v => Math.exp((v - m) / temp));
-      const s = ex.reduce((a, b) => a + b, 0) || 1;
+      const ex = logits.map(v => Math.exp((v - m) / temp)); const s = ex.reduce((a, b) => a + b, 0) || 1;
       return ex.map(v => v / s);
     }
     function sampleTopK(probs, k) {
@@ -234,15 +357,18 @@
       for (const [p, i] of arr) { r -= p; if (r <= 0) return i; }
       return arr[arr.length - 1][1];
     }
+    function toOneHot(labels, numClasses) {
+      const Y = new Array(labels.length);
+      for (let i = 0; i < labels.length; i++) { const row = new Array(numClasses).fill(0); row[labels[i] | 0] = 1; Y[i] = row; }
+      return Y;
+    }
 
-    /* ========= drum vocab + toy data ========= */
+    /* ============== Drum tokens + toy data ============== */
     const TOK = { WAIT_1: 0, ON_K: 1, ON_S: 2, ON_H: 3 };
-    const ID2STR = ['WAIT_1', 'ON_K', 'ON_S', 'ON_H'];
-    const V = ID2STR.length;
+    const ID2STR = ['WAIT_1', 'ON_K', 'ON_S', 'ON_H']; const V = ID2STR.length;
 
     function grooveFourOnTheFloor() {
-      const seq = [];
-      for (let bar = 0; bar < 4; bar++) {
+      const seq = []; for (let bar = 0; bar < 4; bar++) {
         for (let step = 0; step < 16; step++) {
           const pos = step % 16;
           if (pos === 0 || pos === 4 || pos === 8 || pos === 12) seq.push(TOK.ON_K);
@@ -250,32 +376,27 @@
           else if (pos % 2 === 0) seq.push(TOK.ON_H);
           else seq.push(TOK.WAIT_1);
         }
-      }
-      return seq;
+      } return seq;
     }
     function grooveBackbeat() {
-      const seq = [];
-      for (let bar = 0; bar < 4; bar++) {
+      const seq = []; for (let bar = 0; bar < 4; bar++) {
         for (let step = 0; step < 16; step++) {
           const pos = step % 16;
           if (pos === 0 || pos === 7) seq.push(TOK.ON_K);
           else if (pos === 4 || pos === 12) seq.push(TOK.ON_S);
           else seq.push(TOK.ON_H);
         }
-      }
-      return seq;
+      } return seq;
     }
     const TRAIN_SEQS = [grooveFourOnTheFloor(), grooveBackbeat()];
 
-    /* ========= features ========= */
+    /* ============== Feature builder ============== */
     function oneHot(idx, size) { const v = new Float32Array(size); v[idx] = 1; return v; }
     function buildInputWindow(tokens, pos, N) {
-      const out = new Float32Array(N * V);
-      let o = 0;
+      const out = new Float32Array(N * V); let o = 0;
       for (let i = pos - N; i < pos; i++) {
         const t = i >= 0 ? tokens[i] : TOK.WAIT_1;
-        out.set(oneHot(t, V), o);
-        o += V;
+        out.set(oneHot(t, V), o); o += V;
       }
       return out;
     }
@@ -283,190 +404,20 @@
       const X = [], y = [];
       for (const seq of seqs) {
         for (let t = 1; t < seq.length; t++) {
-          X.push(buildInputWindow(seq, t, N));
+          X.push(Array.from(buildInputWindow(seq, t, N)));
           y.push(seq[t]);
         }
       }
-      return { X: X.map(r => Array.from(r)), y: Array.from(y) };
+      return { X, y };
     }
 
-    /* ========= astermind wiring (window.astermind) ========= */
-    function getCtorFromAstermind() {
-      // prefer a base ELM; fallback to a generic classifier-capable ELM
-      const am = window.astermind || window.Astermind || window.AstermindELM || {};
-      return am.ELM || am.RefinerELM || am.EncoderELM || null;
-    }
-
-    function createModel(inputSize, hiddenUnits, ridgeLambda) {
-      const Ctor = getCtorFromAstermind();
-      if (!Ctor) {
-        console.error('[astermind] available keys:', Object.keys(window.astermind || {}));
-        throw new Error('Could not find ELM/RefinerELM on window.astermind. Verify /astermind.umd.js and its global.');
-      }
-      // most AsterMind classes accept a config object; unknown fields are ignored
-      return new Ctor({
-        inputSize,
-        hiddenUnits,
-        activation: 'tanh',
-        ridgeLambda,
-        task: 'classification',
-        categories: ['WAIT_1', 'ON_K', 'ON_S', 'ON_H'],
-        maxLen: 16,
-        weightInit: 'xavier',
-        useTokenizer: false,           // ← important
-        tokenizerDelimiter: '',        // (harmless; keeps tokenizer off)
-        charSet: '',                   // (harmless; keeps tokenizer off)
-        log: { enabled: false }
-      });
-
-    }
-
-    // Put near your other helpers:
-    function toOneHot(y, numClasses) {
-      const Y = new Array(y.length);
-      for (let i = 0; i < y.length; i++) {
-        const row = new Array(numClasses).fill(0);
-        row[y[i] | 0] = 1;
-        Y[i] = row;
-      }
-      return Y;
-    }
-
-    // Replace your existing trainModel with this:
-    async function trainModel(model, X, y) {
-      // Prefer positional signature: trainFromData(X, y, opts?)
-      if (typeof model.trainFromData === 'function') {
-        // Try raw labels first
-        try {
-          const maybe = model.trainFromData.length >= 3
-            ? model.trainFromData(X, y, { task: 'classification' })
-            : model.trainFromData(X, y);
-          return (maybe && typeof maybe.then === 'function') ? await maybe : maybe;
-        } catch (e) {
-          // If it complains about label shape, fall back to one-hot
-          const Y = toOneHot(y, /* numClasses */ 4); // WAIT_1, ON_K, ON_S, ON_H
-          const maybe = model.trainFromData.length >= 3
-            ? model.trainFromData(X, Y, { task: 'classification' })
-            : model.trainFromData(X, Y);
-          return (maybe && typeof maybe.then === 'function') ? await maybe : maybe;
-        }
-      }
-
-      // Fallback to model.train(X, y)
-      if (typeof model.train === 'function') {
-        // Some builds want one-hot for train() — try raw, then one-hot.
-        try {
-          const r = model.train(X, y);
-          return (r && typeof r.then === 'function') ? await r : r;
-        } catch {
-          const Y = toOneHot(y, 4);
-          const r = model.train(X, Y);
-          return (r && typeof r.then === 'function') ? await r : r;
-        }
-      }
-
-      throw new Error('astermind model has no train/trainFromData');
-    }
-
-
-    function predictLogits(model, xRow) {
-      // Prefer explicit vector-safe logits or forward paths
-      if (typeof model.predictLogits === 'function') return model.predictLogits(xRow);
-
-      // Common vector-safe variants seen in Astermind builds
-      const cand = [
-        'predictFromVector', 'predictVector', 'predictNumeric',
-        'predictFeatures', 'predictArray'
-      ].find(k => typeof model[k] === 'function');
-      if (cand) {
-        const out = model[cand](xRow);
-        if (Array.isArray(out)) return out;
-        if (out && Array.isArray(out.logits)) return out.logits;
-        if (out && Array.isArray(out.probs)) return out.probs.map(p => Math.log((p || 1e-12)));
-      }
-
-      // Forward often accepts raw features
-      if (typeof model.forward === 'function') {
-        const out = model.forward(xRow);
-        if (Array.isArray(out)) return out;
-        if (out && Array.isArray(out.logits)) return out.logits;
-      }
-
-      // As a last resort, you *can* use predict() only if it clearly returns numbers (not using encoders)
-      if (typeof model.predict === 'function') {
-        try {
-          const out = model.predict(xRow);
-          if (Array.isArray(out)) return out;                 // scores/logits
-          if (out && Array.isArray(out.logits)) return out.logits;
-          if (out && Array.isArray(out.probs)) return out.probs.map(p => Math.log((p || 1e-12)));
-        } catch (e) {
-          // If this throws due to encoders, we ignore and fall through.
-        }
-      }
-
-      throw new Error('No vector-safe predict available (predictLogits/forward/predictFromVector/etc).');
-    }
-
-    /* ========= generation ========= */
-    function generateTokens(model, seed, steps, N, temp, topK) {
-      const out = seed.slice();
-      for (let i = 0; i < steps; i++) {
-        const x = Array.from(buildInputWindow(out, out.length, N));
-        const logits = predictLogits(model, x);
-        const probs = softmax(Array.from(logits), temp);
-        const id = sampleTopK(probs, topK | 0);
-        out.push(id);
-      }
-      return out.slice(seed.length);
-    }
-
-    /* ========= webaudio drums ========= */
-    class DrumSynth {
-      constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.master = this.ctx.createGain();
-        this.master.gain.value = 0.25;
-        this.master.connect(this.ctx.destination);
-      }
-      kick(t) {
-        const c = this.ctx; const o = c.createOscillator(), g = c.createGain();
-        o.type = 'sine'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
-        g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-        o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.16);
-      }
-      snare(t) {
-        const c = this.ctx;
-        const buffer = c.createBuffer(1, c.sampleRate * 0.2, c.sampleRate);
-        const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-        const s = c.createBufferSource(); s.buffer = buffer;
-        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800;
-        const g = c.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-        s.connect(bp).connect(g).connect(this.master); s.start(t); s.stop(t + 0.2);
-      }
-      hat(t) {
-        const c = this.ctx;
-        const buffer = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate);
-        const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-        const s = c.createBufferSource(); s.buffer = buffer;
-        const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
-        const g = c.createGain(); g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-        s.connect(hp).connect(g).connect(this.master); s.start(t); s.stop(t + 0.06);
-      }
-      playToken(tok, when) {
-        if (tok === TOK.ON_K) this.kick(when);
-        else if (tok === TOK.ON_S) this.snare(when);
-        else if (tok === TOK.ON_H) this.hat(when);
-      }
-    }
-
-    /* ========= canvas viz ========= */
+    /* ============== Canvas drawing ============== */
     const canvas = document.getElementById('c');
     const g = canvas.getContext('2d');
     function resizeCanvas() {
       const DPR = window.devicePixelRatio || 1;
       const W = canvas.clientWidth, H = canvas.clientHeight;
-      canvas.width = Math.floor(W * DPR);
-      canvas.height = Math.floor(H * DPR);
+      canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
       g.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
@@ -475,24 +426,15 @@
       const W = canvas.clientWidth, H = canvas.clientHeight;
       g.clearRect(0, 0, W, H);
       const pad = 20, usableW = W - 2 * pad, laneH = (H - 2 * pad) / 3;
-      const totalSteps = stepsPerBar * 4;
-      const barWidth = usableW / 4;
-      for (let b = 0; b < 4; b++) {
-        const xs = pad + b * barWidth;
-        g.fillStyle = 'rgba(90,209,255,0.04)';
-        g.fillRect(xs, pad, barWidth, H - 2 * pad);
-      }
+      const totalSteps = stepsPerBar * 4; const barWidth = usableW / 4;
+      for (let b = 0; b < 4; b++) { const xs = pad + b * barWidth; g.fillStyle = 'rgba(90,209,255,0.04)'; g.fillRect(xs, pad, barWidth, H - 2 * pad); }
       g.strokeStyle = 'rgba(90,209,255,0.25)';
-      for (let i = 0; i <= totalSteps; i++) {
-        const x = pad + (i / totalSteps) * usableW;
-        g.beginPath(); g.moveTo(x, pad); g.lineTo(x, H - pad); g.stroke();
-      }
+      for (let i = 0; i <= totalSteps; i++) { const x = pad + (i / totalSteps) * usableW; g.beginPath(); g.moveTo(x, pad); g.lineTo(x, H - pad); g.stroke(); }
       g.fillStyle = 'var(--muted)'; g.font = '12px system-ui';
       ['KICK', 'SNARE', 'HAT'].forEach((L, i) => { g.fillText(L, 6, pad + i * laneH + 14); });
       const windowTokens = tokens.slice(-totalSteps);
       for (let i = 0; i < windowTokens.length; i++) {
-        const t = windowTokens[i];
-        const x = pad + (i / totalSteps) * usableW;
+        const t = windowTokens[i]; const x = pad + (i / totalSteps) * usableW;
         const yKick = pad + laneH * 0.5, ySnare = pad + laneH * 1.5, yHat = pad + laneH * 2.5;
         if (t === TOK.ON_K) { g.fillStyle = colors.kick; g.beginPath(); g.arc(x, yKick, 6, 0, Math.PI * 2); g.fill(); }
         if (t === TOK.ON_S) { g.fillStyle = colors.snare; g.beginPath(); g.arc(x, ySnare, 6, 0, Math.PI * 2); g.fill(); }
@@ -500,11 +442,10 @@
       }
       const idx = (cursor % totalSteps);
       const playX = pad + (idx / totalSteps) * usableW;
-      g.strokeStyle = 'rgba(250,250,255,0.85)';
-      g.beginPath(); g.moveTo(playX, pad); g.lineTo(playX, H - pad); g.stroke();
+      g.strokeStyle = 'rgba(250,250,255,0.85)'; g.beginPath(); g.moveTo(playX, pad); g.lineTo(playX, H - pad); g.stroke();
     }
 
-    /* ========= UI ========= */
+    /* ============== UI refs ============== */
     const trainBtn = document.getElementById('trainBtn');
     const genBtn = document.getElementById('genBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -513,10 +454,21 @@
     const tempVal = document.getElementById('tempVal');
     const topkVal = document.getElementById('topkVal');
     const statusDiv = document.getElementById('status');
-
-    let MODEL = null, N = 16, HSIZE = 64;
-    let currentTokens = [];
-    let scheduler = null;
+    const engineSel = document.getElementById('engine');
+    const nWindowInp = document.getElementById('nWindow');
+    const hiddenInp = document.getElementById('hidden');
+    const lambdaInp = document.getElementById('lambda');
+    const activationSel = document.getElementById('activation');
+    const useWorkerChk = document.getElementById('useWorker');
+    const kernelRow = document.getElementById('kernelRow');
+    const kernelTypeSel = document.getElementById('kernelType');
+    const gammaField = document.getElementById('gammaField');
+    const polyField = document.getElementById('polyField');
+    const gammaInp = document.getElementById('gamma');
+    const degreeInp = document.getElementById('degree');
+    const coef0Inp = document.getElementById('coef0');
+    const mLandmarksInp = document.getElementById('mLandmarks');
+    const whitenChk = document.getElementById('whiten');
 
     function setStatus(msg) { statusDiv.textContent = msg; }
     function updateSliders() { tempVal.textContent = tempSlider.value; topkVal.textContent = topkSlider.value; }
@@ -524,18 +476,321 @@
     tempSlider.addEventListener('input', updateSliders);
     topkSlider.addEventListener('input', updateSliders);
 
+    engineSel.addEventListener('change', () => {
+      const isKernel = engineSel.value === 'kernel';
+      kernelRow.style.display = isKernel ? 'flex' : 'none';
+    });
+    kernelTypeSel.addEventListener('change', () => {
+      const t = kernelTypeSel.value;
+      gammaField.style.display = (t === 'rbf' || t === 'laplacian') ? 'flex' : 'none';
+      polyField.style.display = (t === 'poly') ? 'flex' : 'none';
+    });
+
+    /* ============== AsterMind detection ============== */
+    function AM() {
+      const am = window.astermind || window.Astermind || window.AstermindELM || {};
+      return am;
+    }
+
+    /* ============== Worker adapter (inline) ============== */
+    function makeWorkerURL() {
+      const src = `
+    self.onmessage = async (e) => {
+      const { id, action, payload } = e.data;
+      const respond = (ok, result, error) => self.postMessage({ id, ok, result, error });
+      try {
+        if (action === 'init') {
+          importScripts('/astermind.umd.js');
+          const am = self.astermind || {};
+          const { engine, config } = payload;
+          if (engine === 'elm') {
+            self.model = new am.ELM(config);
+          } else if (engine === 'kernel') {
+            self.model = new am.KernelELM(config);
+          } else if (engine === 'online') {
+            self.model = new am.OnlineELM(config);
+          } else {
+            throw new Error('Unknown engine: ' + engine);
+          }
+          respond(true, true);
+        } else if (action === 'train') {
+          const { engine, X, y, task } = payload;
+          if (!self.model) throw new Error('Model not initialized');
+          if (engine === 'online') {
+            // online: init once with the batch (works fine)
+            if (!self._initialized) { self.model.init(X, y); self._initialized = true; }
+            else self.model.update(X, y);
+          } else if (engine === 'kernel') {
+            self.model.fit(X, y);
+          } else {
+            // plain ELM
+            if (typeof self.model.trainFromData==='function') {
+              try { self.model.trainFromData(X, y, { task }); }
+              catch { self.model.trainFromData(X, ${'toOneHot not available here; we’ll rely on main to onehot if needed'}) }
+            } else if (typeof self.model.train==='function') {
+              self.model.train(X, y);
+            } else {
+              throw new Error('No train method on model');
+            }
+          }
+          respond(true, true);
+        } else if (action === 'predictLogits') {
+          const { x } = payload;
+          if (!self.model) throw new Error('Model not initialized');
+          let logits=null;
+          if (typeof self.model.predictLogitsFromVector==='function') logits = self.model.predictLogitsFromVector(x);
+          else if (typeof self.model.predictLogits==='function') logits = self.model.predictLogits(x);
+          else if (typeof self.model.predictProbaFromVector==='function') {
+            const p = self.model.predictProbaFromVector(x);
+            logits = p.map(v => Math.log((v||1e-12)));
+          } else if (typeof self.model.predictFromVector==='function') {
+            const r = self.model.predictFromVector([x])[0];
+            if (Array.isArray(r)) logits=r;
+            else if (r && Array.isArray(r.probs)) logits = r.probs.map(v=>Math.log((v||1e-12)));
+          } else {
+            throw new Error('No vector-safe predict on model');
+          }
+          respond(true, logits);
+        } else {
+          respond(false, null, 'Unknown action: '+action);
+        }
+      } catch (err) {
+        respond(false, null, err?.message || String(err));
+      }
+    }
+  `;
+      const blob = new Blob([src], { type: 'application/javascript' });
+      return URL.createObjectURL(blob);
+    }
+
+    class WorkerClient {
+      constructor() {
+        this.url = makeWorkerURL();
+        this.w = new Worker(this.url);
+        this.seq = 0; this.pending = new Map();
+        this.w.onmessage = (e) => {
+          const { id, ok, result, error } = e.data;
+          const p = this.pending.get(id);
+          if (!p) return;
+          this.pending.delete(id);
+          ok ? p.resolve(result) : p.reject(new Error(error || 'Worker error'));
+        };
+      }
+      call(action, payload) {
+        const id = ++this.seq;
+        return new Promise((resolve, reject) => {
+          this.pending.set(id, { resolve, reject });
+          this.w.postMessage({ id, action, payload });
+        });
+      }
+      terminate() { try { this.w.terminate(); URL.revokeObjectURL(this.url); } catch { } }
+    }
+
+    /* ============== Model creation + train/predict bridges ============== */
+    function createConfig(engine, inputSize, hiddenUnits, ridgeLambda) {
+      const activation = activationSel.value;
+      if (engine === 'kernel') {
+        const kernelType = kernelTypeSel.value;
+        const cfg = {
+          outputDim: V,
+          mode: 'nystrom',
+          kernel: kernelType === 'poly'
+            ? { type: 'poly', degree: parseInt(degreeInp.value, 10) || 2, coef0: parseFloat(coef0Inp.value) || 1 }
+            : kernelType === 'linear'
+              ? { type: 'linear' }
+              : kernelType === 'laplacian'
+                ? { type: 'laplacian', gamma: parseFloat(gammaInp.value) || (1 / inputSize) }
+                : { type: 'rbf', gamma: parseFloat(gammaInp.value) || (1 / inputSize) },
+          nystrom: {
+            m: parseInt(mLandmarksInp.value, 10) || 128,
+            strategy: 'kmeans++',
+            whiten: !!whitenChk.checked,
+            jitter: 1e-9,
+          },
+          ridgeLambda: parseFloat(lambdaInp.value) || ridgeLambda,
+          task: 'classification',
+          log: { verbose: false, modelName: 'DrumKernelELM' }
+        };
+        return cfg;
+      }
+      if (engine === 'online') {
+        return {
+          inputDim: inputSize,
+          outputDim: V,
+          hiddenUnits,
+          activation,
+          ridgeLambda: parseFloat(lambdaInp.value) || ridgeLambda,
+          weightInit: 'he',
+          forgettingFactor: 0.997,
+          log: { verbose: false, modelName: 'DrumOnlineELM' }
+        };
+      }
+      // plain ELM / numeric mode
+      return {
+        inputSize: inputSize,
+        hiddenUnits: hiddenUnits,
+        activation: activation,
+        ridgeLambda: parseFloat(lambdaInp.value) || ridgeLambda,
+        task: 'classification',
+        categories: ID2STR.slice(),
+        useTokenizer: false,
+        maxLen: 16,
+        weightInit: 'xavier',
+        log: { verbose: false, modelName: 'DrumELM' }
+      };
+    }
+
+    function createModel(engine, inputSize, hiddenUnits, ridgeLambda) {
+      const am = AM();
+      if (engine === 'kernel' && am.KernelELM) return new am.KernelELM(createConfig(engine, inputSize, hiddenUnits, ridgeLambda));
+      if (engine === 'online' && am.OnlineELM) return new am.OnlineELM(createConfig(engine, inputSize, hiddenUnits, ridgeLambda));
+      if (am.ELM) return new am.ELM(createConfig('elm', inputSize, hiddenUnits, ridgeLambda));
+      throw new Error('AsterMind UMD not exposing expected classes; found keys: ' + Object.keys(am));
+    }
+
+    async function trainOnMain(engine, model, X, y) {
+      if (engine === 'kernel') {
+        const Y = toOneHot(y, V);
+        model.fit(X, Y);
+        return;
+      }
+      if (engine === 'online') {
+        const Y = toOneHot(y, V);
+        model.init(X, Y);
+        return;
+      }
+      // plain ELM: try labels then fallback to one-hot
+      if (typeof model.trainFromData === 'function') {
+        try { model.trainFromData(X, y, { task: 'classification' }); }
+        catch { model.trainFromData(X, toOneHot(y, V), { task: 'classification' }); }
+      } else if (typeof model.train === 'function') {
+        try { model.train(X, y); }
+        catch { model.train(X, toOneHot(y, V)); }
+      } else {
+        throw new Error('Model has no train API');
+      }
+    }
+
+    function predictLogitsOnMain(model, x) {
+      if (typeof model.predictLogitsFromVector === 'function') return model.predictLogitsFromVector(x);
+      if (typeof model.predictLogits === 'function') return model.predictLogits(x);
+      if (typeof model.predictProbaFromVector === 'function') {
+        const p = model.predictProbaFromVector(x); return p.map(v => Math.log((v || 1e-12)));
+      }
+      if (typeof model.predictFromVector === 'function') {
+        const r = model.predictFromVector([x])[0];
+        if (Array.isArray(r)) return r;
+        if (r && Array.isArray(r.probs)) return r.probs.map(v => Math.log((v || 1e-12)));
+      }
+      throw new Error('No vector-safe predict on model');
+    }
+
+    /* ============== Generation (sync & async) ============== */
+    function generateTokensSync(model, seed, steps, N, temp, topK) {
+      const out = seed.slice();
+      for (let i = 0; i < steps; i++) {
+        const x = Array.from(buildInputWindow(out, out.length, N));
+        const logits = predictLogitsOnMain(model, x);
+        const probs = softmax(Array.from(logits), temp);
+        const id = sampleTopK(probs, topK | 0);
+        out.push(id);
+      }
+      return out.slice(seed.length);
+    }
+
+    async function generateTokensAsync(workerClient, seed, steps, N, temp, topK) {
+      const out = seed.slice();
+      for (let i = 0; i < steps; i++) {
+        const x = Array.from(buildInputWindow(out, out.length, N));
+        const logits = await workerClient.call('predictLogits', { x });
+        const probs = softmax(Array.from(logits), temp);
+        const id = sampleTopK(probs, topK | 0);
+        out.push(id);
+      }
+      return out.slice(seed.length);
+    }
+
+    /* ============== WebAudio drums + playback ============== */
+    class DrumSynth {
+      constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.master = this.ctx.createGain(); this.master.gain.value = 0.25; this.master.connect(this.ctx.destination);
+      }
+      kick(t) {
+        const c = this.ctx, o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+        g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.16);
+      }
+      snare(t) {
+        const c = this.ctx, buffer = c.createBuffer(1, c.sampleRate * 0.2, c.sampleRate);
+        const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const s = c.createBufferSource(); s.buffer = buffer; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800;
+        const g = c.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        s.connect(bp).connect(g).connect(this.master); s.start(t); s.stop(t + 0.2);
+      }
+      hat(t) {
+        const c = this.ctx, buffer = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate);
+        const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const s = c.createBufferSource(); s.buffer = buffer; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
+        const g = c.createGain(); g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        s.connect(hp).connect(g).connect(this.master); s.start(t); s.stop(t + 0.06);
+      }
+      playToken(tok, when) { if (tok === TOK.ON_K) this.kick(when); else if (tok === TOK.ON_S) this.snare(when); else if (tok === TOK.ON_H) this.hat(when); }
+    }
+
+    function playSequence(seq) {
+      const drums = new DrumSynth();
+      const bpm = 120, spb = 60 / bpm, stepDur = spb / 4; const ctx = drums.ctx; const start = ctx.currentTime + 0.2;
+      let step = 0; currentTokens = []; stopBtn.disabled = false;
+      scheduler = setInterval(() => {
+        const now = ctx.currentTime;
+        while (step < seq.length && (start + step * stepDur) < now + 0.15) {
+          const t = seq[step], when = start + step * stepDur; drums.playToken(t, when);
+          currentTokens.push(t); drawTimeline(currentTokens, step % (16 * 4)); step++;
+        }
+        if (step >= seq.length) { clearInterval(scheduler); stopBtn.disabled = true; setStatus('Playback finished.'); }
+      }, 20);
+    }
+
+    /* ============== App wiring ============== */
+    let MODEL = null, WORKER = null;
+    let currentTokens = []; let scheduler = null;
+
     trainBtn.addEventListener('click', async () => {
       trainBtn.disabled = true; genBtn.disabled = true; stopBtn.disabled = true;
-      setStatus('Training model via window.astermind…');
+      setStatus('Preparing training…');
       try {
+        const engine = engineSel.value;
+        const N = parseInt(nWindowInp.value, 10) || 16;
+        const hidden = parseInt(hiddenInp.value, 10) || 128;
+        const lambda = parseFloat(lambdaInp.value) || 0.01;
         const { X, y } = makeXY(TRAIN_SEQS, N);
-        MODEL = createModel(N * V, HSIZE, 1e-2);
-        const t0 = performance.now();
-        await trainModel(MODEL, X, y);
-        const dt = ((performance.now() - t0) / 1000).toFixed(2);
+
+        const useWorker = !!useWorkerChk.checked;
+        if (useWorker) {
+          if (WORKER) { WORKER.terminate(); WORKER = null; }
+          WORKER = new WorkerClient();
+          const cfg = createConfig(engine, N * V, hidden, lambda);
+          await WORKER.call('init', { engine, config: cfg });
+          // Ensure Y one-hot for kernel/online; safe for ELM too
+          const Y = (engine === 'kernel' || engine === 'online') ? toOneHot(y, V) : y;
+          const t0 = performance.now();
+          await WORKER.call('train', { engine, X, y: Y, task: 'classification' });
+          const dt = ((performance.now() - t0) / 1000).toFixed(2);
+          setStatus(`Trained (${engine}) via Worker in ${dt}s. Ready to generate.`);
+          MODEL = null; // using worker path
+        } else {
+          MODEL = createModel(engine, N * V, hidden, lambda);
+          const t0 = performance.now();
+          await trainOnMain(engine, MODEL, X, (engine === 'kernel' || engine === 'online') ? toOneHot(y, V) : y);
+          const dt = ((performance.now() - t0) / 1000).toFixed(2);
+          setStatus(`Trained (${engine}) on main in ${dt}s. Ready to generate.`);
+          if (WORKER) { WORKER.terminate(); WORKER = null; }
+        }
+
         currentTokens = TRAIN_SEQS[0].slice(0, 64);
         drawTimeline(currentTokens, 0);
-        setStatus(`Model trained in ${dt}s. Ready to generate.`);
         genBtn.disabled = false;
       } catch (err) {
         console.error(err);
@@ -545,61 +800,36 @@
       }
     });
 
-    function playSequence(seq) {
-      const drums = new DrumSynth();
-      const bpm = 120, spb = 60 / bpm, stepDur = spb / 4;
-      const ctx = drums.ctx;
-      const start = ctx.currentTime + 0.2;
-      let step = 0;
-      currentTokens = [];
-      stopBtn.disabled = false;
-      scheduler = setInterval(() => {
-        const now = ctx.currentTime;
-        while (step < seq.length && (start + step * stepDur) < now + 0.15) {
-          const t = seq[step];
-          const when = start + step * stepDur;
-          drums.playToken(t, when);
-          currentTokens.push(t);
-          drawTimeline(currentTokens, step % (16 * 4));
-          step++;
-        }
-        if (step >= seq.length) {
-          clearInterval(scheduler);
-          stopBtn.disabled = true;
-          setStatus('Playback finished.');
-        }
-      }, 20);
-    }
-
-    genBtn.addEventListener('click', () => {
-      if (!MODEL) return;
+    genBtn.addEventListener('click', async () => {
+      if (!MODEL && !WORKER) return;
+      const N = parseInt(nWindowInp.value, 10) || 16;
+      const temp = parseFloat(tempSlider.value);
+      const topk = parseInt(topkSlider.value, 10);
       genBtn.disabled = true; trainBtn.disabled = true;
       setStatus('Generating and playing…');
       try {
         const seed = grooveBackbeat().slice(0, 16);
-        const temp = parseFloat(tempSlider.value);
-        const topk = parseInt(topkSlider.value, 10);
-        const generated = generateTokens(MODEL, seed, 16 * 8, N, temp, topk);
-        const seq = seed.concat(generated);
-        playSequence(seq);
+        const steps = 16 * 8;
+        const generated = WORKER
+          ? await generateTokensAsync(WORKER, seed, steps, N, temp, topk)
+          : generateTokensSync(MODEL, seed, steps, N, temp, topk);
+        playSequence(seed.concat(generated));
+      } catch (err) {
+        console.error(err); setStatus('Generation error: ' + (err?.message || err));
       } finally {
         genBtn.disabled = false; trainBtn.disabled = false;
       }
     });
 
     stopBtn.addEventListener('click', () => {
-      if (scheduler) {
-        clearInterval(scheduler);
-        scheduler = null;
-        stopBtn.disabled = true;
-        setStatus('Playback stopped.');
-      }
+      if (scheduler) { clearInterval(scheduler); scheduler = null; }
+      stopBtn.disabled = true; setStatus('Playback stopped.');
     });
 
-    // initial paint
+    /* initial paint */
     currentTokens = TRAIN_SEQS[0].slice(0, 32);
     drawTimeline(currentTokens, 0);
-    setStatus('Click “Train Model” to begin.');
+    setStatus('Pick engine & click “Train”.');
   </script>
 </body>
 

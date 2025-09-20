@@ -2,8 +2,7 @@
 
 import { Matrix } from './Matrix';
 import { Activations } from './Activations';
-
-export type WeightInit = 'uniform' | 'xavier' | 'he';
+import { WeightInit } from './ELMConfig'
 
 export interface OnlineELMConfig {
     inputDim: number;

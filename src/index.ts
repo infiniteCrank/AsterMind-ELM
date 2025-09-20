@@ -1,10 +1,15 @@
 export * from './core/Activations';
+export * from './core/DeepELM';
 export * from './core/ELM';
+export * from './core/ELMAdapter';
 export * from './core/ELMChain';
 export * from './core/ELMConfig';
+export * from './core/ELMWorker';
+export * from './core/ELMWorkerClient';
 export * from './core/EmbeddingStore';
 export * from './core/evaluateEnsembleRetrieval';
 export * from './core/Evaluation';
+export * from './core/KernelELM';
 export * from './core/Matrix';
 export * from './core/OnlineELM';
 
