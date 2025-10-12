@@ -4,22 +4,51 @@
 [![npm downloads](https://img.shields.io/npm/dm/%40astermind/astermind-elm.svg)](https://www.npmjs.com/package/@astermind/astermind-elm)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 
-A modular Extreme Learning Machine (ELM) library for JS/TS (browser + Node).
+**A modular Extreme Learning Machine (ELM) library for JavaScript/TypeScript** that brings instant, on-device machine learning to browsers and Node.js.
 
 ---
 
-# 🚀 What you can build — and why this is groundbreaking
+## 🚀 Quick Start
 
-AsterMind brings **instant, tiny, on-device ML** to the web. It lets you ship models that **train in milliseconds**, **predict with microsecond latency**, and **run entirely in the browser** — no GPU, no server, no tracking. With **Kernel ELMs**, **Online ELM**, **DeepELM**, and **Web Worker offloading**, you can create:
+```bash
+npm install @astermind/astermind-elm
+```
 
-- **Private, on-device classifiers** (language, intent, toxicity, spam) that retrain on user feedback  
-- **Real-time retrieval & reranking** with compact embeddings (ELM, KernelELM, Nyström whitening) for search and RAG  
-- **Interactive creative tools** (music/drum generators, autocompletes) that respond instantly  
-- **Edge analytics**: regressors/classifiers from data that never leaves the page  
-- **Deep ELM chains**: stack encoders → embedders → classifiers for powerful pipelines, still tiny and transparent  
+```typescript
+import { ELM } from '@astermind/astermind-elm';
 
-**Why it matters:** ELMs give you **closed-form training** (no heavy SGD), **interpretable structure**, and **tiny memory footprints**.  
-AsterMind modernizes ELM with kernels, online learning, workerized training, robust preprocessing, and deep chaining — making **seriously fast ML** practical for every web app.
+// Create and train a language classifier in milliseconds
+const elm = new ELM({
+  categories: ['English', 'French', 'Spanish'],
+  hiddenUnits: 128
+});
+
+// Train with your data
+elm.trainFromData(X, Y);
+
+// Predict instantly
+const prediction = elm.predict("bonjour");
+console.log(prediction); // { category: 'French', confidence: 0.95 }
+```
+
+---
+
+## 🌟 What Makes AsterMind Special
+
+AsterMind brings **instant, tiny, on-device ML** to the web. Unlike traditional neural networks that require heavy training, ELMs provide:
+
+- **⚡ Instant Training**: Train models in milliseconds, not minutes
+- **🔒 Privacy First**: Everything runs locally - no data leaves your device
+- **📱 Zero Dependencies**: No GPU, no server, no external APIs needed
+- **🎯 Tiny Footprint**: Models are incredibly lightweight and fast
+- **🔧 Modular Design**: Mix and match components for complex pipelines
+
+### Perfect For:
+- **Real-time classification** (language, sentiment, intent detection)
+- **On-device search and retrieval** with compact embeddings
+- **Interactive creative tools** (music generators, autocompletes)
+- **Edge analytics** where data never leaves the device
+- **Privacy-sensitive applications** requiring local ML
 
 ---
 
@@ -44,85 +73,112 @@ See [Releases](#releases) for full changelog.
 
 ## 📑 Table of Contents
 
-1. [Introduction](#introduction)  
-2. [Features](#features)  
-3. [Kernel ELMs (KELM)](#kernel-elms-kelm)  
-4. [Online ELM (OS-ELM)](#online-elm-os-elm)  
-5. [DeepELM](#deepelm)  
-6. [Web Worker Adapter](#web-worker-adapter)  
-7. [Installation](#installation)  
-8. [Usage Examples](#usage-examples)  
-9. [Suggested Experiments](#suggested-experiments)  
-10. [Why Use AsterMind](#why-use-astermind)  
-11. [Core API Documentation](#core-api-documentation)  
-12. [Method Options Reference](#method-options-reference)  
-13. [ELMConfig Options](#elmconfig-options-reference)  
-14. [Prebuilt Modules](#prebuilt-modules-and-custom-modules)  
-15. [Text Encoding Modules](#text-encoding-modules)  
-16. [UI Binding Utility](#ui-binding-utility)  
-17. [Data Augmentation Utilities](#data-augmentation-utilities)  
-18. [IO Utilities (Experimental)](#io-utilities-experimental)  
-19. [Embedding Store](#embedding-store)  
-20. [Utilities: Matrix & Activations](#utilities-matrix--activations)  
-21. [Adapters & Chains](#adapters--chains)  
-22. [Workers: ELMWorker & ELMWorkerClient](#workers-elmworker--elmworkerclient)  
-23. [Example Demos and Scripts](#example-demos-and-scripts)  
-24. [Experiments and Results](#experiments-and-results)  
-25. [Releases](#releases)  
-26. [License](#license)
+1. [Installation](#installation)
+2. [Core Concepts](#core-concepts)
+3. [Quick Examples](#quick-examples)
+4. [Advanced Features](#advanced-features)
+5. [API Reference](#api-reference)
+6. [Examples & Demos](#examples--demos)
+7. [Why ELMs?](#why-elms)
+8. [Contributing](#contributing)
+9. [License](#license)
 
 ---
 
-<a id="introduction"></a>
-# 🌟 AsterMind: Decentralized ELM Framework Inspired by Nature
+## Core Concepts
 
-Welcome to **AsterMind**, a modular, decentralized ML framework built around cooperating Extreme Learning Machines (ELMs) that self-train, self-evaluate, and self-repair — like the nervous system of a starfish.
+### What is an Extreme Learning Machine (ELM)?
 
-**How This ELM Library Differs from a Traditional ELM**
+An ELM is a type of neural network that:
+1. **Randomly initializes** the hidden layer weights (no backpropagation needed)
+2. **Uses a closed-form solution** to find the output weights
+3. **Trains in milliseconds** instead of minutes or hours
+4. **Maintains high accuracy** for many classification and regression tasks
 
-This library preserves the core Extreme Learning Machine idea — random hidden layer, nonlinear activation, closed-form output solve — but extends it with:
+### Key Components
 
-- Multiple activations (ReLU, LeakyReLU, Sigmoid, **Linear, GELU**)  
-- Xavier/Uniform/**He** initialization  
-- Dropout on hidden activations  
-- Sample weighting  
-- Metrics gate (RMSE, MAE, Accuracy, F1, Cross-Entropy, R²)  
-- JSON export/import  
-- Model lifecycle management  
-- UniversalEncoder for text (char/token)  
-- Data augmentation utilities  
-- Chaining (ELMChain) for stacked embeddings  
-- Weight reuse (simulated fine-tuning)  
-- Logging utilities
-
-AsterMind is designed for:
-
-* Lightweight, in-browser ML pipelines  
-* Transparent, interpretable predictions  
-* Continuous, incremental learning  
-* Resilient systems with no single point of failure  
+- **ELM**: Basic classifier/regressor with instant training
+- **KernelELM**: Kernel-based ELM for non-linear problems
+- **OnlineELM**: Stream learning for continuous updates
+- **DeepELM**: Multi-layer stacked ELMs
+- **EmbeddingStore**: Vector database for similarity search  
 
 ---
 
-<a id="features"></a>
-## ✨ Features
+## Quick Examples
 
-- ✅ Modular Architecture  
-- ✅ Closed-form training (ridge / pseudoinverse)  
-- ✅ Activations: relu, leakyrelu, sigmoid, tanh, linear, gelu  
-- ✅ Initializers: uniform, xavier, he  
-- ✅ Numeric + Text configs  
-- ✅ Kernel ELM with Nyström + whitening  
-- ✅ Online ELM (RLS) with forgetting factor  
-- ✅ DeepELM (stacked layers)  
-- ✅ Web Worker adapter  
-- ✅ Embeddings & Chains for retrieval and deep pipelines  
-- ✅ JSON import/export  
-- ✅ Self-governing training  
-- ✅ Flexible preprocessing  
-- ✅ Lightweight deployment (ESM + UMD)  
-- ✅ Retrieval and classification utilities  
-- ✅ Zero server/GPU — private, on-device ML  
+### 1. Language Classification
+
+```typescript
+import { ELM } from '@astermind/astermind-elm';
+
+const elm = new ELM({
+  categories: ['English', 'French', 'Spanish', 'German'],
+  hiddenUnits: 256,
+  activation: 'relu'
+});
+
+// Train with your data
+const texts = ['hello', 'bonjour', 'hola', 'guten tag'];
+const labels = ['English', 'French', 'Spanish', 'German'];
+elm.trainFromData(texts, labels);
+
+// Predict
+const result = elm.predict("bonjour");
+console.log(result.category); // 'French'
+```
+
+### 2. Real-time Sentiment Analysis
+
+```typescript
+import { OnlineELM } from '@astermind/astermind-elm';
+
+const sentiment = new OnlineELM({
+  inputDim: 100,
+  outputDim: 3, // positive, negative, neutral
+  hiddenUnits: 128
+});
+
+// Initialize with some data
+sentiment.init(initialTexts, initialLabels);
+
+// Update with new data as it comes in
+sentiment.update(newTexts, newLabels);
+
+// Get predictions
+const prediction = sentiment.predictProbaFromVectors(textVector);
+```
+
+### 3. Vector Similarity Search
+
+```typescript
+import { EmbeddingStore, ELM } from '@astermind/astermind-elm';
+
+// Create an embedding model
+const embedder = new ELM({
+  categories: ['dummy'], // We'll use it for embeddings
+  hiddenUnits: 512
+});
+
+// Create vector store
+const store = new EmbeddingStore({ capacity: 10000 });
+
+// Add documents
+const documents = [
+  { id: 'doc1', text: 'Machine learning is fascinating' },
+  { id: 'doc2', text: 'Neural networks are powerful' }
+];
+
+documents.forEach(doc => {
+  const embedding = embedder.getEmbedding(doc.text);
+  store.add({ id: doc.id, vector: embedding, meta: doc });
+});
+
+// Search
+const query = 'artificial intelligence';
+const queryEmbedding = embedder.getEmbedding(query);
+const results = store.query({ vector: queryEmbedding, k: 5 });
+```  
 
 ---
 
@@ -205,10 +261,9 @@ See [Workers](#workers-elmworker--elmworkerclient) for full API.
 
 ---
 
-<a id="installation"></a>
-## 🚀 Installation
+## Installation
 
-**NPM (scoped package):**
+### NPM
 ```bash
 npm install @astermind/astermind-elm
 # or
@@ -217,289 +272,251 @@ pnpm add @astermind/astermind-elm
 yarn add @astermind/astermind-elm
 ```
 
-**CDN / `<script>` (UMD global `astermind`):**
+### CDN (Browser)
 ```html
-<!-- jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/@astermind/astermind-elm/dist/astermind.umd.js"></script>
-
-<!-- or unpkg -->
-<script src="https://unpkg.com/@astermind/astermind-elm/dist/astermind.umd.js"></script>
-
 <script>
-  const { ELM, KernelELM } = window.astermind;
+  const { ELM, KernelELM, OnlineELM } = window.astermind;
 </script>
 ```
 
-**Repository:**
-- GitHub: https://github.com/infiniteCrank/AsterMind-ELM  
-- NPM: https://www.npmjs.com/package/@astermind/astermind-elm  
+### TypeScript Support
+Full TypeScript definitions are included. No additional `@types` package needed.
 
 ---
 
-<a id="usage-examples"></a>
-## 🛠️ Usage Examples
+## Advanced Features
 
-**Basic ELM Classifier**
+### Kernel ELMs for Complex Patterns
 
-```ts
-import { ELM } from "@astermind/astermind-elm";
+```typescript
+import { KernelELM, KernelRegistry } from '@astermind/astermind-elm';
 
-const config = { categories: ['English', 'French'], hiddenUnits: 128 };
-const elm = new ELM(config);
+const kelm = new KernelELM({
+  outputDim: 3,
+  kernel: { type: 'rbf', gamma: 0.1 },
+  mode: 'nystrom',
+  nystrom: { m: 256, strategy: 'kmeans++', whiten: true },
+  ridgeLambda: 1e-2
+});
 
-// Load or train logic here
-const results = elm.predict("bonjour");
-console.log(results);
+kelm.fit(X, Y);
+const predictions = kelm.predictProbaFromVectors(X_test);
 ```
 
-**CommonJS / Node:**
-```js
-const { ELM } = require("@astermind/astermind-elm");
+### Deep ELM Networks
+
+```typescript
+import { DeepELM } from '@astermind/astermind-elm';
+
+const deep = new DeepELM({
+  inputDim: 100,
+  layers: [
+    { hiddenUnits: 128 },
+    { hiddenUnits: 64 },
+    { hiddenUnits: 32 }
+  ],
+  numClasses: 5
+});
+
+// Train autoencoders layer by layer
+const features = deep.fitAutoencoders(X);
+
+// Train final classifier
+deep.fitClassifier(features, Y);
+
+// Predict
+const predictions = deep.predictProbaFromVectors(X_test);
 ```
 
-**Kernel ELM / DeepELM:** see above examples.
+### Web Workers for Heavy Computation
 
----
-
-<a id="suggested-experiments"></a>
-## 🧪 Suggested Experiments
-
-* Compare retrieval performance with Sentence-BERT and TFIDF.  
-* Experiment with activations and token vs char encoding.  
-* Deploy in-browser retraining workflows.  
-
----
-
-<a id="why-use-astermind"></a>
-## 🌿 Why Use AsterMind?
-
-Because you can build AI systems that:
-
-* Are decentralized.  
-* Self-heal and retrain independently.  
-* Run in the browser.  
-* Are transparent and interpretable.  
-
----
-
-<a id="core-api-documentation"></a>
-## 📚 Core API Documentation
-
-### ELM  
-- `train`, `trainFromData`, `predict`, `predictFromVector`, `getEmbedding`, **`predictLogitsFromVectors`**, JSON I/O, metrics  
-- `loadModelFromJSON`, `saveModelAsJSONFile`  
-- Evaluation: RMSE, MAE, Accuracy, F1, Cross-Entropy, R²  
-- Config highlights: `ridgeLambda`, `weightInit` (`uniform` | `xavier` | `he`), `seed`
-
-### OnlineELM  
-- `init`, `update`, `fit`, `predictLogitsFromVectors`, `predictProbaFromVectors`, embeddings (hidden/logits), JSON I/O  
-- Config highlights: `inputDim`, `outputDim`, `hiddenUnits`, `activation`, `ridgeLambda`, `forgettingFactor`
-
-### KernelELM  
-- `fit`, `predictProbaFromVectors`, `getEmbedding`, JSON I/O  
-- `mode: 'exact' | 'nystrom'`, kernels: `rbf | linear | poly | laplacian | custom`
-
-### DeepELM  
-- `fitAutoencoders(X)`, `transform(X)`, `fitClassifier(X_L, Y)`, `predictProbaFromVectors(X)`  
-- `toJSON()`, `fromJSON()` for full-pipeline persistence
-
-### ELMChain  
-- sequential embeddings through multiple encoders
-
-### TFIDFVectorizer  
-- `vectorize`, `vectorizeAll`
-
-### KNN  
-- `find(queryVec, dataset, k, topX, metric)`
-
----
-
-<a id="method-options-reference"></a>
-## 📘 Method Options Reference
-
-### `train(augmentationOptions?, weights?)`
-- `augmentationOptions`: `{ suffixes, prefixes, includeNoise }`  
-- `weights`: sample weights
-
-### `trainFromData(X, Y, options?)`
-- `X`: Input matrix  
-- `Y`: Label matrix or one-hot  
-- `options`: `{ reuseWeights, weights }`  
-
-### `predict(text, topK)`  
-- `text`: string  
-- `topK`: number of predictions  
-
-### `predictFromVector(vector, topK)`  
-- `vector`: numeric  
-- `topK`: number of predictions  
-
-### `saveModelAsJSONFile(filename?)`  
-- `filename`: optional file name  
-
----
-
-<a id="elmconfig-options-reference"></a>
-## ⚙️ ELMConfig Options Reference
-
-| Option               | Type       | Description                                                   |
-| -------------------- | ---------- | ------------------------------------------------------------- |
-| `categories`         | `string[]` | List of labels the model should classify. *(Required)*        |
-| `hiddenUnits`        | `number`   | Number of hidden layer units (default: 50).                   |
-| `maxLen`             | `number`   | Max length of input sequences (default: 30).                  |
-| `activation`         | `string`   | Activation function (`relu`, `tanh`, etc.).                   |
-| `encoder`            | `any`      | Custom UniversalEncoder instance (optional).                  |
-| `charSet`            | `string`   | Character set used for encoding.                              |
-| `useTokenizer`       | `boolean`  | Use token-level encoding.                                     |
-| `tokenizerDelimiter` | `RegExp`   | Tokenizer regex.                                              |
-| `exportFileName`     | `string`   | Filename to export JSON.                                      |
-| `metrics`            | `object`   | Thresholds (`rmse`, `mae`, `accuracy`, etc.).                 |
-| `log`                | `object`   | Logging config.                                               |
-| `dropout`            | `number`   | Dropout rate.                                                 |
-| `weightInit`         | `string`   | Initializer. (`uniform` | `xavier` | `he`)                    |
-| `ridgeLambda`        | `number`   | Ridge penalty for closed-form solve.                          |
-| `seed`               | `number`   | PRNG seed for reproducibility.                                |
-
----
-
-<a id="prebuilt-modules-and-custom-modules"></a>
-## 🧩 Prebuilt Modules and Custom Modules
-
-Includes: AutoComplete, EncoderELM, CharacterLangEncoderELM, FeatureCombinerELM, ConfidenceClassifierELM, IntentClassifier, LanguageClassifier, VotingClassifierELM, RefinerELM.  
-
-Each exposes `.train()`, `.predict()`, `.loadModelFromJSON()`, `.saveModelAsJSONFile()`, `.encode()`.
-
-Custom modules can be built on top.
-
----
-
-<a id="text-encoding-modules"></a>
-## ✨ Text Encoding Modules
-
-Includes `TextEncoder`, `Tokenizer`, `UniversalEncoder`.  
-Supports char-level & token-level, normalization, n-grams.
-
----
-
-<a id="ui-binding-utility"></a>
-## 🖥️ UI Binding Utility
-
-`bindAutocompleteUI(model, inputElement, outputElement, topK)` helper.  
-Binds model predictions to live HTML input.
-
----
-
-<a id="data-augmentation-utilities"></a>
-## ✨ Data Augmentation Utilities
-
-Augment with prefixes, suffixes, noise.  
-Example: `Augment.generateVariants("hello", "abc", { suffixes:["world"], includeNoise:true })`.
-
----
-
-<a id="io-utilities-experimental"></a>
-## ⚠️ IO Utilities (Experimental)
-
-JSON/CSV/TSV import/export, schema inference.  
-Experimental and may be unstable.
-
----
-
-<a id="embedding-store"></a>
-## 🧰 Embedding Store
-
-Lightweight vector store with cosine/dot/euclidean KNN, unit-norm storage, ring buffer capacity.
-
-**Usage**
-```ts
-import { EmbeddingStore } from '@astermind/astermind-elm';
-
-const store = new EmbeddingStore({ capacity: 5000, normalize: true });
-store.add({ id: 'doc1', vector: [/* ... */], meta: { title: 'Hello' } });
-const hits = store.query({ vector: q, k: 10, metric: 'cosine' });
-```
-
----
-
-<a id="utilities-matrix--activations"></a>
-## 🔧 Utilities: Matrix & Activations
-
-**Matrix** – internal linear algebra utilities (multiply, transpose, addRegularization, solveCholesky, etc.).  
-**Activations** – `relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`, `gelu`, plus `softmax`, derivatives, and helpers (`get`, `getDerivative`, `getPair`).
-
----
-
-<a id="adapters--chains"></a>
-## 🔗 Adapters & Chains
-
-**ELMAdapter** wraps an `ELM` or `OnlineELM` to behave like an encoder for `ELMChain`:
-
-```ts
-import { ELMAdapter, wrapELM, wrapOnlineELM } from '@astermind/astermind-elm';
-
-const enc1 = wrapELM(elm);                          // uses elm.getEmbedding(X)
-const enc2 = wrapOnlineELM(online, { mode: 'logits' }); // 'hidden' or 'logits'
-const chain = new ELMChain([enc1, enc2], { normalizeFinal: true });
-
-const Z = chain.getEmbedding(X); // stacked embeddings
-```
-
----
-
-<a id="workers-elmworker--elmworkerclient"></a>
-## 🧱 Workers: ELMWorker & ELMWorkerClient
-
-**ELMWorker** (inside a Web Worker) exposes a tolerant RPC surface:  
-- lifecycle: `initELM`, `initOnlineELM`, `dispose`, `getKind`, `setVerbose`  
-- training: `train`, `fit`, `update`, `trainFromData` (all routed appropriately)  
-- prediction: `predict`, `predictFromVector`, `predictLogits`  
-- progress events: `{ type:'progress', phase, pct }` during training
-
-**ELMWorkerClient** (on the main thread) is a thin promise-based RPC client:
-
-```ts
+```typescript
 import { ELMWorkerClient } from '@astermind/astermind-elm/worker';
 
-const client = new ELMWorkerClient(new Worker(new URL('./ELMWorker.js', import.meta.url)));
-await client.initELM({ categories:['A','B'], hiddenUnits:128 });
+const client = new ELMWorkerClient(
+  new Worker(new URL('./worker.js', import.meta.url))
+);
 
-await client.elmTrain({}, (p) => console.log(p.phase, p.pct));
-const preds = await client.elmPredict('bonjour', 5);
+await client.initELM({
+  categories: ['A', 'B', 'C'],
+  hiddenUnits: 256
+});
+
+// Training happens off-main-thread
+await client.elmTrain({}, (progress) => {
+  console.log(`Training: ${progress.pct}%`);
+});
+
+const predictions = await client.elmPredict('test input');
+```  
+
+---
+
+## API Reference
+
+### ELM Class
+
+The core Extreme Learning Machine implementation.
+
+```typescript
+const elm = new ELM(config);
+```
+
+#### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `categories` | `string[]` | **Required** | List of classification categories |
+| `hiddenUnits` | `number` | `50` | Number of hidden layer neurons |
+| `activation` | `string` | `'relu'` | Activation function (`relu`, `sigmoid`, `tanh`, `linear`, `gelu`) |
+| `weightInit` | `string` | `'xavier'` | Weight initialization (`uniform`, `xavier`, `he`) |
+| `ridgeLambda` | `number` | `1e-6` | Ridge regularization parameter |
+| `dropout` | `number` | `0` | Dropout rate (0-1) |
+| `seed` | `number` | `null` | Random seed for reproducibility |
+
+#### Methods
+
+- `trainFromData(X, Y, options?)` - Train with data matrices
+- `predict(text, topK?)` - Predict category for text input
+- `predictFromVector(vector, topK?)` - Predict from feature vector
+- `getEmbedding(text)` - Get embedding vector for text
+- `saveModelAsJSONFile(filename?)` - Export model to JSON
+- `loadModelFromJSON(json)` - Load model from JSON
+
+### OnlineELM Class
+
+For streaming/online learning scenarios.
+
+```typescript
+const online = new OnlineELM({
+  inputDim: 100,
+  outputDim: 3,
+  hiddenUnits: 128,
+  forgettingFactor: 0.99 // How fast to forget old data
+});
+
+online.init(initialX, initialY);
+online.update(newX, newY);
+```
+
+### KernelELM Class
+
+Kernel-based ELM for non-linear problems.
+
+```typescript
+const kelm = new KernelELM({
+  outputDim: 3,
+  kernel: { type: 'rbf', gamma: 0.1 },
+  mode: 'exact' // or 'nystrom'
+});
+```
+
+### EmbeddingStore Class
+
+Vector database for similarity search.
+
+```typescript
+const store = new EmbeddingStore({
+  capacity: 10000,
+  normalize: true
+});
+
+store.add({ id: 'doc1', vector: [0.1, 0.2, ...], meta: { title: 'Doc 1' } });
+const results = store.query({ vector: queryVec, k: 10, metric: 'cosine' });
 ```
 
 ---
 
-<a id="example-demos-and-scripts"></a>
-## 🧪 Example Demos and Scripts
+## Examples & Demos
 
-Run with `npm run dev:*` (autocomplete, lang, chain, news).  
-Fully in-browser.
+### Browser Demos
+- **Language Classification**: `examples/language-awareness-demo/`
+- **Autocomplete**: `examples/autocomplete-chain/`
+- **News Classification**: `examples/ag-news-demo/`
+- **Drum Generator**: `examples/elm-drum-demo-mainthread/`
 
----
+### Node.js Examples
+- **AG News Classification**: `node_examples/agnews-two-stage-retrieval.ts`
+- **Book Indexing**: `node_examples/book-index-elm-tfidf.ts`
+- **Deep ELM Retrieval**: `node_examples/deepelm-kelm-retrieval.ts`
 
-<a id="experiments-and-results"></a>
-## 🧪 Experiments and Results
-
-Includes dropout tuning, hybrid retrieval, ensemble distillation, multi-level pipelines.  
-Results reported (Recall@1, Recall@5, MRR).
-
----
-
-<a id="releases"></a>
-## 📦 Releases
-
-### v2.1.0 — 2025-09-19
-**New features:** Kernel ELM, Nyström whitening, OnlineELM, DeepELM, Worker adapter, EmbeddingStore 2.0, activations linear/gelu, config split.  
-**Fixes:** Xavier init, encoder guards, dropout scaling.  
-**Breaking:** Config now `NumericConfig|TextConfig`.
+Run demos with:
+```bash
+npm run dev:autocomplete
+npm run dev:lang
+npm run dev:chain
+npm run dev:news
+```
 
 ---
 
-<a id="license"></a>
-## 📄 License
+## Why ELMs?
 
-MIT License
+### Traditional Neural Networks
+- ❌ Require backpropagation (slow training)
+- ❌ Need careful hyperparameter tuning
+- ❌ Can overfit easily
+- ❌ Require large datasets
+
+### Extreme Learning Machines
+- ✅ **Instant training** with closed-form solution
+- ✅ **Robust** to hyperparameter choices
+- ✅ **Less prone to overfitting**
+- ✅ **Work well with small datasets**
+- ✅ **Interpretable** and transparent
+- ✅ **Perfect for edge devices**
+
+### When to Use ELMs
+- **Real-time applications** where speed matters
+- **Privacy-sensitive** scenarios requiring local processing
+- **Resource-constrained** environments (mobile, IoT)
+- **Prototyping** and rapid experimentation
+- **Ensemble methods** where you need many fast models  
 
 ---
 
-> **“AsterMind doesn’t just mimic a brain—it functions more like a starfish: fully decentralized, self-evaluating, and self-repairing.”**
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+git clone https://github.com/infiniteCrank/AsterMind-ELM
+cd AsterMind-ELM
+npm install
+npm run build
+npm test
+```
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+AsterMind is inspired by the decentralized, self-organizing nature of starfish nervous systems. Just as starfish can regenerate and adapt without a central brain, AsterMind enables ML systems that are resilient, distributed, and self-improving.
+
+---
+
+> **"AsterMind doesn't just mimic a brain—it functions more like a starfish: fully decentralized, self-evaluating, and self-repairing."**
+
+---
+
+## Changelog
+
+### v2.1.0 (Latest)
+- ✨ **Kernel ELMs** with RBF, Linear, Polynomial, and Laplacian kernels
+- ✨ **Online ELM** for streaming learning
+- ✨ **DeepELM** for multi-layer architectures
+- ✨ **Web Worker support** for off-main-thread processing
+- ✨ **EmbeddingStore 2.0** with improved performance
+- ✨ **New activations**: Linear and GELU
+- 🔧 **Improved matrix operations** with better numerical stability
+- 📚 **Enhanced documentation** and examples
+
+See [Releases](https://github.com/infiniteCrank/AsterMind-ELM/releases) for full changelog.
